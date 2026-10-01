@@ -105,8 +105,13 @@ abstract final class AppTheme {
       brightness: brightness,
       primary: primary,
       onPrimary: Colors.white,
+      primaryContainer: primary.withValues(alpha: 0.16),
+      onPrimaryContainer: primary,
       secondary: AppColors.amber500,
       onSecondary: AppColors.slate950,
+      // Selected chips and navigation indicators draw from the secondary container slots.
+      secondaryContainer: primary.withValues(alpha: 0.16),
+      onSecondaryContainer: primary,
       error: status.danger,
       onError: Colors.white,
       surface: surface,
@@ -170,6 +175,7 @@ abstract final class AppTheme {
           shape: RoundedRectangleBorder(borderRadius: radius),
         ),
       ),
+      listTileTheme: ListTileThemeData(leadingAndTrailingTextStyle: textTheme.bodyLarge),
       textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(minimumSize: const Size(44, 44))),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: surface,

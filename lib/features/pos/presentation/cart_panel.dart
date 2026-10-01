@@ -252,7 +252,10 @@ class _CartLine extends ConsumerWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(rupiah(item.total), style: const TextStyle(fontWeight: FontWeight.w600)),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Text(rupiah(item.total), style: const TextStyle(fontWeight: FontWeight.w600)),
+                ),
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [

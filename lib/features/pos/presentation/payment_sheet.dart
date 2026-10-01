@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/money_field.dart';
 import '../../sales/data/sale_models.dart';
 import '../../shift/shift_controller.dart';
@@ -223,6 +224,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: Center(
+        heightFactor: 1,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 560),
           child: SingleChildScrollView(
@@ -292,7 +294,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                 MoneyField(
                   controller: _amount,
                   label: _isCash ? 'Uang diterima' : 'Nominal',
-                  autofocus: _isCash,
+                  autofocus: _isCash && context.isMedium,
                   onChanged: (_) => setState(() => _error = null),
                   onSubmitted: (_) => _submit(),
                 ),

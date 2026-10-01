@@ -29,7 +29,10 @@ class ReceiptSheet extends ConsumerWidget {
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
-        builder: (_) => FractionallySizedBox(heightFactor: 0.9, child: ReceiptSheet(saleId: saleId)),
+        builder: (context) => ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.9),
+          child: ReceiptSheet(saleId: saleId),
+        ),
       );
 
   @override
@@ -40,9 +43,10 @@ class ReceiptSheet extends ConsumerWidget {
       value: receipt,
       onRetry: () => ref.invalidate(receiptProvider(saleId)),
       data: (receipt) => Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(
+          Flexible(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Center(
@@ -52,7 +56,7 @@ class ReceiptSheet extends ConsumerWidget {
                   color: Colors.white,
                   child: Text(
                     receipt.text,
-                    style: const TextStyle(fontFamily: 'monospace', fontSize: 12, color: AppColors.slate900, height: 1.35),
+                    style: const TextStyle(fontFamily: 'monospace', fontFamilyFallback: ['Menlo', 'Courier'], fontSize: 12, color: AppColors.slate900, height: 1.35),
                   ),
                 ),
               ),
@@ -74,7 +78,7 @@ class ReceiptSheet extends ConsumerWidget {
                   child: FilledButton.icon(
                     onPressed: () => openWhatsApp(context, receipt.whatsappUrl),
                     icon: const Icon(LucideIcons.messageCircle, size: 18),
-                    label: const Text('Kirim WhatsApp'),
+                    label: const Text('WhatsApp'),
                   ),
                 ),
               ],

@@ -45,65 +45,71 @@ class AccountScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(title: const Text('Akun')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.16),
-                    child: Text(
-                      user.name.isEmpty ? '?' : user.name[0].toUpperCase(),
-                      style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(user.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                        Text(
-                          '@${user.username} · ${user.roleLabel}',
-                          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+      body: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      CircleAvatar(
+                        radius: 24,
+                        backgroundColor: theme.colorScheme.primary.withValues(alpha: 0.16),
+                        child: Text(
+                          user.name.isEmpty ? '?' : user.name[0].toUpperCase(),
+                          style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
                         ),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(user.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                            Text(
+                              '@${user.username} · ${user.roleLabel}',
+                              style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          Card(
-            child: Column(
-              children: [
-                ListTile(
-                  leading: const Icon(LucideIcons.server, size: 20),
-                  title: const Text('Server'),
-                  subtitle: Text(ref.watch(serverUrlProvider)),
+              const SizedBox(height: 16),
+              Card(
+                child: Column(
+                  children: [
+                    ListTile(
+                      leading: const Icon(LucideIcons.server, size: 20),
+                      title: const Text('Server'),
+                      subtitle: Text(ref.watch(serverUrlProvider)),
+                    ),
+                    const Divider(),
+                    SwitchListTile(
+                      secondary: Icon(isDark ? LucideIcons.moon : LucideIcons.sun, size: 20),
+                      title: const Text('Tema gelap'),
+                      value: isDark,
+                      onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
+                    ),
+                  ],
                 ),
-                const Divider(),
-                SwitchListTile(
-                  secondary: Icon(isDark ? LucideIcons.moon : LucideIcons.sun, size: 20),
-                  title: const Text('Tema gelap'),
-                  value: isDark,
-                  onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: () => _logout(context, ref),
+                icon: Icon(LucideIcons.logOut, size: 18, color: StatusColors.of(context).danger),
+                label: Text('Keluar', style: TextStyle(color: StatusColors.of(context).danger)),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          OutlinedButton.icon(
-            onPressed: () => _logout(context, ref),
-            icon: Icon(LucideIcons.logOut, size: 18, color: StatusColors.of(context).danger),
-            label: Text('Keluar', style: TextStyle(color: StatusColors.of(context).danger)),
-          ),
-        ],
+        ),
       ),
     );
   }

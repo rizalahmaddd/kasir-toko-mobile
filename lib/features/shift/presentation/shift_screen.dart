@@ -99,7 +99,7 @@ class _ShiftDetail extends ConsumerWidget {
                             _Row('Penjualan tunai', rupiah(summary.cashSales)),
                             if (summary.cashReceivables > 0) _Row('Pelunasan kasbon tunai', rupiah(summary.cashReceivables)),
                             _Row('Kas masuk', rupiah(summary.cashIn)),
-                            _Row('Kas keluar', '-${rupiah(summary.cashOut)}'),
+                            _Row('Kas keluar', summary.cashOut > 0 ? '-${rupiah(summary.cashOut)}' : rupiah(0)),
                             const Divider(height: 24),
                             _Row('Transaksi selesai', '${summary.salesCount}'),
                             _Row('Total penjualan', rupiah(summary.salesTotal)),

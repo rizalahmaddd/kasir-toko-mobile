@@ -29,6 +29,8 @@ class MoneyField extends StatelessWidget {
       autofocus: autofocus,
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.done,
+      // The iOS number pad has no return key, so tapping elsewhere is the only way to dismiss it.
+      onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       inputFormatters: [FilteringTextInputFormatter.digitsOnly, ThousandsFormatter()],
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
       decoration: InputDecoration(labelText: label, prefixText: 'Rp ', errorText: errorText),
