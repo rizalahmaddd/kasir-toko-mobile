@@ -7,6 +7,7 @@ import '../../../core/utils/responsive.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/data/current_user.dart';
+import '../../offline/offline_queue.dart';
 
 typedef ShellTab = ({int branch, IconData icon, String label});
 
@@ -26,6 +27,7 @@ class HomeShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(offlineSyncerProvider);
     final tabs = visibleTabs(ref.watch(currentUserProvider));
     final selected = tabs.indexWhere((tab) => tab.branch == shell.currentIndex).clamp(0, tabs.length - 1);
 

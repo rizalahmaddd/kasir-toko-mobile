@@ -9,6 +9,9 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/money_field.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../offline/offline_queue.dart';
+import '../../offline/presentation/offline_checkout_success.dart';
+import '../../sales/data/sale_models.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
@@ -70,8 +73,8 @@ class CartPanel extends ConsumerWidget {
 
   Future<void> _pay(BuildContext context) async {
     final navigator = Navigator.of(context);
-    final sale = await PaymentSheet.show(context);
-    if (sale == null || !navigator.mounted) {
+    final result = await PaymentSheet.show(context);
+    if (result == null || !navigator.mounted) {
       return;
     }
 
@@ -79,7 +82,11 @@ class CartPanel extends ConsumerWidget {
     if (navigator.canPop()) {
       navigator.pop();
     }
-    await CheckoutSuccess.show(navigator.context, sale);
+    if (result is SaleDetail) {
+      await CheckoutSuccess.show(navigator.context, result);
+    } else if (result is QueuedSale) {
+      await OfflineCheckoutSuccess.show(navigator.context, result);
+    }
   }
 
   @override

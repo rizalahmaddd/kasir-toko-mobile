@@ -8,6 +8,9 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/money_field.dart';
+import '../../auth/auth_controller.dart';
+import '../../offline/catalog_snapshot.dart';
+import '../../offline/offline_queue.dart';
 import '../../sales/data/sale_models.dart';
 import '../../shift/shift_controller.dart';
 import '../cart_controller.dart';
@@ -31,7 +34,8 @@ const _cartRejections = {'unavailable', 'price_changed', 'insufficient_stock'};
 class PaymentSheet extends ConsumerStatefulWidget {
   const PaymentSheet({super.key});
 
-  static Future<SaleDetail?> show(BuildContext context) => showModalBottomSheet<SaleDetail>(
+  /// Resolves to a [SaleDetail] when the server recorded the sale, or a [QueuedSale] when it was kept offline.
+  static Future<Object?> show(BuildContext context) => showModalBottomSheet<Object>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,
@@ -156,12 +160,82 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
         Navigator.pop(context, sale);
       }
     } on ApiException catch (error) {
-      _handleRejection(error);
+      if (error.isNetworkError) {
+        _queueOffline(cart, payments, paid);
+      } else {
+        _handleRejection(error);
+      }
     } finally {
       if (mounted) {
         setState(() => _busy = false);
       }
     }
+  }
+
+  /// The server couldn't be reached; keep the sale (same client_uuid) and let the syncer send it later.
+  void _queueOffline(Cart cart, List<PaymentLine> payments, int paid) {
+    final user = ref.read(currentUserProvider);
+    if (user == null || !mounted) {
+      return;
+    }
+
+    final totals = cart.totals(_config.taxRate);
+    final labels = {for (final method in _config.paymentMethods) method.value: method.label};
+    final cash = payments.where((p) => p.method == 'cash').fold(0, (sum, p) => sum + p.amount);
+    final change = paid > totals.total ? paid - totals.total : 0;
+    final now = DateTime.now();
+    final sale = QueuedSale(
+      payload: PosRepository.checkoutPayload(cart: cart, payments: payments, expectedTotal: totals.total),
+      cart: cart.toJson(total: totals.total),
+      userId: user.id,
+      total: totals.total,
+      paid: paid,
+      itemCount: cart.itemCount,
+      createdAt: now,
+      customerName: cart.customer?.name,
+      preview: {
+        'id': 0,
+        'number': 'OFFLINE-${cart.clientUuid.substring(0, 8).toUpperCase()}',
+        'status': 'completed',
+        'status_label': 'Menunggu sinkron',
+        'sold_at': now.toIso8601String(),
+        'cashier': {'id': user.id, 'name': user.name},
+        'customer': cart.customer == null ? null : {'id': cart.customer!.id, 'name': cart.customer!.name},
+        'subtotal': totals.subtotal,
+        'discount_type': cart.discountType?.name,
+        'discount_value': cart.discountValue,
+        'discount_amount': totals.discountAmount,
+        'tax_rate': _config.taxRate,
+        'tax_amount': totals.taxAmount,
+        'total': totals.total,
+        'paid_amount': paid.clamp(0, totals.total),
+        'cash_received': cash,
+        'change_amount': change,
+        'due_amount': (totals.total - paid).clamp(0, totals.total),
+        'items': [
+          for (final item in cart.items)
+            {
+              'product_name': item.name,
+              'unit': item.unit,
+              'quantity': item.quantity,
+              'price': item.price,
+              'discount_amount': item.appliedDiscount,
+              'total': item.total,
+              'note': item.note,
+            },
+        ],
+        'payments': [
+          for (final p in payments)
+            {'kind': 'sale', 'method': p.method, 'method_label': labels[p.method] ?? p.method, 'amount': p.amount, 'paid_at': now.toIso8601String()},
+        ],
+      },
+    );
+
+    ref.read(offlineQueueProvider.notifier).add(sale);
+    ref.read(catalogSnapshotProvider.notifier).deduct({for (final item in cart.items) item.productId: item.quantity});
+    ref.read(cartProvider.notifier).clear();
+    ref.invalidate(catalogProvider);
+    Navigator.pop(context, sale);
   }
 
   void _handleRejection(ApiException error) {

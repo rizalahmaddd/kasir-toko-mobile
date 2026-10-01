@@ -80,6 +80,7 @@ class Product {
     required this.stock,
     this.isLowStock = false,
     this.categoryName,
+    this.categoryId,
     this.imageUrl,
   });
 
@@ -94,6 +95,7 @@ class Product {
         stock: _double(json['stock']),
         isLowStock: json['is_low_stock'] as bool? ?? false,
         categoryName: (json['category'] as Map<String, dynamic>?)?['name'] as String?,
+        categoryId: (json['category'] as Map<String, dynamic>?)?['id'] as int?,
         imageUrl: json['image_url'] as String?,
       );
 
@@ -107,6 +109,7 @@ class Product {
   final double stock;
   final bool isLowStock;
   final String? categoryName;
+  final int? categoryId;
   final String? imageUrl;
 
   bool get isOutOfStock => trackStock && stock <= 0;

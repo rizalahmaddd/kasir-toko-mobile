@@ -15,6 +15,7 @@ import 'features/home/presentation/home_shell.dart';
 import 'features/home/presentation/menu_screen.dart';
 import 'features/home/presentation/splash_screen.dart';
 import 'features/notifications/presentation/notifications_screen.dart';
+import 'features/offline/presentation/offline_screen.dart';
 import 'features/notifications/presentation/search_screen.dart';
 import 'features/pos/presentation/pos_screen.dart';
 import 'features/printing/presentation/printer_screen.dart';
@@ -141,6 +142,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page('/search', (_) => const SearchScreen()),
       _page('/account', (_) => const AccountScreen()),
       _page('/printer', (_) => const PrinterScreen()),
+      _page('/offline', (_) => const OfflineScreen()),
     ],
   );
 });

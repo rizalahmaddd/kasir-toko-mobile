@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/storage/app_storage.dart';
+import '../sales/data/sale_models.dart';
 import '../sales/data/sales_repository.dart';
 import '../shift/data/shift_models.dart';
 import 'receipt_layout.dart';
@@ -118,6 +119,13 @@ class PrinterService {
     await printLines(
       saleReceipt(sale, storeName: storeName, paperWidth: settings.paperWidth, footer: footerFromReceiptText(receipt.text)),
     );
+  }
+
+  Future<void> printDetail(SaleDetail sale) async {
+    final settings = _ref.read(printerSettingsProvider);
+    final storeName = await _ref.read(storeNameProvider.future);
+
+    await printLines(saleReceipt(sale, storeName: storeName, paperWidth: settings.paperWidth));
   }
 
   Future<void> printShift(Shift shift) async {

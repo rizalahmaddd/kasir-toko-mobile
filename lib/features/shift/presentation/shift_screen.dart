@@ -11,6 +11,7 @@ import '../../../core/widgets/money_field.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
+import '../../offline/offline_queue.dart';
 import '../../pos/pos_providers.dart';
 import '../../printing/presentation/printer_screen.dart';
 import '../../printing/printer.dart';
@@ -234,7 +235,15 @@ class ShiftView extends ConsumerWidget {
                   const SizedBox(height: 24),
                   FilledButton.icon(
                     style: FilledButton.styleFrom(backgroundColor: colors.danger),
-                    onPressed: () => FormSheet.show<void>(context, _CloseShiftSheet(shift: shift, close: close)),
+                    onPressed: () {
+                      // Queued offline sales belong to this shift's drawer; closing first would leave them with no open shift.
+                      final waiting = ref.read(myQueueProvider).length;
+                      if (waiting > 0) {
+                        showMessage(context, 'Masih ada $waiting transaksi offline yang belum terkirim. Kirim dulu di Menu → Mode offline.', isError: true);
+                        return;
+                      }
+                      FormSheet.show<void>(context, _CloseShiftSheet(shift: shift, close: close));
+                    },
                     icon: const Icon(LucideIcons.lockKeyhole, size: 18),
                     label: const Text('Tutup Shift'),
                   ),

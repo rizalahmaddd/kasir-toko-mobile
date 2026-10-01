@@ -14,6 +14,20 @@ class AuthTokenNotifier extends Notifier<String?> {
   void set(String? token) => state = token;
 }
 
+/// False after a request failed without reaching the server; flips back on the next response.
+final serverReachableProvider = NotifierProvider<ServerReachable, bool>(ServerReachable.new);
+
+class ServerReachable extends Notifier<bool> {
+  @override
+  bool build() => true;
+
+  void set(bool reachable) {
+    if (state != reachable) {
+      state = reachable;
+    }
+  }
+}
+
 /// Called when the server answers 401 so the app can drop the session.
 final unauthorizedHandlerProvider = Provider<void Function()>((ref) => () {});
 
@@ -38,7 +52,14 @@ final dioProvider = Provider<Dio>((ref) {
         }
         handler.next(options);
       },
+      onResponse: (response, handler) {
+        ref.read(serverReachableProvider.notifier).set(true);
+        handler.next(response);
+      },
       onError: (error, handler) {
+        if (error.type != DioExceptionType.cancel) {
+          ref.read(serverReachableProvider.notifier).set(error.response != null);
+        }
         final hadToken = error.requestOptions.headers.containsKey('Authorization');
         if (error.response?.statusCode == 401 && hadToken) {
           ref.read(unauthorizedHandlerProvider)();

@@ -11,6 +11,7 @@ import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/data/current_user.dart';
+import '../../offline/offline_queue.dart';
 import '../../shift/shift_controller.dart';
 
 class AccountScreen extends ConsumerWidget {
@@ -18,11 +19,13 @@ class AccountScreen extends ConsumerWidget {
 
   Future<void> _logout(BuildContext context, WidgetRef ref, {bool everywhere = false}) async {
     final hasShift = ref.read(currentShiftProvider).value != null;
+    final waiting = ref.read(myQueueProvider).length;
     final confirmed = await confirmAction(
       context,
       title: everywhere ? 'Keluar dari semua perangkat?' : 'Keluar dari aplikasi?',
       message: [
         if (everywhere) 'Semua HP, tablet, dan aplikasi lain yang login dengan akun ini harus login ulang.',
+        if (waiting > 0) '$waiting transaksi offline belum terkirim dan baru akan dikirim setelah Anda login lagi dengan akun ini.',
         if (hasShift) 'Shift Anda masih terbuka dan tidak ikut ditutup.' else 'Anda perlu login lagi untuk memakai kasir di perangkat ini.',
       ].join(' '),
       confirmLabel: 'Keluar',

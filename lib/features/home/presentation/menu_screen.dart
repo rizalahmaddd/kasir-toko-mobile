@@ -7,6 +7,7 @@ import '../../../core/widgets/common.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../../notifications/notifications.dart';
+import '../../offline/offline_queue.dart';
 
 typedef _Link = ({IconData icon, String label, String path, String? caption});
 
@@ -21,11 +22,14 @@ class MenuScreen extends ConsumerWidget {
     }
 
     final unread = ref.watch(unreadCountProvider).value ?? 0;
+    final waiting = ref.watch(myQueueProvider).length;
     final sections = <(String, List<_Link>)>[
       (
         'Penjualan',
         [
           if (user.canSell) (icon: LucideIcons.wallet, label: 'Shift saya', path: '/shift', caption: 'Kas masuk/keluar, tutup shift'),
+          if (user.canSell)
+            (icon: LucideIcons.cloudOff, label: 'Mode offline', path: '/offline', caption: waiting > 0 ? '$waiting transaksi menunggu dikirim' : 'Katalog di perangkat & antrean'),
           if (user.canViewShifts) (icon: LucideIcons.history, label: 'Riwayat shift', path: '/shifts', caption: null),
           if (user.canManageReceivables) (icon: LucideIcons.handCoins, label: 'Piutang (kasbon)', path: '/receivables', caption: 'Catat pelunasan'),
         ],
