@@ -157,12 +157,16 @@ class _CustomerSales extends ConsumerWidget {
 
     return switch (sales) {
       AsyncData(:final value) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 12),
-            Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const SizedBox(height: 12),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(child: StatTile(label: 'Belanja setahun', value: rupiah(value.total), caption: '${value.count} transaksi')),
+                Expanded(
+                  child: StatTile(label: 'Belanja setahun', value: rupiah(value.total), caption: '${value.count} transaksi'),
+                ),
                 const SizedBox(width: 8),
                 if (ref.watch(currentUserProvider)?.canManageReceivables ?? false)
                   Expanded(
@@ -174,15 +178,21 @@ class _CustomerSales extends ConsumerWidget {
                   ),
               ],
             ),
-            const SectionTitle('Transaksi terakhir'),
-            if (value.items.isEmpty)
-              Text('Belum ada transaksi dalam setahun terakhir.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
-            else
-              Card(child: Column(children: [for (final sale in value.items.take(15)) SaleTile(sale: sale)])),
-          ],
-        ),
+          ),
+          const SectionTitle('Transaksi terakhir'),
+          if (value.items.isEmpty)
+            Text('Belum ada transaksi dalam setahun terakhir.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
+          else
+            Card(
+              child: Column(children: [for (final sale in value.items.take(15)) SaleTile(sale: sale)]),
+            ),
+        ],
+      ),
       AsyncError(:final error) => Padding(padding: const EdgeInsets.only(top: 16), child: Text(errorMessage(error))),
-      _ => const Padding(padding: EdgeInsets.all(24), child: Center(child: CircularProgressIndicator())),
+      _ => const Padding(
+        padding: EdgeInsets.all(24),
+        child: Center(child: CircularProgressIndicator()),
+      ),
     };
   }
 }

@@ -32,12 +32,19 @@ class ReceivablesScreen extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
           child: Column(
             children: [
-              Row(
-                children: [
-                  Expanded(child: StatTile(label: 'Total belum lunas', value: rupiah(asInt(meta['total_due'])), color: colors.warning, icon: LucideIcons.handCoins)),
-                  const SizedBox(width: 8),
-                  Expanded(child: StatTile(label: 'Pelanggan', value: '${asInt(meta['customer_count'])}', icon: LucideIcons.users)),
-                ],
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: StatTile(label: 'Total belum lunas', value: rupiah(asInt(meta['total_due'])), color: colors.warning, icon: LucideIcons.handCoins),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: StatTile(label: 'Pelanggan', value: '${asInt(meta['customer_count'])}', icon: LucideIcons.users),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               SearchField(hint: 'No. transaksi, nama, atau HP pelanggan', onChanged: ref.read(receivablesSearchProvider.notifier).set),
@@ -60,13 +67,17 @@ class ReceivablesScreen extends ConsumerWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(rupiah(sale.dueAmount), style: TextStyle(fontWeight: FontWeight.w700, color: colors.warning)),
+                Text(
+                  rupiah(sale.dueAmount),
+                  style: TextStyle(fontWeight: FontWeight.w700, color: colors.warning),
+                ),
                 const SizedBox(height: 4),
                 SizedBox(
                   height: 30,
                   child: FilledButton.tonal(
                     style: FilledButton.styleFrom(minimumSize: const Size(0, 30), padding: const EdgeInsets.symmetric(horizontal: 12)),
-                    onPressed: () => ReceivablePaymentSheet.show(context, saleId: sale.id, number: sale.number, due: sale.dueAmount, customerName: sale.customer?.name),
+                    onPressed: () =>
+                        ReceivablePaymentSheet.show(context, saleId: sale.id, number: sale.number, due: sale.dueAmount, customerName: sale.customer?.name),
                     child: const Text('Bayar'),
                   ),
                 ),

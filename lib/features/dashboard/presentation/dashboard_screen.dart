@@ -99,7 +99,7 @@ class DashboardScreen extends ConsumerWidget {
                                     icon: _statIcons[stat.key],
                                     caption: stat.key == 'receivables_unpaid' && data.receivables != null
                                         ? rupiah(asInt(data.receivables!['total_due']))
-                                        : null,
+                                        : 'Lihat daftar',
                                     color: stat.key == 'low_stock' && stat.count > 0 ? StatusColors.of(context).warning : null,
                                     onTap: _statRoutes[stat.key] == null ? null : () => context.push(_statRoutes[stat.key]!),
                                   ),

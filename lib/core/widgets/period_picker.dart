@@ -38,7 +38,8 @@ class PeriodPicker extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final options = presets();
-    final isPreset = options.values.contains(range);
+    final selectedKey = options.entries.where((entry) => entry.value == range).firstOrNull?.key;
+    final isPreset = selectedKey != null;
 
     return SizedBox(
       height: 44,
@@ -49,7 +50,7 @@ class PeriodPicker extends StatelessWidget {
           for (final entry in options.entries)
             Padding(
               padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(label: Text(entry.key), selected: entry.value == range, showCheckmark: false, onSelected: (_) => onChanged(entry.value)),
+              child: ChoiceChip(label: Text(entry.key), selected: entry.key == selectedKey, showCheckmark: false, onSelected: (_) => onChanged(entry.value)),
             ),
           ChoiceChip(
             avatar: const Icon(LucideIcons.calendar, size: 16),

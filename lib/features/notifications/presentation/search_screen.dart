@@ -2,11 +2,13 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../products/products_providers.dart';
 import '../notifications.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -66,6 +68,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
+  /// Products come back without a target, so open the product list filtered to the name instead.
+  void _open(String group, String label, ({String type, int id})? target) {
+    if (openTarget(context, target)) {
+      return;
+    }
+    if (group.toLowerCase().contains('produk')) {
+      final query = ref.read(productsQueryProvider);
+      ref.read(productsQueryProvider.notifier).set((search: label, categoryId: null, status: null, sort: query.sort));
+      context.go('/products');
+    } else {
+      showMessage(context, 'Data ini hanya bisa dibuka di aplikasi web.');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
@@ -100,11 +116,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                       Padding(padding: const EdgeInsets.symmetric(horizontal: 16), child: SectionTitle(group.group)),
                       for (final item in group.items)
                         ListTile(
-                          enabled: item.target != null,
-                          onTap: () => openTarget(context, item.target),
+                          onTap: () => _open(group.group, item.label, item.target),
                           title: Text(item.label),
                           subtitle: Text([?item.sub, ...item.flags].join(' · '), style: TextStyle(color: muted)),
-                          trailing: item.target == null ? null : const Icon(LucideIcons.chevronRight, size: 18),
+                          trailing: const Icon(LucideIcons.chevronRight, size: 18),
                         ),
                     ],
                   ],

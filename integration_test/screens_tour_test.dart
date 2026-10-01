@@ -48,7 +48,7 @@ void main() {
       await tester.tap(find.text('Masuk'));
     }
 
-    await waitFor(tester, find.text('Akun'));
+    await waitFor(tester, find.text('Menu'));
     await settle(tester, const Duration(seconds: 3));
 
     if (find.text('Buka shift dulu').evaluate().isNotEmpty) {
@@ -61,13 +61,11 @@ void main() {
     await waitFor(tester, find.text('Semua'));
     await capture(tester, 'catalog');
 
-    final cards = find.byType(InkWell).hitTestable();
-    final products = find.descendant(of: find.byType(GridView), matching: cards);
-    await tester.tap(products.at(0));
+    await tester.tap(find.text('Air Mineral 600ml'));
     await settle(tester);
-    await tester.tap(products.at(1));
+    await tester.tap(find.text('Isi Ulang Galon'));
     await settle(tester);
-    await tester.tap(products.at(1));
+    await tester.tap(find.text('Isi Ulang Galon'));
     await settle(tester);
     await capture(tester, 'cart');
 
@@ -98,7 +96,7 @@ void main() {
       await settle(tester);
     }
 
-    await tester.tap(find.text('Riwayat').last);
+    await tester.tap(find.text('Transaksi').last);
     await settle(tester, const Duration(seconds: 3));
     await capture(tester, 'sales');
 
@@ -106,12 +104,18 @@ void main() {
     await settle(tester, const Duration(seconds: 3));
     await capture(tester, 'sale_detail');
 
-    await tester.tap(find.text('Shift').last);
+    await tester.tap(find.byType(BackButton));
+    await settle(tester);
+    await tester.tap(find.text('Beranda').last);
+    await settle(tester, const Duration(seconds: 3));
+    await capture(tester, 'dashboard');
+
+    await tester.tap(find.text('Menu').last);
+    await settle(tester);
+    await capture(tester, 'menu');
+
+    await tester.tap(find.text('Shift saya'));
     await settle(tester, const Duration(seconds: 3));
     await capture(tester, 'shift');
-
-    await tester.tap(find.text('Akun').last);
-    await settle(tester);
-    await capture(tester, 'account');
   });
 }
