@@ -1,38 +1,49 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/utils/responsive.dart';
+import '../../auth/access.dart';
+import '../../auth/auth_controller.dart';
+import '../../auth/data/current_user.dart';
 
-class HomeShell extends StatelessWidget {
+typedef ShellTab = ({int branch, IconData icon, String label});
+
+/// Branch order must match the StatefulShellRoute in router.dart.
+List<ShellTab> visibleTabs(CurrentUser? user) => [
+      (branch: 0, icon: LucideIcons.layoutDashboard, label: 'Beranda'),
+      if (user?.canSell ?? false) (branch: 1, icon: LucideIcons.shoppingCart, label: 'Kasir'),
+      if (user?.canViewSales ?? false) (branch: 2, icon: LucideIcons.receiptText, label: 'Transaksi'),
+      if (user?.canViewProducts ?? false) (branch: 3, icon: LucideIcons.package, label: 'Produk'),
+      (branch: 4, icon: LucideIcons.layoutGrid, label: 'Menu'),
+    ];
+
+class HomeShell extends ConsumerWidget {
   const HomeShell({super.key, required this.shell});
 
   final StatefulNavigationShell shell;
 
-  static const _destinations = [
-    (icon: LucideIcons.shoppingCart, label: 'Kasir'),
-    (icon: LucideIcons.receiptText, label: 'Riwayat'),
-    (icon: LucideIcons.wallet, label: 'Shift'),
-    (icon: LucideIcons.user, label: 'Akun'),
-  ];
-
-  void _go(int index) => shell.goBranch(index, initialLocation: index == shell.currentIndex);
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tabs = visibleTabs(ref.watch(currentUserProvider));
+    final selected = tabs.indexWhere((tab) => tab.branch == shell.currentIndex).clamp(0, tabs.length - 1);
+
+    void go(int index) {
+      final branch = tabs[index].branch;
+      shell.goBranch(branch, initialLocation: branch == shell.currentIndex);
+    }
+
     if (context.isMedium) {
       return Scaffold(
         body: SafeArea(
           child: Row(
             children: [
               NavigationRail(
-                selectedIndex: shell.currentIndex,
-                onDestinationSelected: _go,
+                selectedIndex: selected,
+                onDestinationSelected: go,
                 labelType: NavigationRailLabelType.all,
-                destinations: [
-                  for (final destination in _destinations)
-                    NavigationRailDestination(icon: Icon(destination.icon), label: Text(destination.label)),
-                ],
+                destinations: [for (final tab in tabs) NavigationRailDestination(icon: Icon(tab.icon), label: Text(tab.label))],
               ),
               const VerticalDivider(width: 1),
               Expanded(child: shell),
@@ -45,11 +56,9 @@ class HomeShell extends StatelessWidget {
     return Scaffold(
       body: shell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: shell.currentIndex,
-        onDestinationSelected: _go,
-        destinations: [
-          for (final destination in _destinations) NavigationDestination(icon: Icon(destination.icon), label: destination.label),
-        ],
+        selectedIndex: selected,
+        onDestinationSelected: go,
+        destinations: [for (final tab in tabs) NavigationDestination(icon: Icon(tab.icon), label: tab.label)],
       ),
     );
   }

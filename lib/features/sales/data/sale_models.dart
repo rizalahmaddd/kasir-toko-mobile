@@ -78,6 +78,7 @@ class SaleSummary {
     this.customer,
     required this.itemsCount,
     required this.total,
+    this.paidAmount = 0,
     required this.dueAmount,
     required this.paymentMethods,
   });
@@ -92,6 +93,7 @@ class SaleSummary {
         customer: json['customer'] == null ? null : SaleCustomer.fromJson(json['customer'] as Map<String, dynamic>),
         itemsCount: _int(json['items_count']),
         total: _int(json['total']),
+        paidAmount: _int(json['paid_amount']),
         dueAmount: _int(json['due_amount']),
         paymentMethods: (json['payment_methods'] as List? ?? const []).cast<String>(),
       );
@@ -105,6 +107,7 @@ class SaleSummary {
   final SaleCustomer? customer;
   final int itemsCount;
   final int total;
+  final int paidAmount;
   final int dueAmount;
   final List<String> paymentMethods;
 
@@ -136,6 +139,10 @@ class SaleDetail {
     this.voidReason,
     this.whatsappUrl,
     required this.canVoid,
+    this.canCollectPayment = false,
+    this.discountType,
+    this.discountValue = 0,
+    this.shiftNumber,
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> json) {
@@ -165,6 +172,10 @@ class SaleDetail {
       voidReason: json['void_reason'] as String?,
       whatsappUrl: json['whatsapp_url'] as String?,
       canVoid: abilities['void'] as bool? ?? false,
+      canCollectPayment: abilities['collect_payment'] as bool? ?? false,
+      discountType: json['discount_type'] as String?,
+      discountValue: _double(json['discount_value']),
+      shiftNumber: (json['shift'] as Map<String, dynamic>?)?['number'] as String?,
     );
   }
 
@@ -191,6 +202,10 @@ class SaleDetail {
   final String? voidReason;
   final String? whatsappUrl;
   final bool canVoid;
+  final bool canCollectPayment;
+  final String? discountType;
+  final double discountValue;
+  final String? shiftNumber;
 
   bool get isVoided => status == 'voided';
 }

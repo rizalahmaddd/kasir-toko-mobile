@@ -28,3 +28,23 @@ String editableQuantity(double value) =>
 
 /// Accepts both "1,5" and "1.5" since cashiers type weights either way.
 double? parseQuantity(String input) => double.tryParse(input.trim().replaceAll(',', '.'));
+
+/// Short axis labels: 1.250.000 → "1,3 jt", 25.000 → "25 rb".
+String compactNumber(num value) {
+  final abs = value.abs();
+  if (abs >= 1e9) {
+    return '${_short.format(value / 1e9)} M';
+  }
+  if (abs >= 1e6) {
+    return '${_short.format(value / 1e6)} jt';
+  }
+  if (abs >= 1e3) {
+    return '${_short.format(value / 1e3)} rb';
+  }
+
+  return _short.format(value);
+}
+
+final _short = NumberFormat('#,##0.#', 'id_ID');
+
+String percent(num value) => '${_short.format(value)}%';

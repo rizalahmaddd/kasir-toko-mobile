@@ -13,7 +13,15 @@ class SalesRepository {
 
   final ApiClient _api;
 
-  Future<SalesPage> list({required DateTime from, required DateTime to, String? status, String? search, int page = 1}) async {
+  Future<SalesPage> list({
+    required DateTime from,
+    required DateTime to,
+    String? status,
+    String? search,
+    String? method,
+    int? customerId,
+    int page = 1,
+  }) async {
     final body = await _api.get(
       'sales',
       query: {
@@ -21,6 +29,8 @@ class SalesRepository {
         'to': _apiDate.format(to),
         'status': status,
         'search': search,
+        'method': method,
+        'customer_id': customerId,
         'page': page,
         'per_page': 30,
       },

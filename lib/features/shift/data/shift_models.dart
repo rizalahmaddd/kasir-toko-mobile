@@ -78,6 +78,9 @@ class Shift {
     this.cashMovements = const [],
     this.canClose = false,
     this.canRecordCash = false,
+    this.closedByName,
+    this.salesCount,
+    this.salesTotal,
   });
 
   factory Shift.fromJson(Map<String, dynamic> json) {
@@ -99,6 +102,9 @@ class Shift {
       cashMovements: (json['cash_movements'] as List? ?? const []).cast<Map<String, dynamic>>().map(CashMovement.fromJson).toList(),
       canClose: abilities['close'] as bool? ?? false,
       canRecordCash: abilities['record_cash'] as bool? ?? false,
+      closedByName: (json['closed_by'] as Map<String, dynamic>?)?['name'] as String?,
+      salesCount: json['sales_count'] == null ? null : _int(json['sales_count']),
+      salesTotal: json['sales_total'] == null ? null : _int(json['sales_total']),
     );
   }
 
@@ -117,4 +123,7 @@ class Shift {
   final List<CashMovement> cashMovements;
   final bool canClose;
   final bool canRecordCash;
+  final String? closedByName;
+  final int? salesCount;
+  final int? salesTotal;
 }

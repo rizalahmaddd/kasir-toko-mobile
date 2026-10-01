@@ -36,7 +36,10 @@ class AuthRepository {
     required String deviceName,
   }) async {
     final body = await _api.post('auth/login', data: {'login': login, 'password': password, 'device_name': deviceName});
-    final data = ApiClient.data(body);
+    return _storeSession(ApiClient.data(body));
+  }
+
+  Future<({String token, CurrentUser user})> _storeSession(Map<String, dynamic> data) async {
     final user = CurrentUser.fromJson(data['user'] as Map<String, dynamic>);
     final token = data['token'] as String;
 
@@ -44,6 +47,43 @@ class AuthRepository {
     await cacheUser(user);
 
     return (token: token, user: user);
+  }
+
+  Future<({String otpToken, String maskedPhone, int cooldown})> sendOtp(String login) async {
+    final data = ApiClient.data(await _api.post('auth/otp/send', data: {'login': login}));
+
+    return (
+      otpToken: data['otp_token'] as String,
+      maskedPhone: data['masked_phone'] as String? ?? '',
+      cooldown: (data['cooldown_seconds'] as num?)?.toInt() ?? 60,
+    );
+  }
+
+  Future<({String token, CurrentUser user})> verifyOtp({required String otpToken, required String otp, required String deviceName}) async {
+    final body = await _api.post('auth/otp/verify', data: {'otp_token': otpToken, 'otp': otp, 'device_name': deviceName});
+    return _storeSession(ApiClient.data(body));
+  }
+
+  Future<CurrentUser> updateProfile({required String name, required String username, required String email, String? phone}) async {
+    final body = await _api.put('auth/profile', data: {'name': name, 'username': username, 'email': email, 'phone': phone});
+    final user = CurrentUser.fromJson(ApiClient.data(body));
+    await cacheUser(user);
+
+    return user;
+  }
+
+  Future<void> updatePassword({required String current, required String password, required bool revokeOthers}) =>
+      _api.put(
+        'auth/password',
+        data: {'current_password': current, 'password': password, 'password_confirmation': password, 'revoke_other_tokens': revokeOthers},
+      );
+
+  Future<void> logoutAll() async {
+    try {
+      await _api.post('auth/logout-all');
+    } finally {
+      await clear();
+    }
   }
 
   Future<CurrentUser> me() async {

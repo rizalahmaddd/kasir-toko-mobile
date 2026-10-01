@@ -49,6 +49,11 @@ dependencies:
   cached_network_image: ^4.0.4
   flutter_localizations:
     sdk: flutter
+  fl_chart: ^1.2.0
+  image_picker: ^1.2.3
+  print_bluetooth_thermal: ^1.2.5
+  esc_pos_utils_plus: ^2.0.4
+  connectivity_plus: ^7.3.1
 
 dev_dependencies:
   flutter_test:

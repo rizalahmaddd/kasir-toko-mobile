@@ -8,6 +8,9 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../pos/pos_providers.dart';
+import '../../printing/presentation/printer_screen.dart';
+import '../../printing/printer.dart';
+import '../../receivables/presentation/receivable_payment_sheet.dart';
 import '../../shift/shift_controller.dart';
 import '../data/sale_models.dart';
 import '../data/sales_repository.dart';
@@ -60,7 +63,17 @@ class SaleDetailScreen extends ConsumerWidget {
     final sale = ref.watch(saleDetailProvider(saleId));
 
     return Scaffold(
-      appBar: AppBar(title: Text(sale.value?.number ?? 'Detail transaksi')),
+      appBar: AppBar(
+        title: Text(sale.value?.number ?? 'Detail transaksi'),
+        actions: [
+          if (sale.value != null && ref.watch(printerSettingsProvider).isConfigured)
+            IconButton(
+              tooltip: 'Cetak struk',
+              icon: const Icon(LucideIcons.printer, size: 20),
+              onPressed: () => runPrint(context, () => ref.read(printerServiceProvider).printSale(saleId)),
+            ),
+        ],
+      ),
       body: AsyncView(
         value: sale,
         onRetry: () => ref.invalidate(saleDetailProvider(saleId)),
@@ -180,6 +193,20 @@ class _Body extends StatelessWidget {
                     ),
                   ],
                 ),
+                if (sale.canCollectPayment && sale.dueAmount > 0) ...[
+                  const SizedBox(height: 8),
+                  FilledButton.icon(
+                    onPressed: () => ReceivablePaymentSheet.show(
+                      context,
+                      saleId: sale.id,
+                      number: sale.number,
+                      due: sale.dueAmount,
+                      customerName: sale.customer?.name,
+                    ),
+                    icon: const Icon(LucideIcons.handCoins, size: 18),
+                    label: Text('Catat Pelunasan ${rupiah(sale.dueAmount)}'),
+                  ),
+                ],
                 if (sale.canVoid) ...[
                   const SizedBox(height: 8),
                   TextButton.icon(

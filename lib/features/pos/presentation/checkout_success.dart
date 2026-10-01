@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../printing/presentation/printer_screen.dart';
+import '../../printing/printer.dart';
 import '../../sales/data/sale_models.dart';
 import '../../sales/presentation/receipt_sheet.dart';
 
 /// Shown right after checkout. The change amount is what the cashier needs first.
-class CheckoutSuccess extends StatelessWidget {
+class CheckoutSuccess extends ConsumerStatefulWidget {
   const CheckoutSuccess({super.key, required this.sale});
 
   final SaleDetail sale;
@@ -19,8 +22,26 @@ class CheckoutSuccess extends StatelessWidget {
       );
 
   @override
+  ConsumerState<CheckoutSuccess> createState() => _CheckoutSuccessState();
+}
+
+class _CheckoutSuccessState extends ConsumerState<CheckoutSuccess> {
+  SaleDetail get sale => widget.sale;
+
+  @override
+  void initState() {
+    super.initState();
+    if (ref.read(printerSettingsProvider).autoPrint) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _print());
+    }
+  }
+
+  void _print() => runPrint(context, () => ref.read(printerServiceProvider).printSale(sale.id));
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasPrinter = ref.watch(printerSettingsProvider).isConfigured;
     final colors = StatusColors.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
 
@@ -80,6 +101,10 @@ class CheckoutSuccess extends StatelessWidget {
                   ),
                 ],
               ),
+              if (hasPrinter) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(onPressed: _print, icon: const Icon(LucideIcons.printer, size: 18), label: const Text('Cetak Struk')),
+              ],
               const SizedBox(height: 8),
               FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Transaksi Baru')),
             ],

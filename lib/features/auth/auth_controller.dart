@@ -46,6 +46,28 @@ class AuthController extends AsyncNotifier<CurrentUser?> {
     state = AsyncData(result.user);
   }
 
+  Future<({String otpToken, String maskedPhone, int cooldown})> sendOtp(String login) => _repository.sendOtp(login);
+
+  Future<void> verifyOtp({required String otpToken, required String otp}) async {
+    final result = await _repository.verifyOtp(otpToken: otpToken, otp: otp, deviceName: _deviceName());
+    ref.read(authTokenProvider.notifier).set(result.token);
+    state = AsyncData(result.user);
+  }
+
+  Future<void> updateProfile({required String name, required String username, required String email, String? phone}) async {
+    state = AsyncData(await _repository.updateProfile(name: name, username: username, email: email, phone: phone));
+  }
+
+  Future<void> logoutAll() async {
+    try {
+      await _repository.logoutAll();
+    } on ApiException {
+      // Same as logout(): the local session ends regardless.
+    }
+    ref.read(authTokenProvider.notifier).set(null);
+    state = const AsyncData(null);
+  }
+
   Future<void> logout() async {
     try {
       await _repository.logout();

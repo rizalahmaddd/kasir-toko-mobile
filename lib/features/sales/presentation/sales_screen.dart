@@ -2,12 +2,12 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/sale_models.dart';
+import 'sale_tile.dart';
 import '../sales_controller.dart';
 
 const _statuses = [(null, 'Semua'), ('completed', 'Selesai'), ('credit', 'Kasbon'), ('voided', 'Dibatalkan')];
@@ -145,7 +145,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                       SliverList.separated(
                         itemCount: state.page.items.length,
                         separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
-                        itemBuilder: (context, index) => _SaleTile(sale: state.page.items[index]),
+                        itemBuilder: (context, index) => SaleTile(sale: state.page.items[index]),
                       ),
                     if (state.loadingMore)
                       const SliverToBoxAdapter(
@@ -193,43 +193,6 @@ class _Summary extends StatelessWidget {
             ],
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SaleTile extends StatelessWidget {
-  const _SaleTile({required this.sale});
-
-  final SaleSummary sale;
-
-  @override
-  Widget build(BuildContext context) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
-
-    return ListTile(
-      onTap: () => context.go('/sales/${sale.id}'),
-      title: Row(
-        children: [
-          Flexible(child: Text(sale.number, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600))),
-          const SizedBox(width: 8),
-          if (sale.isVoided)
-            const StatusBadge(label: 'Dibatalkan', tone: BadgeTone.danger)
-          else if (sale.dueAmount > 0)
-            const StatusBadge(label: 'Kasbon', tone: BadgeTone.warning),
-        ],
-      ),
-      subtitle: Text(
-        '${timeOnly(sale.soldAt)} · ${sale.itemsCount} barang${sale.customer == null ? '' : ' · ${sale.customer!.name}'}',
-        style: TextStyle(color: muted),
-      ),
-      trailing: Text(
-        rupiah(sale.total),
-        style: TextStyle(
-          fontWeight: FontWeight.w600,
-          decoration: sale.isVoided ? TextDecoration.lineThrough : null,
-          color: sale.isVoided ? muted : null,
-        ),
       ),
     );
   }
