@@ -42,11 +42,13 @@ flutter pub get
 flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000
 ```
 
-Build layanan SaaS (alamat server dikunci, field server disembunyikan, tombol daftar toko muncul):
+Build layanan SaaS (alamat server dikunci ke `https://kasirtoko.biz.id`, field server disembunyikan, tombol daftar toko muncul):
 
 ```bash
-flutter build apk --release --dart-define=HOSTED=true --dart-define=API_BASE_URL=https://kasir.layanan.id
+flutter build apk --release --dart-define=HOSTED=true
 ```
+
+Tambahkan `--dart-define=API_BASE_URL=...` untuk mengarahkan build hosted ke server lain, misalnya staging.
 
 Server lokal lewat HTTP diizinkan (`usesCleartextTraffic` di Android, ATS di iOS) karena server toko yang dijalankan sendiri umumnya ada di LAN. Build hosted sebaiknya memakai HTTPS.
 

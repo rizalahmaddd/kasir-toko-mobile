@@ -2,11 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../storage/app_storage.dart';
 
-const _defaultServerUrl = String.fromEnvironment('API_BASE_URL');
-
 /// Hosted (SaaS) builds pin API_BASE_URL with --dart-define=HOSTED=true: every shop shares that
 /// server, so the address field disappears and new shops can sign up from the app.
 const isHosted = bool.fromEnvironment('HOSTED');
+
+const productionServerUrl = 'https://kasirtoko.biz.id';
+
+const _defaultServerUrl = String.fromEnvironment('API_BASE_URL', defaultValue: isHosted ? productionServerUrl : '');
 
 /// The store's Laravel server. Self-hosted shops run it on the LAN, so outside hosted builds the
 /// address is set on the login screen instead of being baked into the build.
