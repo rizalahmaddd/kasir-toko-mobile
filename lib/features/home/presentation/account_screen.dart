@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/config/server_config.dart';
@@ -202,20 +203,41 @@ class AccountScreen extends ConsumerWidget {
                         onTap: () => context.push('/printer'),
                       ),
                       Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
-                      ListTile(
-                        leading: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(10),
+                      if (user.tenant case final tenant?) ...[
+                        ListTile(
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(LucideIcons.store, size: 18, color: Color(0xFF059669)),
                           ),
-                          child: const Icon(LucideIcons.server, size: 18, color: Color(0xFF059669)),
+                          title: Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          subtitle: Text(
+                            'Paket ${tenant.planLabel} · ${tenant.accessEndsAt == null ? 'tanpa batas waktu' : 'aktif s/d ${DateFormat('d MMM y', 'id_ID').format(tenant.accessEndsAt!.toLocal())}'}',
+                            style: const TextStyle(fontSize: 12),
+                          ),
                         ),
-                        title: const Text('Server Backend', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                        subtitle: Text(ref.watch(serverUrlProvider), style: const TextStyle(fontSize: 12)),
-                      ),
-                      Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                        Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                      ],
+                      if (!isHosted) ...[
+                        ListTile(
+                          leading: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(LucideIcons.server, size: 18, color: Color(0xFF059669)),
+                          ),
+                          title: const Text('Server Backend', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          subtitle: Text(ref.watch(serverUrlProvider), style: const TextStyle(fontSize: 12)),
+                        ),
+                        Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                      ],
                       SwitchListTile(
                         secondary: Container(
                           width: 36,

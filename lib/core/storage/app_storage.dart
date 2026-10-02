@@ -15,5 +15,6 @@ abstract final class StorageKeys {
   static const user = 'auth_user';
   static const serverUrl = 'server_url';
   static const cart = 'pos_cart';
+  static const lastTenant = 'last_tenant_id';
   static const themeMode = 'theme_mode';
 }

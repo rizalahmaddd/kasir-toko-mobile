@@ -39,6 +39,28 @@ class AuthRepository {
     return _storeSession(ApiClient.data(body));
   }
 
+  Future<({String token, CurrentUser user})> register({
+    required String shopName,
+    required String name,
+    required String username,
+    required String email,
+    String? phone,
+    required String password,
+    required String deviceName,
+  }) async {
+    final body = await _api.post('auth/register', data: {
+      'shop_name': shopName,
+      'name': name,
+      'username': username,
+      'email': email,
+      'phone': phone,
+      'password': password,
+      'password_confirmation': password,
+      'device_name': deviceName,
+    });
+    return _storeSession(ApiClient.data(body));
+  }
+
   Future<({String token, CurrentUser user})> _storeSession(Map<String, dynamic> data) async {
     final user = CurrentUser.fromJson(data['user'] as Map<String, dynamic>);
     final token = data['token'] as String;

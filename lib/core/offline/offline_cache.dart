@@ -8,9 +8,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/server_config.dart';
 import '../storage/app_storage.dart';
 
+/// Shop of the signed-in account; overridden in main() so this file stays free of feature imports.
+final offlineTenantProvider = Provider<int?>((ref) => null);
+
 /// Last good API responses kept on the device for when the server can't be reached.
-/// Entries are tagged with the server they came from so switching stores never mixes data.
-final offlineCacheProvider = Provider<OfflineCache>((ref) => OfflineCache(ref.watch(sharedPreferencesProvider), ref.watch(serverUrlProvider)));
+/// Entries are tagged with the server and the shop they came from: on a hosted server many shops
+/// share one address, so the server alone would let one shop read another's cached catalog.
+final offlineCacheProvider = Provider<OfflineCache>(
+  (ref) => OfflineCache(ref.watch(sharedPreferencesProvider), '${ref.watch(serverUrlProvider)}#${ref.watch(offlineTenantProvider) ?? ''}'),
+);
 
 class OfflineCache {
   OfflineCache(this._prefs, this._server);
@@ -18,7 +24,10 @@ class OfflineCache {
   final SharedPreferences _prefs;
   final String _server;
 
-  String _key(String name) => 'offline_$name';
+  // Own prefix: the offline sales queue also lives under "offline_" and must survive clear().
+  static const _prefix = 'offline_cache_';
+
+  String _key(String name) => '$_prefix$name';
 
   Future<void> put(String name, Object? value) =>
       _prefs.setString(_key(name), jsonEncode({'server': _server, 'saved_at': DateTime.now().toIso8601String(), 'value': value}));
@@ -54,7 +63,7 @@ class OfflineCache {
   }
 
   Future<void> clear() async {
-    for (final key in _prefs.getKeys().where((key) => key.startsWith('offline_'))) {
+    for (final key in _prefs.getKeys().where((key) => key.startsWith(_prefix)).toList()) {
       await _prefs.remove(key);
     }
     final file = await _file('catalog');

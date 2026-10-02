@@ -31,6 +31,9 @@ class ServerReachable extends Notifier<bool> {
 /// Called when the server answers 401 so the app can drop the session.
 final unauthorizedHandlerProvider = Provider<void Function()>((ref) => () {});
 
+/// Called when the server answers 402: the shop is suspended or its trial/subscription ended.
+final tenantBlockedHandlerProvider = Provider<void Function(String reason, String message)>((ref) => (reason, message) {});
+
 final dioProvider = Provider<Dio>((ref) {
   final serverUrl = ref.watch(serverUrlProvider);
 
@@ -63,6 +66,10 @@ final dioProvider = Provider<Dio>((ref) {
         final hadToken = error.requestOptions.headers.containsKey('Authorization');
         if (error.response?.statusCode == 401 && hadToken) {
           ref.read(unauthorizedHandlerProvider)();
+        }
+        final body = error.response?.data;
+        if (error.response?.statusCode == 402 && body is Map && body['reason'] is String) {
+          ref.read(tenantBlockedHandlerProvider)(body['reason'] as String, '${body['message'] ?? ''}');
         }
         handler.next(error);
       },

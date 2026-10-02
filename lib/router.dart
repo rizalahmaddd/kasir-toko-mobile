@@ -6,6 +6,8 @@ import 'features/auth/access.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/auth/data/current_user.dart';
 import 'features/auth/presentation/login_screen.dart';
+import 'features/auth/presentation/register_screen.dart';
+import 'features/auth/presentation/tenant_blocked_screen.dart';
 import 'features/customers/presentation/customer_detail_screen.dart';
 import 'features/customers/presentation/customer_form_screen.dart';
 import 'features/customers/presentation/customers_screen.dart';
@@ -101,9 +103,12 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final user = auth.value.value;
       if (user == null) {
-        return location == '/login' ? null : '/login';
+        return location == '/login' || location == '/register' ? null : '/login';
       }
-      if (location == '/login' || location == '/splash') {
+      if (user.isTenantBlocked) {
+        return location == '/blocked' ? null : '/blocked';
+      }
+      if (location == '/login' || location == '/splash' || location == '/register' || location == '/blocked') {
         return homeFor(user);
       }
 
@@ -112,6 +117,8 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       _page('/splash', (_) => const SplashScreen()),
       _page('/login', (_) => const LoginScreen()),
+      _page('/register', (_) => const RegisterScreen()),
+      _page('/blocked', (_) => const TenantBlockedScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(shell: shell),
         branches: [

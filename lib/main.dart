@@ -5,6 +5,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/network/api_client.dart';
+import 'core/offline/offline_cache.dart';
 import 'core/storage/app_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
@@ -21,6 +22,8 @@ Future<void> main() async {
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
         unauthorizedHandlerProvider.overrideWith((ref) => () => ref.read(authControllerProvider.notifier).expire()),
+        tenantBlockedHandlerProvider.overrideWith((ref) => (reason, message) => ref.read(authControllerProvider.notifier).markBlocked(reason, message)),
+        offlineTenantProvider.overrideWith((ref) => ref.watch(currentUserProvider.select((user) => user?.tenant?.id))),
       ],
       child: const KasirApp(),
     ),

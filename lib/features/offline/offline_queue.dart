@@ -174,7 +174,7 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
           sent++;
         } on ApiException catch (error) {
           final status = error.statusCode ?? 0;
-          if (error.isNetworkError || error.isUnauthenticated || status >= 500 || status == 429) {
+          if (error.isNetworkError || error.isUnauthenticated || status >= 500 || status == 429 || status == 402) {
             break;
           }
           _update(sale.clientUuid, (s) => s.copyWith(status: QueuedStatus.failed, error: error.message));

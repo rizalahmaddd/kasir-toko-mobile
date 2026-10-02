@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/config/server_config.dart';
@@ -179,33 +180,35 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       const SizedBox(height: 20),
 
-                      // Server Connection Summary / Edit
-                      if (_editingServer)
-                        TextFormField(
-                          controller: _server,
-                          keyboardType: TextInputType.url,
-                          autocorrect: false,
-                          decoration: InputDecoration(
-                            labelText: 'Alamat Server',
-                            hintText: '192.168.1.10:8000 atau pos.toko.com',
-                            prefixIcon: const Icon(LucideIcons.server, size: 18),
-                            suffixIcon: _server.text.trim().isNotEmpty
-                                ? IconButton(
-                                    tooltip: 'Simpan Alamat',
-                                    icon: const Icon(LucideIcons.check, size: 18),
-                                    onPressed: () => setState(() => _editingServer = false),
-                                  )
-                                : null,
+                      // Server Connection Summary / Edit (hosted builds share one fixed server)
+                      if (!isHosted) ...[
+                        if (_editingServer)
+                          TextFormField(
+                            controller: _server,
+                            keyboardType: TextInputType.url,
+                            autocorrect: false,
+                            decoration: InputDecoration(
+                              labelText: 'Alamat Server',
+                              hintText: '192.168.1.10:8000 atau pos.toko.com',
+                              prefixIcon: const Icon(LucideIcons.server, size: 18),
+                              suffixIcon: _server.text.trim().isNotEmpty
+                                  ? IconButton(
+                                      tooltip: 'Simpan Alamat',
+                                      icon: const Icon(LucideIcons.check, size: 18),
+                                      onPressed: () => setState(() => _editingServer = false),
+                                    )
+                                  : null,
+                            ),
+                            validator: (value) => (value ?? '').trim().isEmpty ? 'Isi alamat server toko.' : null,
+                          )
+                        else
+                          _ServerSummary(
+                            url: _server.text,
+                            onEdit: () => setState(() => _editingServer = true),
                           ),
-                          validator: (value) => (value ?? '').trim().isEmpty ? 'Isi alamat server toko.' : null,
-                        )
-                      else
-                        _ServerSummary(
-                          url: _server.text,
-                          onEdit: () => setState(() => _editingServer = true),
-                        ),
 
-                      const SizedBox(height: 14),
+                        const SizedBox(height: 14),
+                      ],
 
                       // Login Field (Username / Email / Phone)
                       TextFormField(
@@ -363,6 +366,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ),
+                      if (isHosted) ...[
+                        const SizedBox(height: 8),
+                        TextButton(
+                          onPressed: _busy ? null : () => context.go('/register'),
+                          child: const Text('Belum punya toko? Daftar gratis', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                        ),
+                      ],
                     ],
                   ),
                 ),

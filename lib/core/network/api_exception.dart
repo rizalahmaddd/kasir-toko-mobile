@@ -61,6 +61,7 @@ class ApiException implements Exception {
   String? fieldError(String field) => fieldErrors[field]?.first;
 
   static String _fallbackMessage(int? status) => switch (status) {
+        402 => 'Masa aktif toko sudah berakhir. Hubungi admin layanan.',
         403 => 'Akun Anda tidak punya izin untuk aksi ini.',
         404 => 'Data tidak ditemukan.',
         429 => 'Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.',
