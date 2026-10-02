@@ -19,6 +19,7 @@ import 'features/home/presentation/splash_screen.dart';
 import 'features/notifications/presentation/notifications_screen.dart';
 import 'features/offline/presentation/offline_screen.dart';
 import 'features/notifications/presentation/search_screen.dart';
+import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/pos/presentation/pos_screen.dart';
 import 'features/printing/presentation/printer_screen.dart';
 import 'features/products/presentation/categories_screen.dart';
@@ -78,8 +79,34 @@ bool allowedLocation(CurrentUser user, String location) {
   if (under('/activity')) {
     return user.canViewActivityLog;
   }
+  if (under('/onboarding')) {
+    return user.isSuperadmin && user.tenant != null;
+  }
 
   return true;
+}
+
+@visibleForTesting
+String? routeRedirect(AsyncValue<CurrentUser?> auth, String location) {
+  if (auth.isLoading && !auth.hasValue) {
+    return location == '/splash' ? null : '/splash';
+  }
+
+  final user = auth.value;
+  if (user == null) {
+    return location == '/login' || location == '/register' ? null : '/login';
+  }
+  if (user.isTenantBlocked) {
+    return location == '/blocked' ? null : '/blocked';
+  }
+  if (user.needsOnboarding) {
+    return location == '/onboarding' ? null : '/onboarding';
+  }
+  if (location == '/login' || location == '/splash' || location == '/register' || location == '/blocked') {
+    return homeFor(user);
+  }
+
+  return allowedLocation(user, location) ? null : '/dashboard';
 }
 
 GoRoute _page(String path, Widget Function(GoRouterState state) build) => GoRoute(path: path, builder: (context, state) => build(state));
@@ -94,31 +121,13 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: '/splash',
     refreshListenable: auth,
-    redirect: (context, state) {
-      final location = state.matchedLocation;
-
-      if (auth.value.isLoading && !auth.value.hasValue) {
-        return location == '/splash' ? null : '/splash';
-      }
-
-      final user = auth.value.value;
-      if (user == null) {
-        return location == '/login' || location == '/register' ? null : '/login';
-      }
-      if (user.isTenantBlocked) {
-        return location == '/blocked' ? null : '/blocked';
-      }
-      if (location == '/login' || location == '/splash' || location == '/register' || location == '/blocked') {
-        return homeFor(user);
-      }
-
-      return allowedLocation(user, location) ? null : '/dashboard';
-    },
+    redirect: (context, state) => routeRedirect(auth.value, state.matchedLocation),
     routes: [
       _page('/splash', (_) => const SplashScreen()),
       _page('/login', (_) => const LoginScreen()),
       _page('/register', (_) => const RegisterScreen()),
       _page('/blocked', (_) => const TenantBlockedScreen()),
+      _page('/onboarding', (_) => const OnboardingScreen()),
       StatefulShellRoute.indexedStack(
         builder: (context, state, shell) => HomeShell(shell: shell),
         branches: [

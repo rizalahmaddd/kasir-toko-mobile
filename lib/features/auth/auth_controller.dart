@@ -118,6 +118,19 @@ class AuthController extends AsyncNotifier<CurrentUser?> {
     state = AsyncData(user.withTenant(tenant.blocked(reason, message: message.isEmpty ? null : message)));
   }
 
+  /// Takes the shop state from a response that already carries it, then re-reads the profile
+  /// because the enabled features may have changed with it.
+  Future<void> updateTenant(TenantInfo tenant) async {
+    final user = state.value;
+    if (user == null) {
+      return;
+    }
+    final updated = user.withTenant(tenant);
+    await _repository.cacheUser(updated);
+    state = AsyncData(updated);
+    await _refreshProfile();
+  }
+
   /// Re-reads the profile, e.g. after the shop owner renewed the subscription.
   Future<void> refreshProfile() => _refreshProfile();
 

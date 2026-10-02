@@ -172,6 +172,16 @@ class MenuScreen extends ConsumerWidget {
             badgeCount: unread > 0 ? unread : null,
             badgeColor: const Color(0xFFEF4444),
           ),
+          if (user.isSuperadmin && user.tenant != null)
+            (
+              icon: LucideIcons.store,
+              label: 'Preset jenis toko',
+              path: '/onboarding',
+              caption: 'Hanya selama toko belum punya transaksi',
+              color: const Color(0xFF0EA5E9),
+              badgeCount: null,
+              badgeColor: null,
+            ),
           (
             icon: LucideIcons.printer,
             label: 'Printer struk',

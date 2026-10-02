@@ -40,6 +40,9 @@ class CurrentUser {
 
   bool get isTenantBlocked => tenant?.blockedReason != null;
 
+  /// Only the shop owner picks a store type; other roles go straight in while it is pending.
+  bool get needsOnboarding => isSuperadmin && tenant != null && !tenant!.onboarded;
+
   CurrentUser withTenant(TenantInfo? tenant) => CurrentUser(
         id: id,
         name: name,
@@ -83,6 +86,8 @@ class TenantInfo {
     this.accessEndsAt,
     this.blockedReason,
     this.blockedMessage,
+    this.onboarded = true,
+    this.storeType,
   });
 
   factory TenantInfo.fromJson(Map<String, dynamic> json) => TenantInfo(
@@ -93,6 +98,8 @@ class TenantInfo {
         accessEndsAt: DateTime.tryParse(json['access_ends_at'] as String? ?? ''),
         blockedReason: json['blocked_reason'] as String?,
         blockedMessage: json['blocked_message'] as String?,
+        onboarded: json['onboarded'] as bool? ?? true,
+        storeType: json['store_type'] as String?,
       );
 
   final int id;
@@ -107,6 +114,12 @@ class TenantInfo {
   /// Server wording from the last 402 answer; /auth/me only sends the reason.
   final String? blockedMessage;
 
+  /// Missing on servers that predate store presets, which never ask for onboarding.
+  final bool onboarded;
+
+  /// Key of the applied store preset, e.g. `kafe`; null when skipped or not chosen yet.
+  final String? storeType;
+
   bool get isTrial => plan == 'trial';
 
   TenantInfo blocked(String? reason, {String? message}) => TenantInfo(
@@ -117,6 +130,8 @@ class TenantInfo {
         accessEndsAt: accessEndsAt,
         blockedReason: reason,
         blockedMessage: message,
+        onboarded: onboarded,
+        storeType: storeType,
       );
 
   Map<String, dynamic> toJson() => {
@@ -127,5 +142,7 @@ class TenantInfo {
         'access_ends_at': accessEndsAt?.toIso8601String(),
         'blocked_reason': blockedReason,
         'blocked_message': blockedMessage,
+        'onboarded': onboarded,
+        'store_type': storeType,
       };
 }
