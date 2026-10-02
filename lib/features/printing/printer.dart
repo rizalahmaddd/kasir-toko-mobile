@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:esc_pos_utils_plus/esc_pos_utils_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -11,21 +13,58 @@ import '../sales/data/sales_repository.dart';
 import '../shift/data/shift_models.dart';
 import 'receipt_layout.dart';
 
+
 class PrinterSettings {
-  const PrinterSettings({this.address, this.name, this.paperWidth = '58', this.autoPrint = false});
+  const PrinterSettings({
+    this.address,
+    this.name,
+    this.paperWidth = '58',
+    this.autoPrint = false,
+    this.copies = 1,
+    this.showStoreInfo = true,
+    this.cut = true,
+    this.feedLines = 3,
+  });
 
   final String? address;
   final String? name;
   final String paperWidth;
   final bool autoPrint;
+  final int copies;
+  final bool showStoreInfo;
+  final bool cut;
+  final int feedLines;
 
   bool get isConfigured => address != null;
 
-  PrinterSettings copyWith({String? address, String? name, String? paperWidth, bool? autoPrint}) => PrinterSettings(
+  PrinterSettings copyWith({
+    String? address,
+    String? name,
+    String? paperWidth,
+    bool? autoPrint,
+    int? copies,
+    bool? showStoreInfo,
+    bool? cut,
+    int? feedLines,
+  }) =>
+      PrinterSettings(
         address: address ?? this.address,
         name: name ?? this.name,
         paperWidth: paperWidth ?? this.paperWidth,
         autoPrint: autoPrint ?? this.autoPrint,
+        copies: copies ?? this.copies,
+        showStoreInfo: showStoreInfo ?? this.showStoreInfo,
+        cut: cut ?? this.cut,
+        feedLines: feedLines ?? this.feedLines,
+      );
+
+  PrinterSettings withoutDevice() => PrinterSettings(
+        paperWidth: paperWidth,
+        autoPrint: autoPrint,
+        copies: copies,
+        showStoreInfo: showStoreInfo,
+        cut: cut,
+        feedLines: feedLines,
       );
 }
 
@@ -36,27 +75,40 @@ class PrinterSettingsNotifier extends Notifier<PrinterSettings> {
   static const _name = 'printer_name';
   static const _width = 'printer_width';
   static const _auto = 'printer_auto';
+  static const _copies = 'printer_copies';
+  static const _storeInfo = 'printer_store_info';
+  static const _cut = 'printer_cut';
+  static const _feed = 'printer_feed';
 
   SharedPreferences get _prefs => ref.read(sharedPreferencesProvider);
 
+  /// Until the cashier picks a width on this device, follow the store's setting from the web.
   @override
   PrinterSettings build() => PrinterSettings(
         address: _prefs.getString(_address),
         name: _prefs.getString(_name),
-        paperWidth: _prefs.getString(_width) ?? '58',
+        paperWidth: _prefs.getString(_width) ?? ReceiptProfile.cached(_prefs)?.paperWidth ?? '58',
         autoPrint: _prefs.getBool(_auto) ?? false,
+        copies: _prefs.getInt(_copies) ?? 1,
+        showStoreInfo: _prefs.getBool(_storeInfo) ?? true,
+        cut: _prefs.getBool(_cut) ?? true,
+        feedLines: _prefs.getInt(_feed) ?? 3,
       );
 
   Future<void> choose(String address, String name) async {
+    if (state.address != address) {
+      await PrintBluetoothThermal.disconnect.catchError((_) => false);
+    }
     await _prefs.setString(_address, address);
     await _prefs.setString(_name, name);
     state = state.copyWith(address: address, name: name);
   }
 
   Future<void> forget() async {
+    await PrintBluetoothThermal.disconnect.catchError((_) => false);
     await _prefs.remove(_address);
     await _prefs.remove(_name);
-    state = PrinterSettings(paperWidth: state.paperWidth, autoPrint: state.autoPrint);
+    state = state.withoutDevice();
   }
 
   Future<void> setPaperWidth(String width) async {
@@ -67,6 +119,26 @@ class PrinterSettingsNotifier extends Notifier<PrinterSettings> {
   Future<void> setAutoPrint(bool value) async {
     await _prefs.setBool(_auto, value);
     state = state.copyWith(autoPrint: value);
+  }
+
+  Future<void> setCopies(int value) async {
+    await _prefs.setInt(_copies, value);
+    state = state.copyWith(copies: value);
+  }
+
+  Future<void> setShowStoreInfo(bool value) async {
+    await _prefs.setBool(_storeInfo, value);
+    state = state.copyWith(showStoreInfo: value);
+  }
+
+  Future<void> setCut(bool value) async {
+    await _prefs.setBool(_cut, value);
+    state = state.copyWith(cut: value);
+  }
+
+  Future<void> setFeedLines(int value) async {
+    await _prefs.setInt(_feed, value);
+    state = state.copyWith(feedLines: value);
   }
 }
 
@@ -79,17 +151,16 @@ class PrinterException implements Exception {
   String toString() => message;
 }
 
-/// Store name for receipt headers, cached so printing still works when /meta is slow.
-final storeNameProvider = FutureProvider<String>((ref) async {
+/// Store identity printed on every receipt, cached so printing still works offline or when /meta is slow.
+final receiptProfileProvider = FutureProvider<ReceiptProfile>((ref) async {
   final prefs = ref.read(sharedPreferencesProvider);
   try {
-    final app = ApiClient.data(await ref.watch(apiClientProvider).get('meta'))['app'] as Map<String, dynamic>;
-    final name = (app['company_name'] as String?)?.trim();
-    final resolved = name == null || name.isEmpty ? app['name'] as String? ?? 'Toko' : name;
-    await prefs.setString('store_name', resolved);
-    return resolved;
+    final data = ApiClient.data(await ref.watch(apiClientProvider).get('meta'));
+    final profile = ReceiptProfile.fromMeta(data);
+    await prefs.setString(ReceiptProfile.cacheKey, jsonEncode(profile.toJson()));
+    return profile;
   } on Object {
-    return prefs.getString('store_name') ?? 'Toko';
+    return ReceiptProfile.cached(prefs) ?? ReceiptProfile(storeName: prefs.getString('store_name') ?? 'Toko');
   }
 });
 
@@ -112,44 +183,36 @@ class PrinterService {
   }
 
   Future<void> printSale(int saleId) async {
-    final settings = _ref.read(printerSettingsProvider);
-    final repository = _ref.read(salesRepositoryProvider);
-    final (sale, receipt, storeName) = await (repository.show(saleId), repository.receipt(saleId), _ref.read(storeNameProvider.future)).wait;
+    final (sale, profile) = await (_ref.read(salesRepositoryProvider).show(saleId), _ref.read(receiptProfileProvider.future)).wait;
 
-    await printLines(
-      saleReceipt(sale, storeName: storeName, paperWidth: settings.paperWidth, footer: footerFromReceiptText(receipt.text)),
-    );
+    await printLines(_saleLines(sale, profile));
   }
 
   Future<void> printDetail(SaleDetail sale) async {
-    final settings = _ref.read(printerSettingsProvider);
-    final storeName = await _ref.read(storeNameProvider.future);
+    await printLines(_saleLines(sale, await _ref.read(receiptProfileProvider.future)));
+  }
 
-    await printLines(saleReceipt(sale, storeName: storeName, paperWidth: settings.paperWidth));
+  List<PrintLine> _saleLines(SaleDetail sale, ReceiptProfile profile) {
+    final settings = _ref.read(printerSettingsProvider);
+
+    return saleReceipt(sale, profile: profile, paperWidth: settings.paperWidth, showStoreInfo: settings.showStoreInfo);
   }
 
   Future<void> printShift(Shift shift) async {
     final settings = _ref.read(printerSettingsProvider);
-    final storeName = await _ref.read(storeNameProvider.future);
+    final profile = await _ref.read(receiptProfileProvider.future);
 
-    await printLines(shiftRecap(shift, storeName: storeName, paperWidth: settings.paperWidth));
+    await printLines(shiftRecap(shift, profile: profile, paperWidth: settings.paperWidth), copies: 1);
   }
 
   Future<void> printTest() async {
     final settings = _ref.read(printerSettingsProvider);
-    final storeName = await _ref.read(storeNameProvider.future);
-    final width = charsPerLine(settings.paperWidth);
+    final profile = await _ref.read(receiptProfileProvider.future);
 
-    await printLines([
-      PrintLine(storeName, bold: true, align: LineAlign.center, large: true),
-      const PrintLine('Tes printer berhasil', align: LineAlign.center),
-      const PrintLine.rule(),
-      for (final l in columns('Kertas', '${settings.paperWidth} mm', width)) PrintLine(l),
-      for (final l in columns('Karakter per baris', '$width', width)) PrintLine(l),
-    ]);
+    await printLines(testPage(profile, paperWidth: settings.paperWidth, showStoreInfo: settings.showStoreInfo), copies: 1);
   }
 
-  Future<void> printLines(List<PrintLine> lines) async {
+  Future<void> printLines(List<PrintLine> lines, {int? copies}) async {
     final settings = _ref.read(printerSettingsProvider);
     if (!settings.isConfigured) {
       throw const PrinterException('Printer belum dipilih. Atur di Menu → Printer struk.');
@@ -157,13 +220,18 @@ class PrinterService {
     if (!await PrintBluetoothThermal.isPermissionBluetoothGranted) {
       throw const PrinterException('Izin Bluetooth belum diberikan.');
     }
+    if (!await PrintBluetoothThermal.bluetoothEnabled) {
+      throw const PrinterException('Bluetooth mati. Nyalakan Bluetooth lalu coba lagi.');
+    }
     if (!await PrintBluetoothThermal.connectionStatus && !await PrintBluetoothThermal.connect(macPrinterAddress: settings.address!)) {
       throw PrinterException('Tidak bisa terhubung ke ${settings.name ?? 'printer'}. Pastikan printer menyala dan dekat.');
     }
 
-    final bytes = await escPosBytes(lines, settings.paperWidth);
-    if (!await PrintBluetoothThermal.writeBytes(bytes)) {
-      throw const PrinterException('Gagal mengirim data ke printer. Coba lagi.');
+    final bytes = await escPosBytes(lines, settings.paperWidth, feedLines: settings.feedLines, cut: settings.cut);
+    for (var copy = 0; copy < (copies ?? settings.copies); copy++) {
+      if (!await PrintBluetoothThermal.writeBytes(bytes)) {
+        throw const PrinterException('Gagal mengirim data ke printer. Coba lagi.');
+      }
     }
   }
 }
@@ -172,7 +240,7 @@ class PrinterService {
 String _latin1(String text) => String.fromCharCodes(text.runes.map((r) => r < 256 ? r : 0x3F));
 
 @visibleForTesting
-Future<List<int>> escPosBytes(List<PrintLine> lines, String paperWidth) async {
+Future<List<int>> escPosBytes(List<PrintLine> lines, String paperWidth, {int feedLines = 3, bool cut = true}) async {
   final profile = await CapabilityProfile.load();
   final generator = Generator(paperWidth == '80' ? PaperSize.mm80 : PaperSize.mm58, profile);
   final width = charsPerLine(paperWidth);
@@ -196,7 +264,10 @@ Future<List<int>> escPosBytes(List<PrintLine> lines, String paperWidth) async {
     );
   }
 
-  return bytes
-    ..addAll(generator.feed(3))
-    ..addAll(generator.cut());
+  bytes.addAll(generator.feed(feedLines));
+  if (cut) {
+    bytes.addAll(generator.cut());
+  }
+
+  return bytes;
 }

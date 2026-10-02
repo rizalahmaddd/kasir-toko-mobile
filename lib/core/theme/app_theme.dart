@@ -141,7 +141,7 @@ abstract final class AppTheme {
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
+        titleTextStyle: textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600, letterSpacing: -0.2),
       ),
       cardTheme: CardThemeData(
         color: surface,
@@ -163,8 +163,9 @@ abstract final class AppTheme {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(44, 48),
+          elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: radius),
-          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15, letterSpacing: -0.1),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
@@ -173,35 +174,77 @@ abstract final class AppTheme {
           foregroundColor: text,
           side: BorderSide(color: border),
           shape: RoundedRectangleBorder(borderRadius: radius),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         ),
       ),
-      listTileTheme: ListTileThemeData(leadingAndTrailingTextStyle: textTheme.bodyLarge),
-      textButtonTheme: TextButtonThemeData(style: TextButton.styleFrom(minimumSize: const Size(44, 44))),
+      listTileTheme: ListTileThemeData(
+        leadingAndTrailingTextStyle: textTheme.bodyLarge,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+      ),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(
+          minimumSize: const Size(44, 44),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
       chipTheme: base.chipTheme.copyWith(
         backgroundColor: surface,
         selectedColor: primary.withValues(alpha: 0.16),
         side: BorderSide(color: border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        labelStyle: TextStyle(color: text, fontWeight: FontWeight.w500),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
         indicatorColor: primary.withValues(alpha: 0.16),
         height: 64,
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final isSelected = states.contains(WidgetState.selected);
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            color: isSelected ? primary : muted,
+          );
+        }),
       ),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: surface,
         indicatorColor: primary.withValues(alpha: 0.16),
+        selectedLabelTextStyle: TextStyle(fontWeight: FontWeight.w600, color: primary),
+        unselectedLabelTextStyle: TextStyle(fontWeight: FontWeight.w500, color: muted),
       ),
       bottomSheetTheme: BottomSheetThemeData(
         backgroundColor: surface,
-        showDragHandle: true,
+        showDragHandle: false,
+        dragHandleColor: muted.withValues(alpha: 0.4),
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
-      snackBarTheme: const SnackBarThemeData(behavior: SnackBarBehavior.floating),
+      snackBarTheme: SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      tabBarTheme: TabBarThemeData(
+        indicatorColor: primary,
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: primary,
+        unselectedLabelColor: muted,
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: primary,
+        foregroundColor: Colors.white,
+        elevation: 4,
+        focusElevation: 4,
+        hoverElevation: 5,
+        highlightElevation: 6,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        extendedTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      ),
     );
   }
 }

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/json.dart';
 import '../../../core/widgets/bar_chart.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/period_picker.dart';
 import '../../../core/widgets/state_views.dart';
 import '../reports.dart';
@@ -85,7 +87,7 @@ class _Overview extends ConsumerWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 mainAxisSpacing: 8,
                 crossAxisSpacing: 8,
-                childAspectRatio: wide ? 2.0 : 1.55,
+                childAspectRatio: wide ? 2.0 : 1.45,
                 children: tiles,
               ),
               const SectionTitle('Tren omzet'),
@@ -209,7 +211,6 @@ class _Daily extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final report = ref.watch(dailyReportProvider);
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return AsyncView(
       value: report,
@@ -241,24 +242,102 @@ class _Daily extends ConsumerWidget {
               if (days.isEmpty)
                 const EmptyState(icon: LucideIcons.calendarX, title: 'Tidak ada penjualan di periode ini')
               else
-                Card(
-                  child: Column(
-                    children: [
-                      for (final (i, d) in days.indexed) ...[
-                        if (i > 0) const Divider(indent: 16, endIndent: 16),
-                        ListTile(
-                          title: Text(DateUtils.isSameDay(d.date, DateTime.now()) ? 'Hari ini' : dateOnly(d.date), style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text('${d.count} transaksi · ${quantity(d.qty)} barang · laba ${rupiah(d.profit)}', style: TextStyle(color: muted)),
-                          trailing: Text(rupiah(d.total)),
-                        ),
-                      ],
-                    ],
-                  ),
+                Column(
+                  children: [
+                    for (final d in days)
+                      _DailyReportCard(day: d),
+                  ],
                 ),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+class _DailyReportCard extends StatelessWidget {
+  const _DailyReportCard({required this.day});
+
+  final DailyLine day;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final isToday = DateUtils.isSameDay(day.date, DateTime.now());
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      dateOnly(day.date),
+                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                    if (isToday) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'Hari ini',
+                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF059669)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${day.count} transaksi · ${quantity(day.qty)} barang',
+                  style: TextStyle(color: muted, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                rupiah(day.total),
+                style: AppTypography.money(fontSize: 14, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'laba ${rupiah(day.profit)}',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
@@ -273,7 +352,6 @@ class _Products extends ConsumerWidget {
     final query = ref.watch(productReportQueryProvider);
     final notifier = ref.read(productReportQueryProvider.notifier);
     final report = ref.watch(productReportProvider);
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Column(
       children: [
@@ -281,11 +359,21 @@ class _Products extends ConsumerWidget {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           child: SearchField(hint: 'Cari produk', onChanged: (term) => notifier.set((sort: query.sort, search: term))),
         ),
-        ChoiceChips<String>(
-          options: [for (final e in _productSorts.entries) (e.key, 'Urut ${e.value.toLowerCase()}')],
-          selected: query.sort,
-          onSelected: (sort) => notifier.set((sort: sort ?? 'revenue', search: query.search)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Row(
+            children: [
+              FilterDropdownPill<String>(
+                label: 'Urutan',
+                icon: LucideIcons.arrowUpDown,
+                value: query.sort,
+                items: [for (final e in _productSorts.entries) (e.key, 'Urut ${e.value}')],
+                onChanged: (sort) => notifier.set((sort: sort ?? 'revenue', search: query.search)),
+              ),
+            ],
+          ),
         ),
+        const SizedBox(height: 2),
         Expanded(
           child: AsyncView(
             value: report,
@@ -294,31 +382,120 @@ class _Products extends ConsumerWidget {
                 ? const EmptyState(icon: LucideIcons.package, title: 'Tidak ada produk terjual')
                 : RefreshIndicator(
                     onRefresh: () => ref.refresh(productReportProvider.future),
-                    child: ListView.separated(
-                      padding: const EdgeInsets.only(bottom: 24, top: 4),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
                       itemCount: r.products.length,
-                      separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
-                      itemBuilder: (context, i) {
-                        final p = r.products[i];
-                        return ListTile(
-                          leading: CircleAvatar(radius: 14, child: Text('${i + 1}', style: const TextStyle(fontSize: 12))),
-                          title: Text(p.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                          subtitle: Text('${p.category} · ${quantity(p.qty)} ${p.unit} · margin ${percent(p.margin)}', style: TextStyle(color: muted)),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(rupiah(p.revenue)),
-                              Text('laba ${rupiah(p.profit)}', style: TextStyle(fontSize: 12, color: StatusColors.of(context).success)),
-                            ],
-                          ),
-                        );
-                      },
+                      itemBuilder: (context, i) => _ProductReportCard(
+                        product: r.products[i],
+                        rank: i + 1,
+                      ),
                     ),
                   ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ProductReportCard extends StatelessWidget {
+  const _ProductReportCard({required this.product, required this.rank});
+
+  final ProductLine product;
+  final int rank;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = theme.colorScheme.onSurfaceVariant;
+
+    final rankColor = switch (rank) {
+      1 => const Color(0xFFD97706),
+      2 => const Color(0xFF64748B),
+      3 => const Color(0xFFC2410C),
+      _ => muted,
+    };
+    final rankBg = switch (rank) {
+      1 => isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
+      2 => isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+      3 => isDark ? const Color(0xFF7C2D12) : const Color(0xFFFFEDD5),
+      _ => isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+    };
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            decoration: BoxDecoration(
+              color: rankBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$rank',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+                color: rankColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  product.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${product.category} · ${quantity(product.qty)} ${product.unit}',
+                  style: TextStyle(color: muted, fontSize: 11),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                rupiah(product.revenue),
+                style: AppTypography.money(fontSize: 13, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'laba ${rupiah(product.profit)} (${percent(product.margin)})',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF059669)),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

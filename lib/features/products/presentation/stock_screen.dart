@@ -7,6 +7,7 @@ import '../../../core/paging/paged.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
 import '../products_providers.dart';
 import 'product_widgets.dart';
@@ -50,7 +51,7 @@ class StockScreen extends ConsumerWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 8,
                   crossAxisSpacing: 8,
-                  childAspectRatio: 2.1,
+                  childAspectRatio: MediaQuery.sizeOf(context).width >= 600 ? 2.0 : 1.65,
                   children: [
                     StatTile(label: 'Dilacak', value: thousands(summary.tracked), icon: LucideIcons.package),
                     StatTile(
@@ -73,14 +74,30 @@ class StockScreen extends ConsumerWidget {
               ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: SearchField(hint: 'Cari nama, SKU, atau barcode', onChanged: (term) => notifier.set((search: term, level: query.level))),
+              child: SearchField(
+                hint: 'Cari nama, SKU, atau barcode',
+                onChanged: (term) => notifier.set((search: term, level: query.level)),
+              ),
             ),
-            ChoiceChips<String>(
-              options: const [(null, 'Semua'), ('low', 'Menipis'), ('out', 'Habis')],
-              selected: query.level,
-              onSelected: (level) => notifier.set((search: query.search, level: level)),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Row(
+                children: [
+                  FilterDropdownPill<String>(
+                    label: 'Status Stok',
+                    icon: LucideIcons.packageCheck,
+                    value: query.level,
+                    items: const [
+                      (null, 'Semua Stok'),
+                      ('low', 'Stok Menipis'),
+                      ('out', 'Stok Habis'),
+                    ],
+                    onChanged: (level) => notifier.set((search: query.search, level: level)),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 2),
           ],
         ),
         empty: const EmptyState(icon: LucideIcons.warehouse, title: 'Tidak ada barang', description: 'Ubah kata kunci atau filter.'),

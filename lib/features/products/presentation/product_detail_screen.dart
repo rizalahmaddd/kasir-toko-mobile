@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
@@ -61,26 +62,7 @@ class ProductDetailScreen extends ConsumerWidget {
                   children: [
                     _Header(product: product, canManage: canManage),
                     const SizedBox(height: 16),
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          children: [
-                            InfoRow('Harga jual', rupiah(product.price), bold: true),
-                            InfoRow('Harga modal', rupiah(product.costPrice)),
-                            InfoRow(
-                              'Margin',
-                              product.price == 0 ? '-' : '${rupiah(product.margin)} (${(product.margin / product.price * 100).toStringAsFixed(1)}%)',
-                              valueColor: product.margin < 0 ? StatusColors.of(context).danger : StatusColors.of(context).success,
-                            ),
-                            const Divider(height: 24),
-                            InfoRow('Satuan', product.unit),
-                            InfoRow('Kategori', product.category?.name ?? '-'),
-                            InfoRow('Barcode', product.barcode ?? '-'),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _PricingAndSpecsCard(product: product),
                     if (product.trackStock) ...[
                       const SectionTitle('Stok'),
                       _StockCard(product: product, canAdjust: user?.canAdjustStock ?? false),
@@ -144,6 +126,7 @@ class _HeaderState extends ConsumerState<_Header> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            const BottomSheetHeader(title: 'Foto Produk'),
             ListTile(leading: const Icon(LucideIcons.camera), title: const Text('Ambil foto'), onTap: () => Navigator.pop(context, 'camera')),
             ListTile(leading: const Icon(LucideIcons.image), title: const Text('Pilih dari galeri'), onTap: () => Navigator.pop(context, 'gallery')),
             if (hasImage)
@@ -152,6 +135,7 @@ class _HeaderState extends ConsumerState<_Header> {
                 title: Text('Hapus foto', style: TextStyle(color: StatusColors.of(context).danger)),
                 onTap: () => Navigator.pop(context, 'delete'),
               ),
+            const SizedBox(height: 12),
           ],
         ),
       ),
@@ -204,7 +188,7 @@ class _HeaderState extends ConsumerState<_Header> {
           child: Stack(
             alignment: Alignment.center,
             children: [
-              ProductThumb(url: product.imageUrl, size: 88),
+              ProductThumb(url: product.imageUrl, name: product.name, size: 88),
               if (_uploading) const CircularProgressIndicator(),
               if (widget.canManage && !_uploading)
                 Positioned(
@@ -247,6 +231,121 @@ class _HeaderState extends ConsumerState<_Header> {
   }
 }
 
+class _PricingAndSpecsCard extends StatelessWidget {
+  const _PricingAndSpecsCard({required this.product});
+
+  final ProductRecord product;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colors = StatusColors.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final marginPercent = product.price > 0 ? (product.margin / product.price * 100) : 0.0;
+    final isPositiveMargin = product.margin >= 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Harga Jual', style: TextStyle(fontSize: 12, color: muted, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(
+                    rupiah(product.price),
+                    style: AppTypography.money(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF059669),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: isPositiveMargin
+                      ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                      : colors.danger.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPositiveMargin ? LucideIcons.trendingUp : LucideIcons.trendingDown,
+                      size: 14,
+                      color: isPositiveMargin ? const Color(0xFF059669) : colors.danger,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${isPositiveMargin ? '+' : ''}${rupiah(product.margin)} (${marginPercent.toStringAsFixed(1)}%)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isPositiveMargin ? const Color(0xFF059669) : colors.danger,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Harga Modal (HPP)', style: TextStyle(fontSize: 13, color: muted)),
+                Text(
+                  rupiah(product.costPrice),
+                  style: AppTypography.money(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Divider(height: 1),
+          ),
+          InfoRow('Satuan', product.unit),
+          InfoRow('Kategori', product.category?.name ?? '-'),
+          InfoRow('Barcode', product.barcode ?? '-'),
+        ],
+      ),
+    );
+  }
+}
+
 class _StockCard extends StatelessWidget {
   const _StockCard({required this.product, required this.canAdjust});
 
@@ -255,48 +354,105 @@ class _StockCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final colors = StatusColors.of(context);
+    final muted = theme.colorScheme.onSurfaceVariant;
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            InfoRow(
-              'Stok saat ini',
-              '${quantity(product.stock)} ${product.unit}',
-              bold: true,
-              valueColor: product.isOutOfStock ? colors.danger : (product.isLowStock ? colors.warning : null),
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
             ),
-            InfoRow('Batas minimum', '${quantity(product.minStock)} ${product.unit}'),
-            InfoRow('Nilai stok (modal)', rupiah((product.stock > 0 ? product.stock : 0) * product.costPrice)),
-            if (canAdjust) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: () => StockAdjustSheet.show(context, product, 'stock_in'),
-                    icon: const Icon(LucideIcons.arrowDownToLine, size: 18),
-                    label: const Text('Stok Masuk'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => StockAdjustSheet.show(context, product, 'stock_out'),
-                    icon: const Icon(LucideIcons.arrowUpFromLine, size: 18),
-                    label: const Text('Stok Keluar'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: () => StockAdjustSheet.show(context, product, 'opname'),
-                    icon: const Icon(LucideIcons.clipboardCheck, size: 18),
-                    label: const Text('Opname'),
+                  Text('Stok Saat Ini', style: TextStyle(fontSize: 12, color: muted, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${quantity(product.stock)} ${product.unit}',
+                    style: AppTypography.quantity(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      color: product.isOutOfStock
+                          ? colors.danger
+                          : (product.isLowStock ? colors.warning : null),
+                    ),
                   ),
                 ],
               ),
+              if (product.isOutOfStock)
+                const StatusBadge(label: 'Habis', tone: BadgeTone.danger)
+              else if (product.isLowStock)
+                const StatusBadge(label: 'Menipis', tone: BadgeTone.warning)
+              else
+                const StatusBadge(label: 'Tersedia', tone: BadgeTone.success),
             ],
+          ),
+          const SizedBox(height: 12),
+          InfoRow('Batas minimum', '${quantity(product.minStock)} ${product.unit}'),
+          InfoRow('Nilai stok (modal)', rupiah((product.stock > 0 ? product.stock : 0) * product.costPrice)),
+          if (canAdjust) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => StockAdjustSheet.show(context, product, 'stock_in'),
+                    icon: const Icon(LucideIcons.arrowDownToLine, size: 16),
+                    label: const Text('Masuk', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => StockAdjustSheet.show(context, product, 'stock_out'),
+                    icon: const Icon(LucideIcons.arrowUpFromLine, size: 16),
+                    label: const Text('Keluar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    onPressed: () => StockAdjustSheet.show(context, product, 'opname'),
+                    icon: const Icon(LucideIcons.clipboardCheck, size: 16),
+                    label: const Text('Opname', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -327,7 +483,7 @@ class _RecentMovements extends ConsumerWidget {
             child: Text('Belum ada mutasi stok.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           )
         else
-          Card(child: Column(children: [for (final movement in items) MovementTile(movement: movement)])),
+          Column(children: [for (final movement in items) MovementTile(movement: movement, margin: const EdgeInsets.only(bottom: 6))]),
       ],
     );
   }

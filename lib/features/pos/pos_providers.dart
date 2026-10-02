@@ -77,3 +77,20 @@ class CatalogController extends AsyncNotifier<CatalogPage> {
     }
   }
 }
+
+final heldOrderPreviewsProvider = NotifierProvider<HeldOrderPreviewsNotifier, Map<int, String>>(HeldOrderPreviewsNotifier.new);
+
+class HeldOrderPreviewsNotifier extends Notifier<Map<int, String>> {
+  @override
+  Map<int, String> build() => {};
+
+  void save(int id, String preview) {
+    state = {...state, id: preview};
+  }
+
+  void remove(int id) {
+    final next = {...state}..remove(id);
+    state = next;
+  }
+}
+

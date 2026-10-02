@@ -105,8 +105,8 @@ class PosRepository {
 
   Future<List<HeldOrder>> heldOrders() async => ApiClient.list(await _api.get('pos/held-orders')).map(HeldOrder.fromJson).toList();
 
-  Future<void> holdOrder({required Cart cart, required int total, String? label}) =>
-      _api.post('pos/held-orders', data: {'label': label, 'cart': cart.toJson(total: total)});
+  Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label}) async =>
+      HeldOrder.fromJson(ApiClient.data(await _api.post('pos/held-orders', data: {'label': label, 'cart': cart.toJson(total: total)})));
 
   Future<HeldOrder> resumeHeldOrder(int id) async => HeldOrder.fromJson(ApiClient.data(await _api.post('pos/held-orders/$id/resume')));
 

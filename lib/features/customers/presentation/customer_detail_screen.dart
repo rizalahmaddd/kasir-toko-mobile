@@ -55,55 +55,158 @@ class CustomerDetailScreen extends ConsumerWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF1E293B)
+                              : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark
+                                ? const Color(0xFF334155)
+                                : const Color(0xFFE2E8F0),
+                          ),
+                          boxShadow: [
+                            if (Theme.of(context).brightness != Brightness.dark)
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 52,
+                                  height: 52,
+                                  decoration: BoxDecoration(
+                                    color: Theme.of(context).brightness == Brightness.dark
+                                        ? const Color(0xFF1E3A8A).withValues(alpha: 0.4)
+                                        : const Color(0xFFDBEAFE),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    customer.name.isEmpty ? '?' : customer.name[0].toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF2563EB),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        customer.name,
+                                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 18,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: [
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).brightness == Brightness.dark
+                                                  ? const Color(0xFF334155)
+                                                  : const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                            child: Text(
+                                              customer.code,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w700,
+                                                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ),
+                                          if (customer.type != null)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF0D9488).withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                customer.type!,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Color(0xFF0D9488),
+                                                ),
+                                              ),
+                                            ),
+                                          StatusBadge(
+                                            label: customer.isActive ? 'Aktif' : 'Nonaktif',
+                                            tone: customer.isActive ? BadgeTone.success : BadgeTone.muted,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (customer.phone != null) ...[
+                              const SizedBox(height: 16),
                               Row(
                                 children: [
                                   Expanded(
-                                    child: Text(customer.name, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                                    child: OutlinedButton.icon(
+                                      style: OutlinedButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                      onPressed: () => openExternal(context, Uri(scheme: 'tel', path: customer.phone)),
+                                      icon: const Icon(LucideIcons.phone, size: 16),
+                                      label: const Text('Telepon', style: TextStyle(fontWeight: FontWeight.w600)),
+                                    ),
                                   ),
-                                  StatusBadge(label: customer.isActive ? 'Aktif' : 'Nonaktif', tone: customer.isActive ? BadgeTone.success : BadgeTone.muted),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              InfoRow('Kode', customer.code),
-                              if (customer.type != null) InfoRow('Tipe', customer.type!),
-                              if (customer.contactPerson != null) InfoRow('Kontak', customer.contactPerson!),
-                              InfoRow('Nomor HP', customer.phone ?? '-'),
-                              if (customer.email != null) InfoRow('Email', customer.email!),
-                              if (customer.address != null) InfoRow('Alamat', customer.address!),
-                              if (customer.npwp != null) InfoRow('NPWP', customer.npwp!),
-                              InfoRow('Tempo bayar', customer.paymentTermDays == 0 ? 'Tunai' : '${customer.paymentTermDays} hari'),
-                              if (customer.phone != null) ...[
-                                const SizedBox(height: 12),
-                                Row(
-                                  children: [
+                                  if (wa != null) ...[
+                                    const SizedBox(width: 8),
                                     Expanded(
-                                      child: OutlinedButton.icon(
-                                        onPressed: () => openExternal(context, Uri(scheme: 'tel', path: customer.phone)),
-                                        icon: const Icon(LucideIcons.phone, size: 18),
-                                        label: const Text('Telepon'),
+                                      child: FilledButton.tonalIcon(
+                                        style: FilledButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
+                                          foregroundColor: const Color(0xFF059669),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                        onPressed: () => openExternal(context, Uri.parse('https://wa.me/$wa'), failure: 'WhatsApp tidak bisa dibuka.'),
+                                        icon: const Icon(LucideIcons.messageCircle, size: 16),
+                                        label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.w700)),
                                       ),
                                     ),
-                                    if (wa != null) ...[
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: OutlinedButton.icon(
-                                          onPressed: () => openExternal(context, Uri.parse('https://wa.me/$wa'), failure: 'WhatsApp tidak bisa dibuka.'),
-                                          icon: const Icon(LucideIcons.messageCircle, size: 18),
-                                          label: const Text('WhatsApp'),
-                                        ),
-                                      ),
-                                    ],
                                   ],
-                                ),
-                              ],
+                                ],
+                              ),
                             ],
-                          ),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 12),
+                              child: Divider(height: 1),
+                            ),
+                            InfoRow('Nomor HP', customer.phone ?? '-'),
+                            if (customer.contactPerson != null) InfoRow('Kontak person', customer.contactPerson!),
+                            if (customer.email != null) InfoRow('Email', customer.email!),
+                            if (customer.address != null) InfoRow('Alamat', customer.address!),
+                            if (customer.npwp != null) InfoRow('NPWP', customer.npwp!),
+                            InfoRow('Tempo bayar', customer.paymentTermDays == 0 ? 'Tunai' : '${customer.paymentTermDays} hari'),
+                          ],
                         ),
                       ),
                       if (user?.canViewSales ?? false) _CustomerSales(customerId: customerId),
@@ -183,8 +286,11 @@ class _CustomerSales extends ConsumerWidget {
           if (value.items.isEmpty)
             Text('Belum ada transaksi dalam setahun terakhir.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
           else
-            Card(
-              child: Column(children: [for (final sale in value.items.take(15)) SaleTile(sale: sale)]),
+            Column(
+              children: [
+                for (final sale in value.items.take(15))
+                  SaleTile(sale: sale, margin: const EdgeInsets.only(bottom: 8)),
+              ],
             ),
         ],
       ),

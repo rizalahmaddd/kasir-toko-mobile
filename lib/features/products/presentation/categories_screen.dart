@@ -41,22 +41,104 @@ class CategoriesScreen extends ConsumerWidget {
               value: ref.watch(categoriesProvider),
               onLoadMore: () => ref.read(categoriesProvider.notifier).loadMore(),
               onRefresh: () => ref.refresh(categoriesProvider.future),
-              padding: const EdgeInsets.only(bottom: 96),
+              padding: const EdgeInsets.fromLTRB(0, 4, 0, 96),
               empty: const EmptyState(icon: LucideIcons.tags, title: 'Belum ada kategori'),
-              itemBuilder: (context, category) => ListTile(
+              itemBuilder: (context, category) => _CategoryCard(
+                category: category,
+                canManage: canManage,
                 onTap: canManage ? () => FormSheet.show<void>(context, _CategorySheet(category: category)) : null,
-                title: Row(
-                  children: [
-                    Flexible(child: Text(category.name, style: const TextStyle(fontWeight: FontWeight.w600))),
-                    if (!category.isActive) ...[const SizedBox(width: 6), const StatusBadge(label: 'Nonaktif')],
-                  ],
-                ),
-                subtitle: Text('${category.productsCount ?? 0} produk · urutan ${category.sortOrder}'),
-                trailing: canManage ? const Icon(LucideIcons.chevronRight, size: 18) : null,
               ),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CategoryCard extends StatelessWidget {
+  const _CategoryCard({required this.category, required this.canManage, required this.onTap});
+
+  final CategoryRecord category;
+  final bool canManage;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = theme.colorScheme.onSurfaceVariant;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF0F766E).withValues(alpha: 0.3) : const Color(0xFFCCFBF1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(LucideIcons.tag, size: 18, color: Color(0xFF0D9488)),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              category.name,
+                              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (!category.isActive) ...[
+                            const SizedBox(width: 6),
+                            const StatusBadge(label: 'Nonaktif'),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '${category.productsCount ?? 0} produk · Urutan ${category.sortOrder}',
+                        style: TextStyle(color: muted, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+                if (canManage)
+                  const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.slate400),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

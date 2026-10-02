@@ -55,33 +55,66 @@ class _CheckoutSuccessState extends ConsumerState<CheckoutSuccess> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(LucideIcons.circleCheck, size: 40, color: colors.success),
-              const SizedBox(height: 12),
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: colors.success.withValues(alpha: 0.14),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(LucideIcons.circleCheck, size: 36, color: colors.success),
+              ),
+              const SizedBox(height: 14),
               Text('Transaksi berhasil', textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-              Text(sale.number, textAlign: TextAlign.center, style: TextStyle(color: muted)),
-              const SizedBox(height: 20),
+              const SizedBox(height: 2),
+              Text(sale.number, textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 13)),
+              const SizedBox(height: 18),
               if (sale.changeAmount > 0) ...[
-                Text('Kembalian', textAlign: TextAlign.center, style: TextStyle(color: muted)),
-                Text(
-                  rupiah(sale.changeAmount),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700, color: colors.success),
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: colors.success.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: colors.success.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Kembalian',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: colors.success, fontWeight: FontWeight.w600, fontSize: 13),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        rupiah(sale.changeAmount),
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: colors.success,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ] else
                 Text(
                   rupiah(sale.total),
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.displaySmall?.copyWith(fontWeight: FontWeight.w700),
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
                 ),
               if (sale.dueAmount > 0) ...[
-                const SizedBox(height: 8),
+                const SizedBox(height: 10),
                 Text(
                   'Kasbon ${rupiah(sale.dueAmount)} atas nama ${sale.customer?.name ?? '-'}',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: colors.warning, fontWeight: FontWeight.w600),
                 ),
               ],
-              const SizedBox(height: 24),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Expanded(

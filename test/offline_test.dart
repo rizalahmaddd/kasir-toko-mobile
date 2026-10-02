@@ -132,6 +132,20 @@ void main() {
       expect(container.read(offlineQueueProvider).map((s) => s.status), [QueuedStatus.pending, QueuedStatus.pending]);
     });
 
+    test('a server error or rate limit is retried later, not marked failed', () async {
+      for (final status in [500, 503, 429]) {
+        final (container, repository) = await _container();
+        when(() => repository.submitCheckout(any())).thenThrow(ApiException(message: 'Server error', statusCode: status));
+        container.read(offlineQueueProvider.notifier)
+          ..add(_queued('a'))
+          ..add(_queued('b'));
+
+        expect(await container.read(offlineQueueProvider.notifier).sync(), 0);
+        verify(() => repository.submitCheckout(any())).called(1);
+        expect(container.read(offlineQueueProvider).map((s) => s.status), [QueuedStatus.pending, QueuedStatus.pending], reason: '$status');
+      }
+    });
+
     test('a business rejection marks that sale failed and continues', () async {
       final (container, repository) = await _container();
       when(() => repository.submitCheckout(any())).thenAnswer((invocation) async {

@@ -5,6 +5,7 @@ final _number = NumberFormat.decimalPattern('id_ID');
 final _quantity = NumberFormat('#,##0.###', 'id_ID');
 final _dateTime = DateFormat('d MMM yyyy, HH:mm', 'id_ID');
 final _date = DateFormat('d MMM yyyy', 'id_ID');
+final _weekdayDate = DateFormat('EEEE, d MMM yyyy', 'id_ID');
 final _time = DateFormat('HH:mm', 'id_ID');
 
 String rupiah(num value) => _rupiah.format(value);
@@ -16,6 +17,8 @@ String quantity(num value) => _quantity.format(value);
 String dateTime(DateTime value) => _dateTime.format(value.toLocal());
 
 String dateOnly(DateTime value) => _date.format(value.toLocal());
+
+String weekdayDate(DateTime value) => _weekdayDate.format(value.toLocal());
 
 String timeOnly(DateTime value) => _time.format(value.toLocal());
 

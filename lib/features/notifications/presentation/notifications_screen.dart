@@ -42,7 +42,6 @@ class NotificationsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final notifications = ref.watch(notificationsProvider);
-    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -59,23 +58,135 @@ class NotificationsScreen extends ConsumerWidget {
           onRefresh: () => ref.refresh(notificationsProvider.future),
           child: items.isEmpty
               ? ListView(children: const [SizedBox(height: 320, child: EmptyState(icon: LucideIcons.bellOff, title: 'Belum ada notifikasi'))])
-              : ListView.separated(
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
                   itemCount: items.length,
-                  separatorBuilder: (_, _) => const Divider(indent: 16, endIndent: 16),
                   itemBuilder: (context, i) {
                     final n = items[i];
-                    return ListTile(
+                    return _NotificationCard(
+                      notification: n,
                       onTap: () => _open(context, ref, n),
-                      leading: Icon(
-                        n.isUnread ? LucideIcons.bellDot : LucideIcons.bell,
-                        size: 20,
-                        color: n.isUnread ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
-                      ),
-                      title: Text(n.message, style: TextStyle(fontWeight: n.isUnread ? FontWeight.w600 : FontWeight.w400)),
-                      subtitle: Text(dateTime(n.createdAt)),
                     );
                   },
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NotificationCard extends StatelessWidget {
+  const _NotificationCard({required this.notification, required this.onTap});
+
+  final AppNotification notification;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = theme.colorScheme.onSurfaceVariant;
+    final isUnread = notification.isUnread;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      decoration: BoxDecoration(
+        color: isUnread
+            ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC))
+            : (isDark ? const Color(0xFF0F172A) : Colors.white),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isUnread
+              ? theme.colorScheme.primary.withValues(alpha: 0.4)
+              : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+          width: isUnread ? 1.2 : 1.0,
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: isUnread
+                        ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                        : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    isUnread ? LucideIcons.bellDot : LucideIcons.bell,
+                    size: 18,
+                    color: isUnread ? theme.colorScheme.primary : muted,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              notification.message,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
+                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                          if (isUnread) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(LucideIcons.clock, size: 11, color: muted),
+                          const SizedBox(width: 4),
+                          Text(
+                            dateTime(notification.createdAt),
+                            style: TextStyle(fontSize: 11.5, color: muted),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Icon(LucideIcons.chevronRight, size: 16, color: Color(0xFF94A3B8)),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

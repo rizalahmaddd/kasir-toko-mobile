@@ -7,6 +7,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
@@ -71,25 +72,23 @@ class _CustomerPickerState extends ConsumerState<CustomerPicker> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          child: Row(
-            children: [
-              Expanded(child: Text('Pilih pelanggan', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
-              TextButton.icon(onPressed: _create, icon: const Icon(LucideIcons.userPlus, size: 18), label: const Text('Pelanggan Baru')),
-            ],
-          ),
+        BottomSheetHeader(
+          title: 'Pilih pelanggan',
+          actions: [
+            TextButton.icon(
+              onPressed: _create,
+              icon: const Icon(LucideIcons.userPlus, size: 16),
+              label: const Text('Baru'),
+            ),
+          ],
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: TextField(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: SearchField(
             controller: _search,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'Nama, nomor HP, atau kode', prefixIcon: Icon(LucideIcons.search, size: 18)),
-            onChanged: (value) {
-              _debounce?.cancel();
-              _debounce = Timer(const Duration(milliseconds: 300), () => _load(value.trim()));
-            },
+            hint: 'Nama, nomor HP, atau kode',
+            onChanged: _load,
           ),
         ),
         if (current != null)

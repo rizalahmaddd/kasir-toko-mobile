@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/paging/paged.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
@@ -72,20 +73,68 @@ class ProductsScreen extends ConsumerWidget {
               onChanged: (term) => notifier.set((search: term, categoryId: query.categoryId, status: query.status, sort: query.sort)),
             ),
           ),
-          ChoiceChips<String>(
-            options: const [(null, 'Semua'), ('active', 'Aktif'), ('inactive', 'Nonaktif'), ('low', 'Stok menipis')],
-            selected: query.status,
-            onSelected: (status) => notifier.set((search: query.search, categoryId: query.categoryId, status: status, sort: query.sort)),
-          ),
-          if (categories.isNotEmpty) ...[
-            const SizedBox(height: 6),
-            ChoiceChips<int>(
-              options: [(null, 'Semua kategori'), for (final category in categories) (category.id, category.name)],
-              selected: query.categoryId,
-              onSelected: (id) => notifier.set((search: query.search, categoryId: id, status: query.status, sort: query.sort)),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  FilterDropdownPill<String>(
+                    label: 'Status',
+                    icon: LucideIcons.badgeCheck,
+                    value: query.status,
+                    items: const [
+                      (null, 'Semua Status'),
+                      ('active', 'Aktif'),
+                      ('inactive', 'Nonaktif'),
+                      ('low', 'Stok Menipis'),
+                    ],
+                    onChanged: (status) => notifier.set((search: query.search, categoryId: query.categoryId, status: status, sort: query.sort)),
+                  ),
+                  if (categories.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    FilterDropdownPill<int>(
+                      label: 'Kategori',
+                      icon: LucideIcons.tag,
+                      value: query.categoryId,
+                      items: [
+                        (null, 'Semua Kategori'),
+                        for (final category in categories) (category.id, category.name),
+                      ],
+                      onChanged: (id) => notifier.set((search: query.search, categoryId: id, status: query.status, sort: query.sort)),
+                    ),
+                  ],
+                  if (query.status != null || query.categoryId != null) ...[
+                    const SizedBox(width: 6),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(9),
+                      onTap: () => notifier.set((search: query.search, categoryId: null, status: null, sort: query.sort)),
+                      child: Container(
+                        height: 34,
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(9),
+                          border: Border.all(
+                            color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(LucideIcons.x, size: 13),
+                            SizedBox(width: 4),
+                            Text('Reset', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ],
-          const SizedBox(height: 4),
+          ),
+          const SizedBox(height: 2),
           Expanded(
             child: PagedListView(
               value: ref.watch(productsProvider),

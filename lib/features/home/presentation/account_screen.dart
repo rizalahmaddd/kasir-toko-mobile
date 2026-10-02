@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -52,72 +53,205 @@ class AccountScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Akun')),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
           MaxWidth(
             width: 640,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Card(
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.all(12),
-                    leading: CircleAvatar(
-                      radius: 24,
-                      backgroundColor: theme.colorScheme.primaryContainer,
-                      child: Text(
-                        user.name.isEmpty ? '?' : user.name[0].toUpperCase(),
-                        style: TextStyle(color: theme.colorScheme.primary, fontWeight: FontWeight.w700),
-                      ),
+                // Profile Hero Card
+                Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
                     ),
-                    title: Text(user.name, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-                    subtitle: Text('@${user.username} · ${user.roleLabel}${user.phone == null ? '' : '\n${user.phone}'}'),
-                    trailing: IconButton(
-                      tooltip: 'Ubah profil',
-                      icon: const Icon(LucideIcons.pencil, size: 18),
-                      onPressed: () => FormSheet.show<void>(context, _ProfileSheet(user: user)),
-                    ),
+                    boxShadow: [
+                      if (!isDark)
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                    ],
                   ),
-                ),
-                const SizedBox(height: 16),
-                Card(
-                  child: Column(
+                  child: Row(
                     children: [
-                      ListTile(
-                        leading: const Icon(LucideIcons.keyRound, size: 20),
-                        title: const Text('Ganti password'),
-                        trailing: const Icon(LucideIcons.chevronRight, size: 18),
-                        onTap: () => FormSheet.show<void>(context, const _PasswordSheet()),
+                      Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFDBEAFE),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          user.name.isEmpty ? '?' : user.name[0].toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
                       ),
-                      const Divider(),
-                      ListTile(
-                        leading: const Icon(LucideIcons.printer, size: 20),
-                        title: const Text('Printer struk'),
-                        trailing: const Icon(LucideIcons.chevronRight, size: 18),
-                        onTap: () => context.push('/printer'),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              user.name,
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                            ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 6,
+                              runSpacing: 4,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Text(
+                                  '@${user.username}',
+                                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+                                ),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: Text(
+                                    user.roleLabel,
+                                    style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF059669)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (user.phone != null && user.phone!.isNotEmpty) ...[
+                              const SizedBox(height: 3),
+                              Text(
+                                user.phone!,
+                                style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurfaceVariant),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
-                      const Divider(),
-                      ListTile(
-                        leading: const Icon(LucideIcons.server, size: 20),
-                        title: const Text('Server'),
-                        subtitle: Text(ref.watch(serverUrlProvider)),
-                      ),
-                      const Divider(),
-                      SwitchListTile(
-                        secondary: Icon(isDark ? LucideIcons.moon : LucideIcons.sun, size: 20),
-                        title: const Text('Tema gelap'),
-                        value: isDark,
-                        onChanged: (_) => ref.read(themeModeProvider.notifier).toggle(),
+                      IconButton.filledTonal(
+                        tooltip: 'Ubah profil',
+                        icon: const Icon(LucideIcons.pencil, size: 16),
+                        onPressed: () => FormSheet.show<void>(context, _ProfileSheet(user: user)),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
+
+                const SizedBox(height: 18),
+
+                // Settings Card
+                Container(
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    ),
+                    boxShadow: [
+                      if (!isDark)
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 1),
+                        ),
+                    ],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(LucideIcons.keyRound, size: 18, color: Color(0xFFD97706)),
+                        ),
+                        title: const Text('Ganti password', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: const Text('Ubah kata sandi login akun', style: TextStyle(fontSize: 12)),
+                        trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Color(0xFF94A3B8)),
+                        onTap: () => FormSheet.show<void>(context, const _PasswordSheet()),
+                      ),
+                      Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                      ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF3B82F6).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(LucideIcons.printer, size: 18, color: Color(0xFF2563EB)),
+                        ),
+                        title: const Text('Printer struk', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: const Text('Bluetooth thermal & tes cetak', style: TextStyle(fontSize: 12)),
+                        trailing: const Icon(LucideIcons.chevronRight, size: 16, color: Color(0xFF94A3B8)),
+                        onTap: () => context.push('/printer'),
+                      ),
+                      Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                      ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(LucideIcons.server, size: 18, color: Color(0xFF059669)),
+                        ),
+                        title: const Text('Server Backend', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: Text(ref.watch(serverUrlProvider), style: const TextStyle(fontSize: 12)),
+                      ),
+                      Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
+                      SwitchListTile(
+                        secondary: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Icon(isDark ? LucideIcons.moon : LucideIcons.sun, size: 18, color: const Color(0xFF6366F1)),
+                        ),
+                        title: const Text('Tema Tampilan', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: Text(isDark ? 'Mode gelap aktif' : 'Mode terang aktif', style: const TextStyle(fontSize: 12)),
+                        value: isDark,
+                        onChanged: (_) {
+                          HapticFeedback.selectionClick();
+                          ref.read(themeModeProvider.notifier).toggle();
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Logout Actions
                 OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    side: BorderSide(color: danger.withValues(alpha: 0.5)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
                   onPressed: () => _logout(context, ref),
                   icon: Icon(LucideIcons.logOut, size: 18, color: danger),
-                  label: Text('Keluar', style: TextStyle(color: danger)),
+                  label: Text('Keluar dari Aplikasi', style: TextStyle(color: danger, fontWeight: FontWeight.w700)),
                 ),
+                const SizedBox(height: 6),
                 TextButton(
                   onPressed: () => _logout(context, ref, everywhere: true),
                   style: TextButton.styleFrom(foregroundColor: theme.colorScheme.onSurfaceVariant),

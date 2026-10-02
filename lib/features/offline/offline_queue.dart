@@ -149,8 +149,9 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
   void _update(String clientUuid, QueuedSale Function(QueuedSale) change) =>
       state = [for (final sale in state) sale.clientUuid == clientUuid ? change(sale) : sale];
 
-  /// Sends queued sales oldest first. Stops at the first network failure; a business rejection
-  /// marks that sale failed and moves on, since later sales don't depend on it.
+  /// Sends queued sales oldest first. Stops at the first network or server-side failure (5xx, rate
+  /// limit) so it retries later; a business rejection marks that sale failed and moves on, since
+  /// later sales don't depend on it.
   Future<int> sync({bool includeFailed = false}) async {
     final userId = ref.read(currentUserProvider)?.id;
     final syncState = ref.read(syncStateProvider.notifier);
@@ -172,10 +173,8 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
           remove(sale.clientUuid);
           sent++;
         } on ApiException catch (error) {
-          if (error.isNetworkError) {
-            break;
-          }
-          if (error.isUnauthenticated) {
+          final status = error.statusCode ?? 0;
+          if (error.isNetworkError || error.isUnauthenticated || status >= 500 || status == 429) {
             break;
           }
           _update(sale.clientUuid, (s) => s.copyWith(status: QueuedStatus.failed, error: error.message));

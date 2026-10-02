@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:web_pos_mobile/features/auth/access.dart';
 import 'package:web_pos_mobile/features/auth/data/current_user.dart';
 import 'package:web_pos_mobile/features/home/presentation/home_shell.dart';
+import 'package:web_pos_mobile/router.dart';
 
 const _allFeatures = {
   'pos.cashier', 'pos.sales', 'pos.shifts', 'pos.receivables', 'master-data.products', 'master-data.categories',
@@ -45,5 +46,17 @@ void main() {
     expect(owner.canSell, isTrue);
     expect(owner.canManageReceivables, isFalse);
     expect(owner.canViewActivityLog, isTrue);
+  });
+
+  test('create and edit pages need the manage permission, not just view', () {
+    final kasir = _user({'pos.sell', 'master-data.view'});
+    final admin = _user({'pos.sell', 'master-data.view', 'master-data.manage'});
+
+    for (final location in ['/product/new', '/product/5/edit', '/customer/new', '/customer/5/edit']) {
+      expect(allowedLocation(kasir, location), isFalse, reason: location);
+      expect(allowedLocation(admin, location), isTrue, reason: location);
+    }
+    expect(allowedLocation(kasir, '/product/5'), isTrue);
+    expect(allowedLocation(kasir, '/customer/5'), isTrue);
   });
 }

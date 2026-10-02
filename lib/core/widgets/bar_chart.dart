@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 
+import '../theme/app_typography.dart';
 import '../utils/formatters.dart';
 
 class SimpleBarChart extends StatelessWidget {
@@ -115,7 +116,7 @@ class ShareBar extends StatelessWidget {
           Row(
             children: [
               Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w500))),
-              Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+              Text(value, style: AppTypography.money(fontSize: 13, fontWeight: FontWeight.w700)),
             ],
           ),
           const SizedBox(height: 4),

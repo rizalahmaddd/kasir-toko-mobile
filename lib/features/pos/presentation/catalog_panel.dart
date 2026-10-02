@@ -1,20 +1,26 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/common.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../auth/auth_controller.dart';
+import '../../shift/shift_controller.dart';
+import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../pos_providers.dart';
 import 'camera_scanner_screen.dart';
 import 'held_orders_sheet.dart';
 import 'pos_actions.dart';
+import 'widgets/category_chips.dart';
+import 'widgets/product_card.dart';
 
 class CatalogPanel extends ConsumerStatefulWidget {
   const CatalogPanel({super.key});
@@ -88,59 +94,135 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
       inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
     );
-    final quantity = input == null ? null : parseQuantity(input);
+    final qty = input == null ? null : parseQuantity(input);
 
-    if (quantity != null && quantity > 0 && mounted) {
-      addToCart(context, ref, product, quantity: quantity);
+    if (qty != null && qty > 0 && mounted) {
+      addToCart(context, ref, product, quantity: qty);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final catalog = ref.watch(catalogProvider);
+    final cart = ref.watch(cartProvider);
     final heldCount = ref.watch(posConfigProvider).value?.heldOrdersCount ?? 0;
+    final shift = ref.watch(currentShiftProvider).value;
+    final user = ref.watch(currentUserProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-          child: Row(
+        // Top Cashier & Search Bar Header
+        Container(
+          padding: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+          child: Column(
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _search,
-                  onChanged: _onSearchChanged,
-                  onSubmitted: _onSearchSubmitted,
-                  textInputAction: TextInputAction.search,
-                  decoration: InputDecoration(
-                    hintText: 'Cari nama, SKU, atau barcode',
-                    prefixIcon: const Icon(LucideIcons.search, size: 18),
-                    suffixIcon: ListenableBuilder(
-                      listenable: _search,
-                      builder: (context, _) => _search.text.isEmpty
-                          ? const SizedBox.shrink()
-                          : IconButton(tooltip: 'Hapus pencarian', icon: const Icon(LucideIcons.x, size: 18), onPressed: _clearSearch),
+              // Top strip: Shift & Cashier identity + Quick Actions
+              Row(
+                children: [
+                  InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      unawaited(HapticFeedback.lightImpact());
+                      context.push('/shift');
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColors.slate900 : AppColors.slate100,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: isDark ? AppColors.slate800 : AppColors.slate200,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: const BoxDecoration(
+                              color: AppColors.emerald500,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            shift != null ? '#${shift.number}' : 'Kasir',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          Text(
+                            ' · ${user?.name.split(' ').first ?? 'Kasir'}',
+                            style: TextStyle(
+                              fontSize: 11.5,
+                              color: isDark ? AppColors.slate400 : AppColors.slate600,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
+                  const Spacer(),
+                  // Held orders button with badge
+                  Badge(
+                    isLabelVisible: heldCount > 0,
+                    label: Text('$heldCount'),
+                    child: IconButton(
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Transaksi tertunda',
+                      icon: const Icon(LucideIcons.clock, size: 20),
+                      onPressed: () {
+                        unawaited(HapticFeedback.lightImpact());
+                        HeldOrdersSheet.show(context);
+                      },
+                    ),
+                  ),
+                  // Camera barcode scanner
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Scan barcode',
+                    icon: const Icon(LucideIcons.scanBarcode, size: 20),
+                    onPressed: () {
+                      unawaited(HapticFeedback.lightImpact());
+                      _scan();
+                    },
+                  ),
+                  // Theme mode toggle
+                  Consumer(
+                    builder: (context, ref, _) {
+                      final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
+                      return IconButton(
+                        visualDensity: VisualDensity.compact,
+                        tooltip: isDarkMode ? 'Mode terang' : 'Mode gelap',
+                        icon: Icon(isDarkMode ? LucideIcons.sun : LucideIcons.moon, size: 20),
+                        onPressed: () {
+                          unawaited(HapticFeedback.lightImpact());
+                          ref.read(themeModeProvider.notifier).toggle();
+                        },
+                      );
+                    },
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              IconButton.outlined(tooltip: 'Scan barcode', icon: const Icon(LucideIcons.scanBarcode), onPressed: _scan),
-              const SizedBox(width: 4),
-              Badge(
-                isLabelVisible: heldCount > 0,
-                label: Text('$heldCount'),
-                child: IconButton.outlined(
-                  tooltip: 'Transaksi tertunda',
-                  icon: const Icon(LucideIcons.clock),
-                  onPressed: () => HeldOrdersSheet.show(context),
-                ),
+              const SizedBox(height: 8),
+              // Unified sleek search input
+              SearchField(
+                controller: _search,
+                hint: 'Cari nama produk, SKU, barcode...',
+                onChanged: _onSearchChanged,
+                onSubmitted: _onSearchSubmitted,
               ),
             ],
           ),
         ),
-        const _CategoryChips(),
-        const SizedBox(height: 4),
+
+        // Category filter chips
+        const PosCategoryChips(),
+
+        // Products Grid
         Expanded(
           child: AsyncView(
             value: catalog,
@@ -158,12 +240,13 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                 onRefresh: () => ref.refresh(catalogProvider.future),
                 child: GridView.builder(
                   controller: _scroll,
-                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 12),
+                  physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                    maxCrossAxisExtent: 190,
-                    mainAxisExtent: 128,
-                    crossAxisSpacing: 8,
-                    mainAxisSpacing: 8,
+                    maxCrossAxisExtent: 200,
+                    mainAxisExtent: 226,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
                   ),
                   itemCount: page.products.length + (page.loadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
@@ -171,8 +254,14 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                       return const Center(child: CircularProgressIndicator());
                     }
                     final product = page.products[index];
-                    return _ProductCard(
+                    final inCart = cart.items
+                        .where((item) => item.productId == product.id)
+                        .map((item) => item.quantity)
+                        .fold<double>(0, (a, b) => a + b);
+
+                    return PosProductCard(
                       product: product,
+                      inCartQuantity: inCart,
                       onTap: () => addToCart(context, ref, product),
                       onLongPress: () => _addWithQuantity(product),
                     );
@@ -183,121 +272,6 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _CategoryChips extends ConsumerWidget {
-  const _CategoryChips();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final categories = ref.watch(posCategoriesProvider).value ?? const [];
-    final selected = ref.watch(catalogQueryProvider).categoryId;
-
-    if (categories.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        children: [
-          for (final (id, name) in [(null, 'Semua'), ...categories.map((c) => (c.id, c.name))])
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: ChoiceChip(
-                label: Text(name),
-                selected: selected == id,
-                showCheckmark: false,
-                onSelected: (_) => ref.read(catalogQueryProvider.notifier).category(id),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProductCard extends StatelessWidget {
-  const _ProductCard({required this.product, required this.onTap, required this.onLongPress});
-
-  final Product product;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = StatusColors.of(context);
-    final muted = theme.colorScheme.onSurfaceVariant;
-
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        onLongPress: onLongPress,
-        child: Opacity(
-          opacity: product.isOutOfStock ? 0.55 : 1,
-          child: Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (product.imageUrl != null) ...[
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: CachedNetworkImage(
-                          imageUrl: product.imageUrl!,
-                          width: 36,
-                          height: 36,
-                          fit: BoxFit.cover,
-                          errorWidget: (_, _, _) => const SizedBox(width: 36, height: 36),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                    ],
-                    Expanded(
-                      child: Text(
-                        product.name,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600, height: 1.25),
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                if (product.sku != null)
-                  Text(product.sku!, maxLines: 1, overflow: TextOverflow.ellipsis, style: theme.textTheme.labelSmall?.copyWith(color: muted)),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        rupiah(product.price),
-                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.primary),
-                      ),
-                    ),
-                    if (product.isOutOfStock)
-                      const StatusBadge(label: 'Habis', tone: BadgeTone.danger)
-                    else if (product.trackStock)
-                      Text(
-                        '${quantity(product.stock)} ${product.unit}',
-                        style: theme.textTheme.labelSmall?.copyWith(color: product.isLowStock ? colors.warning : muted),
-                      ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

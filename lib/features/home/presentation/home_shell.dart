@@ -9,6 +9,8 @@ import '../../auth/auth_controller.dart';
 import '../../auth/data/current_user.dart';
 import '../../offline/offline_queue.dart';
 
+import '../../pos/cart_controller.dart';
+
 typedef ShellTab = ({int branch, IconData icon, String label});
 
 /// Branch order must match the StatefulShellRoute in router.dart.
@@ -29,11 +31,23 @@ class HomeShell extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     ref.watch(offlineSyncerProvider);
     final tabs = visibleTabs(ref.watch(currentUserProvider));
+    final cart = ref.watch(cartProvider);
     final selected = tabs.indexWhere((tab) => tab.branch == shell.currentIndex).clamp(0, tabs.length - 1);
 
     void go(int index) {
       final branch = tabs[index].branch;
       shell.goBranch(branch, initialLocation: branch == shell.currentIndex);
+    }
+
+    Widget tabIcon(ShellTab tab) {
+      final icon = Icon(tab.icon);
+      if (tab.branch == 1 && cart.itemCount > 0) {
+        return Badge(
+          label: Text(cart.itemCount > 99 ? '99+' : cart.itemCount.toInt().toString()),
+          child: icon,
+        );
+      }
+      return icon;
     }
 
     if (context.isMedium) {
@@ -45,7 +59,13 @@ class HomeShell extends ConsumerWidget {
                 selectedIndex: selected,
                 onDestinationSelected: go,
                 labelType: NavigationRailLabelType.all,
-                destinations: [for (final tab in tabs) NavigationRailDestination(icon: Icon(tab.icon), label: Text(tab.label))],
+                destinations: [
+                  for (final tab in tabs)
+                    NavigationRailDestination(
+                      icon: tabIcon(tab),
+                      label: Text(tab.label),
+                    ),
+                ],
               ),
               const VerticalDivider(width: 1),
               Expanded(child: shell),
@@ -60,7 +80,13 @@ class HomeShell extends ConsumerWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: selected,
         onDestinationSelected: go,
-        destinations: [for (final tab in tabs) NavigationDestination(icon: Icon(tab.icon), label: tab.label)],
+        destinations: [
+          for (final tab in tabs)
+            NavigationDestination(
+              icon: tabIcon(tab),
+              label: tab.label,
+            ),
+        ],
       ),
     );
   }

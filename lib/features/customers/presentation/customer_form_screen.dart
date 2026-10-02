@@ -151,7 +151,12 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
                   SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Aktif'), value: _active, onChanged: (value) => setState(() => _active = value)),
                   if (generalError != null) Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),
                   const SizedBox(height: 12),
-                  FilledButton(onPressed: _busy ? null : _save, child: const Text('Simpan')),
+                  FilledButton(
+                    onPressed: _busy ? null : _save,
+                    child: _busy
+                        ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Text('Simpan'),
+                  ),
                 ],
               ),
             ),

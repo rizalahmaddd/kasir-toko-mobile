@@ -36,7 +36,8 @@ import 'features/shift/presentation/shifts_screen.dart';
 String homeFor(CurrentUser user) => user.canSell ? '/pos' : '/dashboard';
 
 /// Screens a user without the matching permission must not land on, e.g. from a stale deep link.
-bool _allowed(CurrentUser user, String location) {
+@visibleForTesting
+bool allowedLocation(CurrentUser user, String location) {
   bool under(String prefix) => location == prefix || location.startsWith('$prefix/');
 
   if (under('/pos') || location == '/shift') {
@@ -44,6 +45,12 @@ bool _allowed(CurrentUser user, String location) {
   }
   if (under('/sales')) {
     return user.canViewSales;
+  }
+  if (location == '/product/new' || location.endsWith('/edit')) {
+    return (under('/product') ? user.canViewProducts : user.canViewCustomers) && user.canManageMasterData;
+  }
+  if (location == '/customer/new') {
+    return user.canViewCustomers && user.canManageMasterData;
   }
   if (under('/products') || under('/product')) {
     return user.canViewProducts;
@@ -100,7 +107,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         return homeFor(user);
       }
 
-      return _allowed(user, location) ? null : '/dashboard';
+      return allowedLocation(user, location) ? null : '/dashboard';
     },
     routes: [
       _page('/splash', (_) => const SplashScreen()),
