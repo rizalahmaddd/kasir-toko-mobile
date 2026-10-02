@@ -17,7 +17,6 @@ Future<void> main() async {
 
   runApp(
     ProviderScope(
-      // Retrying failed requests silently hides "server unreachable" from the cashier.
       retry: (retryCount, error) => null,
       overrides: [
         sharedPreferencesProvider.overrideWithValue(prefs),
