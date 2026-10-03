@@ -43,7 +43,7 @@ void main() {
 
       final body = await container
           .read(apiClientProvider)
-          .post('auth/login', data: {'login': Platform.environment['E2E_ADMIN'] ?? 'superadmin', 'password': Platform.environment['E2E_PASSWORD'] ?? 'password', 'device_name': 'e2e'});
+          .post('auth/login', data: {'login': Platform.environment['E2E_ADMIN'] ?? 'owner', 'password': Platform.environment['E2E_PASSWORD'] ?? 'password', 'device_name': 'e2e'});
       final data = ApiClient.data(body);
       CurrentUser.fromJson(data['user'] as Map<String, dynamic>);
       container.read(authTokenProvider.notifier).set(data['token'] as String);

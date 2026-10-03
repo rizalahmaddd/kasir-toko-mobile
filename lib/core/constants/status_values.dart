@@ -73,6 +73,8 @@ abstract final class AuthProviders {
 
 abstract final class PlanKinds {
   static const trial = 'trial';
+  static const free = 'free';
+  static const pro = 'pro';
 }
 
 abstract final class ProductSortKeys {

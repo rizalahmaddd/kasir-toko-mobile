@@ -7,9 +7,11 @@ import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/pro_upgrade_dialog.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
+import '../../auth/data/current_user.dart';
 import '../../notifications/notifications.dart';
 import '../../offline/offline_queue.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
@@ -24,6 +26,7 @@ typedef _Link = ({
   Color color,
   int? badgeCount,
   Color? badgeColor,
+  bool isPro,
 });
 
 class MenuScreen extends ConsumerStatefulWidget {
@@ -61,6 +64,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.emerald500,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
           if (user.canSell)
             (
@@ -71,6 +75,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.amber500,
               badgeCount: waiting > 0 ? waiting : null,
               badgeColor: AppColors.amber500,
+              isPro: false,
             ),
           if (user.canViewShifts)
             (
@@ -81,6 +86,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.teal600,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
           if (user.canManageReceivables)
             (
@@ -91,6 +97,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.amber600,
               badgeCount: null,
               badgeColor: null,
+              isPro: true,
             ),
         ],
       ),
@@ -106,6 +113,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.cyan500,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
           if (user.canViewStock)
             (
@@ -116,6 +124,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.blue500,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
           if (user.canViewStock)
             (
@@ -126,6 +135,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.indigo500,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
           if (user.canViewCustomers)
             (
@@ -136,6 +146,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.violet500,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
         ],
       ),
@@ -151,6 +162,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.emerald500,
               badgeCount: null,
               badgeColor: null,
+              isPro: true,
             ),
           if (user.canViewActivityLog)
             (
@@ -161,6 +173,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.slate500,
               badgeCount: null,
               badgeColor: null,
+              isPro: true,
             ),
         ],
       ),
@@ -175,6 +188,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             color: AppColors.slate500,
             badgeCount: null,
             badgeColor: null,
+            isPro: false,
           ),
           (
             icon: AppIcons.bell,
@@ -184,8 +198,19 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             color: AppColors.red500,
             badgeCount: unread > 0 ? unread : null,
             badgeColor: AppColors.red500,
+            isPro: false,
           ),
-          if (user.isSuperadmin && user.tenant != null)
+          if (user.isSuperadmin && user.tenant != null) ...[
+            (
+              icon: AppIcons.sparkles,
+              label: ProStrings.subscriptionMenuLabel,
+              path: AppRoutes.account,
+              caption: user.isPro ? ProStrings.planProLabel : (user.isTrial ? ProStrings.planTrialLabel : ProStrings.planFreeLabel),
+              color: AppColors.amber500,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
             (
               icon: AppIcons.store,
               label: HomeStrings.menuStorePresetLabel,
@@ -194,7 +219,9 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.sky500,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
+          ],
           (
             icon: AppIcons.printer,
             label: HomeStrings.menuReceiptPrinterLabel,
@@ -203,6 +230,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             color: AppColors.sky600,
             badgeCount: null,
             badgeColor: null,
+            isPro: false,
           ),
           if (user.canManagePosSettings)
             (
@@ -213,6 +241,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               color: AppColors.indigo500,
               badgeCount: null,
               badgeColor: null,
+              isPro: false,
             ),
           (
             icon: AppIcons.circleUser,
@@ -222,6 +251,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             color: AppColors.indigo500,
             badgeCount: null,
             badgeColor: null,
+            isPro: false,
           ),
         ],
       ),
@@ -263,6 +293,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_search.isEmpty && user.tenant != null) ...[
+                          _buildSubscriptionCard(context, user, isDark),
+                          const SizedBox(height: AppSizes.s8),
+                        ],
                         for (final (title, links) in filteredSections)
                           if (links.isNotEmpty) ...[
                             Padding(
@@ -306,7 +340,24 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                               Material(
                                 color: Colors.transparent,
                                 child: InkWell(
-                                  onTap: () => context.push(link.path),
+                                  onTap: () {
+                                    if (link.label == ProStrings.subscriptionMenuLabel) {
+                                      showProUpgradeDialog(
+                                        context,
+                                        title: ProStrings.subscriptionStatusTitle,
+                                      );
+                                      return;
+                                    }
+                                    if (link.isPro && !user.isPro) {
+                                      showProUpgradeDialog(
+                                        context,
+                                        title: link.label,
+                                        featureName: link.label,
+                                      );
+                                      return;
+                                    }
+                                    context.push(link.path);
+                                  },
                                   child: Padding(
                                     padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
                                     child: Row(
@@ -325,9 +376,33 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                                           child: Column(
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
-                                              Text(
-                                                link.label,
-                                                style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    link.label,
+                                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                                  ),
+                                                  if (link.isPro) ...[
+                                                    const SizedBox(width: AppSizes.s6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4, vertical: AppSpacing.s2),
+                                                      decoration: BoxDecoration(
+                                                        color: AppColors.amber500.withValues(alpha: 0.15),
+                                                        borderRadius: BorderRadius.circular(AppRadius.r4),
+                                                        border: Border.all(color: AppColors.amber500.withValues(alpha: 0.4)),
+                                                      ),
+                                                      child: const Text(
+                                                        'PRO',
+                                                        style: TextStyle(
+                                                          fontSize: 9,
+                                                          fontWeight: FontWeight.w800,
+                                                          color: AppColors.amber500,
+                                                          letterSpacing: 0.5,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
                                               ),
                                               if (link.caption != null) ...[
                                                 const SizedBox(height: AppSizes.s2),
@@ -387,4 +462,119 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
       ),
     );
   }
+
+  Widget _buildSubscriptionCard(BuildContext context, CurrentUser user, bool isDark) {
+    final tenant = user.tenant!;
+    final isPro = user.isPro;
+    final isTrial = user.isTrial;
+
+    return Container(
+      margin: const EdgeInsets.only(top: AppSpacing.s10, bottom: AppSpacing.s4),
+      padding: const EdgeInsets.all(AppSpacing.s14),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
+        border: Border.all(
+          color: isPro
+              ? AppColors.amber500.withValues(alpha: 0.35)
+              : AppColors.emerald500.withValues(alpha: 0.3),
+        ),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.s8,
+                  vertical: AppSpacing.s3,
+                ),
+                decoration: BoxDecoration(
+                  color: (isPro ? AppColors.amber500 : AppColors.emerald500)
+                      .withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppRadius.r8),
+                  border: Border.all(
+                    color: (isPro ? AppColors.amber500 : AppColors.emerald500)
+                        .withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isPro ? AppIcons.sparkles : AppIcons.shieldCheck,
+                      size: AppSizes.s12,
+                      color: isPro ? AppColors.amber600 : AppColors.emerald600,
+                    ),
+                    const SizedBox(width: AppSizes.s4),
+                    Text(
+                      isTrial
+                          ? ProStrings.planTrialLabel
+                          : (isPro ? ProStrings.planProLabel : ProStrings.planFreeLabel),
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: isPro ? AppColors.amber600 : AppColors.emerald600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => showProUpgradeDialog(
+                  context,
+                  title: ProStrings.subscriptionStatusTitle,
+                ),
+                style: TextButton.styleFrom(
+                  visualDensity: VisualDensity.compact,
+                  foregroundColor: isPro ? AppColors.amber600 : AppColors.emerald600,
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      ProStrings.actionUpgradeOrExtend,
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                    ),
+                    SizedBox(width: AppSizes.s2),
+                    Icon(AppIcons.chevronRight, size: AppSizes.s14),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.s8),
+          Text(
+            tenant.name,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
+          const SizedBox(height: AppSizes.s2),
+          Text(
+            isTrial
+                ? 'Semua fitur Pro terbuka penuh selama masa uji coba 14 hari.'
+                : (isPro
+                    ? (tenant.accessEndsAt != null
+                        ? 'Langganan aktif s/d ${tenant.accessEndsAt!.day}/${tenant.accessEndsAt!.month}/${tenant.accessEndsAt!.year}.'
+                        : 'Langganan Pro aktif permanen.')
+                    : 'Fitur kasir POS tetap aktif selamanya.'),
+            style: TextStyle(
+              fontSize: 12,
+              color: isDark ? AppColors.slate400 : AppColors.slate600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
+

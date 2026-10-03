@@ -58,6 +58,10 @@ class CurrentUser {
         tenant: tenant,
       );
 
+  bool get isPro => tenant?.isPro ?? true;
+
+  bool get isTrial => tenant?.isTrial ?? false;
+
   bool can(String permission) => isSuperadmin || permissions.contains(permission);
 
   bool hasFeature(String feature) => enabledFeatures.contains(feature);
@@ -85,6 +89,9 @@ class TenantInfo {
     required this.name,
     required this.plan,
     required this.planLabel,
+    this.isProExplicit,
+    this.isTrialExplicit,
+    this.trialEndsAt,
     this.accessEndsAt,
     this.blockedReason,
     this.blockedMessage,
@@ -98,6 +105,9 @@ class TenantInfo {
         name: json['name'] as String? ?? '',
         plan: json['plan'] as String? ?? '',
         planLabel: json['plan_label'] as String? ?? '',
+        isProExplicit: json['is_pro'] as bool?,
+        isTrialExplicit: json['is_trial'] as bool?,
+        trialEndsAt: DateTime.tryParse(json['trial_ends_at'] as String? ?? ''),
         accessEndsAt: DateTime.tryParse(json['access_ends_at'] as String? ?? ''),
         blockedReason: json['blocked_reason'] as String?,
         blockedMessage: json['blocked_message'] as String?,
@@ -110,6 +120,9 @@ class TenantInfo {
   final String name;
   final String plan;
   final String planLabel;
+  final bool? isProExplicit;
+  final bool? isTrialExplicit;
+  final DateTime? trialEndsAt;
   final DateTime? accessEndsAt;
 
   /// `tenant_suspended`, `trial_expired`, or `subscription_expired`; null while the shop can be used.
@@ -127,13 +140,31 @@ class TenantInfo {
   /// How to renew, sent by /auth/me only while the shop is blocked; null on older servers.
   final RenewalInfo? renewal;
 
-  bool get isTrial => plan == PlanKinds.trial;
+  bool get isTrial => isTrialExplicit ?? (plan == PlanKinds.trial);
+
+  bool get isPro => isProExplicit ?? (plan == PlanKinds.pro || isTrial);
+
+  int? get daysUntilExpiration {
+    if (accessEndsAt == null) return null;
+    final now = DateTime.now();
+    final diff = accessEndsAt!.difference(now);
+    return diff.isNegative ? 0 : diff.inDays;
+  }
+
+  bool get isExpiringSoon {
+    if (accessEndsAt == null || blockedReason != null) return false;
+    final days = daysUntilExpiration;
+    return days != null && days <= 5;
+  }
 
   TenantInfo blocked(String? reason, {String? message}) => TenantInfo(
         id: id,
         name: name,
         plan: plan,
         planLabel: planLabel,
+        isProExplicit: isProExplicit,
+        isTrialExplicit: isTrialExplicit,
+        trialEndsAt: trialEndsAt,
         accessEndsAt: accessEndsAt,
         blockedReason: reason,
         blockedMessage: message,
@@ -147,6 +178,9 @@ class TenantInfo {
         'name': name,
         'plan': plan,
         'plan_label': planLabel,
+        'is_pro': isPro,
+        'is_trial': isTrial,
+        'trial_ends_at': trialEndsAt?.toIso8601String(),
         'access_ends_at': accessEndsAt?.toIso8601String(),
         'blocked_reason': blockedReason,
         'blocked_message': blockedMessage,

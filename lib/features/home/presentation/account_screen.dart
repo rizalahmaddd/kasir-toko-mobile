@@ -14,6 +14,7 @@ import '../../../core/config/server_config.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/pro_upgrade_dialog.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
 import '../../auth/data/auth_repository.dart';
@@ -361,12 +362,40 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             width: 36,
                             height: 36,
                             decoration: BoxDecoration(
-                              color: AppColors.emerald500.withValues(alpha: 0.12),
+                              color: (user.isPro ? AppColors.amber500 : AppColors.emerald500).withValues(alpha: 0.15),
                               borderRadius: BorderRadius.circular(AppRadius.r10),
                             ),
-                            child: const Icon(AppIcons.store, size: AppSizes.s18, color: AppColors.emerald600),
+                            child: Icon(
+                              user.isPro ? AppIcons.sparkles : AppIcons.store,
+                              size: AppSizes.s18,
+                              color: user.isPro ? AppColors.amber600 : AppColors.emerald600,
+                            ),
                           ),
-                          title: Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          title: Row(
+                            children: [
+                              Expanded(
+                                child: Text(tenant.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s2),
+                                decoration: BoxDecoration(
+                                  color: (user.isPro ? AppColors.amber500 : AppColors.emerald500).withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(AppRadius.r6),
+                                  border: Border.all(
+                                    color: (user.isPro ? AppColors.amber500 : AppColors.emerald500).withValues(alpha: 0.3),
+                                  ),
+                                ),
+                                child: Text(
+                                  user.isTrial ? ProStrings.planTrialLabel : (user.isPro ? ProStrings.planProLabel : ProStrings.planFreeLabel),
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: user.isPro ? AppColors.amber600 : AppColors.emerald600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                           subtitle: Text(
                             HomeStrings.tenantPlanSubtitle(
                               tenant.planLabel,
@@ -374,6 +403,8 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                             ),
                             style: const TextStyle(fontSize: 12),
                           ),
+                          trailing: const Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
+                          onTap: () => showProUpgradeDialog(context, title: ProStrings.subscriptionStatusTitle),
                         ),
                         Divider(height: 1, indent: 64, color: isDark ? AppColors.slate700 : AppColors.slate100),
                       ],

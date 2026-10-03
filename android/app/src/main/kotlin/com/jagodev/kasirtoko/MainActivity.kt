@@ -1,4 +1,4 @@
-package id.malangtech.web_pos_mobile
+package com.jagodev.kasirtoko
 
 import io.flutter.embedding.android.FlutterActivity
 

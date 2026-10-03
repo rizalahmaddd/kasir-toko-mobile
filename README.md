@@ -59,7 +59,7 @@ flutter test                                              # unit + widget
 E2E_SERVER=http://127.0.0.1:8000 flutter test test/e2e    # alur kasir & back office ke API sungguhan
 ```
 
-Test e2e login sebagai `kasir` dan `superadmin` (password `password`; bisa diganti lewat `E2E_LOGIN`, `E2E_ADMIN`, `E2E_PASSWORD`), membuka shift, dan mencatat penjualan, jadi arahkan ke database percobaan seperti hasil `php artisan migrate:fresh --seed` di web-pos, bukan produksi.
+Test e2e login sebagai `kasir` dan `owner` (password `password`; bisa diganti lewat `E2E_LOGIN`, `E2E_ADMIN`, `E2E_PASSWORD`), membuka shift, dan mencatat penjualan, jadi arahkan ke database percobaan seperti hasil `php artisan migrate:fresh --seed` di web-pos, bukan produksi.
 
 ## Struktur
 

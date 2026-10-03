@@ -70,16 +70,16 @@ bool allowedLocation(CurrentUser user, String location) {
     return user.canViewCategories;
   }
   if (under(AppRoutes.receivables)) {
-    return user.canManageReceivables;
+    return user.canManageReceivables && user.isPro;
   }
   if (under(AppRoutes.shifts) || under(AppRoutes.shift)) {
     return user.canViewShifts;
   }
   if (under(AppRoutes.reports)) {
-    return user.canViewSalesReport;
+    return user.canViewSalesReport && user.isPro;
   }
   if (under(AppRoutes.activity)) {
-    return user.canViewActivityLog;
+    return user.canViewActivityLog && user.isPro;
   }
   if (under(AppRoutes.onboarding)) {
     return user.isSuperadmin && user.tenant != null;

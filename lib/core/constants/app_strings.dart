@@ -382,6 +382,9 @@ abstract final class DashboardStrings {
       '$time · $itemsCount barang${customerName == null ? '' : ' · $customerName'}';
 
   // Banner shift & sync
+  static const subscriptionExpiringToday = 'Masa aktif toko berakhir hari ini';
+  static String subscriptionExpiringDays(int days) => 'Masa aktif toko tersisa $days hari lagi';
+  static const subscriptionExpiringSubtitle = 'Perpanjang langganan melalui portal web toko Anda.';
   static String offlineSalesCount(int count) => '$count transaksi offline di perangkat';
   static const offlineNotSynced = 'Belum tersinkron ke server';
   static String syncSuccess(int count) => '$count transaksi berhasil dikirim ke server';
@@ -1486,3 +1489,21 @@ abstract final class AboutStrings {
   static const deleteAccountSubtitle = 'Informasi hak hapus data pengguna';
   static String copyright(int year) => '© $year Kasir Toko POS. Hak Cipta Dilindungi.';
 }
+
+abstract final class ProStrings {
+  static const exclusiveBadge = 'PRO';
+  static const upgradeTitle = 'Fitur Khusus Paket Pro';
+  static const upgradeDescription =
+      'Fitur ini eksklusif untuk toko dengan paket Pro. Nikmati pengelolaan piutang pelanggan, laporan analisis mendalam, serta fitur profesional lainnya.';
+  static const upgradeHowTo =
+      'Untuk mengaktifkan fitur ini, silakan upgrade paket toko melalui dashboard web Kasir Toko.';
+  static const actionUnderstood = 'Mengerti';
+  static const subscriptionMenuLabel = 'Paket & Langganan';
+  static const subscriptionMenuCaption = 'Status langganan & tambah masa aktif';
+  static const subscriptionStatusTitle = 'Status Langganan Toko';
+  static const planFreeLabel = 'Paket Gratis';
+  static const planTrialLabel = 'Trial Pro 14 Hari';
+  static const planProLabel = 'Paket Pro Aktif';
+  static const actionUpgradeOrExtend = 'Kelola / Perpanjang';
+}
+

@@ -9,6 +9,7 @@ import 'package:web_pos_mobile/core/constants/app_routes.dart';
 import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/pro_upgrade_dialog.dart';
 import '../../../auth/access.dart';
 import '../../../auth/auth_controller.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
@@ -31,7 +32,9 @@ class QuickActionsBar extends ConsumerWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    final actions = <({IconData icon, String label, String route, int? badge, Color? badgeColor})>[
+    final isPro = user?.isPro ?? true;
+
+    final actions = <({IconData icon, String label, String route, int? badge, Color? badgeColor, bool isPro})>[
       if (user?.canViewStock ?? false)
         (
           icon: AppIcons.packageSearch,
@@ -39,6 +42,7 @@ class QuickActionsBar extends ConsumerWidget {
           route: AppRoutes.stock,
           badge: lowStockCount > 0 ? lowStockCount : null,
           badgeColor: AppColors.amber500,
+          isPro: false,
         ),
       if (user?.canViewSales ?? false)
         (
@@ -47,6 +51,7 @@ class QuickActionsBar extends ConsumerWidget {
           route: AppRoutes.sales,
           badge: null,
           badgeColor: null,
+          isPro: false,
         ),
       if (user?.canManageReceivables ?? false)
         (
@@ -55,6 +60,7 @@ class QuickActionsBar extends ConsumerWidget {
           route: AppRoutes.receivables,
           badge: unpaidReceivablesCount > 0 ? unpaidReceivablesCount : null,
           badgeColor: AppColors.sky500,
+          isPro: true,
         ),
       if (user?.canManageMasterData ?? false)
         (
@@ -63,6 +69,7 @@ class QuickActionsBar extends ConsumerWidget {
           route: AppRoutes.productNew,
           badge: null,
           badgeColor: null,
+          isPro: false,
         ),
       if (user?.canViewSalesReport ?? false)
         (
@@ -71,6 +78,7 @@ class QuickActionsBar extends ConsumerWidget {
           route: AppRoutes.reportsSales,
           badge: null,
           badgeColor: null,
+          isPro: true,
         ),
       (
         icon: AppIcons.printer,
@@ -78,6 +86,7 @@ class QuickActionsBar extends ConsumerWidget {
         route: AppRoutes.printer,
         badge: null,
         badgeColor: null,
+        isPro: false,
       ),
     ];
 
@@ -185,8 +194,17 @@ class QuickActionsBar extends ConsumerWidget {
                     label: action.label,
                     badge: action.badge,
                     badgeColor: action.badgeColor,
+                    isPro: action.isPro,
                     onTap: () {
                       unawaited(HapticFeedback.lightImpact());
+                      if (action.isPro && !isPro) {
+                        showProUpgradeDialog(
+                          context,
+                          title: action.label,
+                          featureName: action.label,
+                        );
+                        return;
+                      }
                       context.push(action.route);
                     },
                   ),
@@ -207,6 +225,7 @@ class _QuickActionChip extends StatelessWidget {
     required this.onTap,
     this.badge,
     this.badgeColor,
+    this.isPro = false,
   });
 
   final IconData icon;
@@ -214,6 +233,7 @@ class _QuickActionChip extends StatelessWidget {
   final VoidCallback onTap;
   final int? badge;
   final Color? badgeColor;
+  final bool isPro;
 
   @override
   Widget build(BuildContext context) {
@@ -253,6 +273,26 @@ class _QuickActionChip extends StatelessWidget {
                     color: isDark ? AppColors.slate200 : AppColors.slate800,
                   ),
                 ),
+                if (isPro) ...[
+                  const SizedBox(width: AppSizes.s6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4, vertical: AppSpacing.s2),
+                    decoration: BoxDecoration(
+                      color: AppColors.amber500.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppRadius.r4),
+                      border: Border.all(color: AppColors.amber500.withValues(alpha: 0.4)),
+                    ),
+                    child: const Text(
+                      'PRO',
+                      style: TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.amber500,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ),
+                ],
                 if (badge != null && badge! > 0) ...[
                   const SizedBox(width: AppSizes.s6),
                   Container(

@@ -37,6 +37,10 @@ class ShiftAndSyncBanner extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (user?.tenant != null && user!.tenant!.isExpiringSoon) ...[
+          SubscriptionExpiringBanner(daysUntilExpiration: user.tenant!.daysUntilExpiration ?? 0),
+          const SizedBox(height: AppSizes.s10),
+        ],
         if (queuedSales.isNotEmpty) ...[
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s10),
@@ -274,3 +278,62 @@ class ShiftAndSyncBanner extends ConsumerWidget {
     );
   }
 }
+
+/// Banner pengingat masa aktif toko yang mendekati tanggal kedaluwarsa.
+class SubscriptionExpiringBanner extends StatelessWidget {
+  const SubscriptionExpiringBanner({super.key, required this.daysUntilExpiration});
+
+  final int daysUntilExpiration;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accentColor = isDark ? AppColors.amber500 : AppColors.amber600;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s10),
+      decoration: BoxDecoration(
+        color: (isDark ? AppColors.amber600 : AppColors.amber500).withValues(alpha: isDark ? 0.15 : 0.12),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+        border: Border.all(
+          color: (isDark ? AppColors.amber600 : AppColors.amber500).withValues(alpha: isDark ? 0.4 : 0.3),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            AppIcons.clockAlert,
+            size: AppSizes.s18,
+            color: accentColor,
+          ),
+          const SizedBox(width: AppSizes.s10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  daysUntilExpiration == 0
+                      ? DashboardStrings.subscriptionExpiringToday
+                      : DashboardStrings.subscriptionExpiringDays(daysUntilExpiration),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: accentColor,
+                  ),
+                ),
+                Text(
+                  DashboardStrings.subscriptionExpiringSubtitle,
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColors.slate400 : AppColors.slate600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+

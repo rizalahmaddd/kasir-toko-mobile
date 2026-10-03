@@ -9,7 +9,13 @@ const _allFeatures = {
   'master-data.customers', 'inventory.stock', 'reports.sales', 'reports.activity-log',
 };
 
-CurrentUser _user(Set<String> permissions, {Set<String> features = _allFeatures, bool superadmin = false}) => CurrentUser(
+CurrentUser _user(
+  Set<String> permissions, {
+  Set<String> features = _allFeatures,
+  bool superadmin = false,
+  TenantInfo? tenant,
+}) =>
+    CurrentUser(
       id: 1,
       name: 'Test',
       username: 'test',
@@ -17,6 +23,7 @@ CurrentUser _user(Set<String> permissions, {Set<String> features = _allFeatures,
       permissions: permissions,
       isSuperadmin: superadmin,
       enabledFeatures: features,
+      tenant: tenant,
     );
 
 void main() {
@@ -58,5 +65,25 @@ void main() {
     }
     expect(allowedLocation(kasir, '/product/5'), isTrue);
     expect(allowedLocation(kasir, '/customer/5'), isTrue);
+  });
+
+  test('pro features require user.isPro in addition to permission', () {
+    final proUser = _user(
+      {'receivables.manage', 'reports.sales.view', 'reports.activity.view'},
+      tenant: const TenantInfo(id: 1, name: 'Toko', plan: 'pro', planLabel: 'Pro'),
+    );
+    final freeUser = _user(
+      {'receivables.manage', 'reports.sales.view', 'reports.activity.view'},
+      tenant: const TenantInfo(id: 1, name: 'Toko', plan: 'free', planLabel: 'Gratis', isProExplicit: false),
+    );
+
+    expect(allowedLocation(proUser, '/receivables'), isTrue);
+    expect(allowedLocation(freeUser, '/receivables'), isFalse);
+
+    expect(allowedLocation(proUser, '/reports/sales'), isTrue);
+    expect(allowedLocation(freeUser, '/reports/sales'), isFalse);
+
+    expect(allowedLocation(proUser, '/activity'), isTrue);
+    expect(allowedLocation(freeUser, '/activity'), isFalse);
   });
 }
