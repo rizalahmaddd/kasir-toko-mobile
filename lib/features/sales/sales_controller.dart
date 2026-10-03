@@ -78,13 +78,16 @@ class SalesController extends AsyncNotifier<SalesState> {
     }
   }
 
-  Future<SalesPage> _fetch(SalesFilter filter, int page) => ref.read(salesRepositoryProvider).list(
-        from: filter.range.start,
-        to: filter.range.end,
-        status: filter.status,
-        search: filter.search,
-        page: page,
-      );
+  Future<SalesPage> _fetch(SalesFilter filter, int page) => fetchSales(ref.read(salesRepositoryProvider), filter, page);
 }
+
+/// Shared with the offline warm-up, which must ask for exactly what this list asks for.
+Future<SalesPage> fetchSales(SalesRepository repository, SalesFilter filter, int page) => repository.list(
+      from: filter.range.start,
+      to: filter.range.end,
+      status: filter.status,
+      search: filter.search,
+      page: page,
+    );
 
 final saleDetailProvider = FutureProvider.autoDispose.family<SaleDetail, int>((ref, id) => ref.watch(salesRepositoryProvider).show(id));

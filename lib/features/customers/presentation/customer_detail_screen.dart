@@ -7,8 +7,10 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/launch.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../data_changes.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../../receivables/receivables.dart';
@@ -169,7 +171,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(vertical: 10),
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                       ),
                                       onPressed: () => openExternal(context, Uri(scheme: 'tel', path: customer.phone)),
@@ -182,7 +184,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                                     Expanded(
                                       child: FilledButton.tonalIcon(
                                         style: FilledButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(vertical: 10),
+                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                                           backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
                                           foregroundColor: const Color(0xFF059669),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -236,6 +238,7 @@ class CustomerDetailScreen extends ConsumerWidget {
     try {
       await ref.read(customersRepositoryProvider).delete(customer.id);
       ref.read(customersProvider.notifier).remove((item) => item.id == customer.id);
+      ref.read(dataChangesProvider).after({DataChange.customers});
       if (context.mounted) {
         context.pop();
         showMessage(context, '${customer.name} dihapus.');
@@ -296,8 +299,8 @@ class _CustomerSales extends ConsumerWidget {
       ),
       AsyncError(:final error) => Padding(padding: const EdgeInsets.only(top: 16), child: Text(errorMessage(error))),
       _ => const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(child: CircularProgressIndicator()),
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: SalesListSkeleton(itemCount: 3, showSummary: false, shrinkWrap: true),
       ),
     };
   }

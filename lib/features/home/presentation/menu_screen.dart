@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../../notifications/notifications.dart';
@@ -20,11 +21,18 @@ typedef _Link = ({
   Color? badgeColor,
 });
 
-class MenuScreen extends ConsumerWidget {
+class MenuScreen extends ConsumerStatefulWidget {
   const MenuScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MenuScreen> createState() => _MenuScreenState();
+}
+
+class _MenuScreenState extends ConsumerState<MenuScreen> {
+  String _search = '';
+
+  @override
+  Widget build(BuildContext context) {
     final user = ref.watch(currentUserProvider);
     if (user == null) {
       return const SizedBox.shrink();
@@ -204,8 +212,31 @@ class MenuScreen extends ConsumerWidget {
       ),
     ];
 
+    final query = _search.trim().toLowerCase();
+    final filteredSections = query.isEmpty
+        ? sections
+        : [
+            for (final (title, links) in sections)
+              (
+                title,
+                links
+                    .where((l) =>
+                        title.toLowerCase().contains(query) ||
+                        l.label.toLowerCase().contains(query) ||
+                        (l.caption?.toLowerCase().contains(query) ?? false))
+                    .toList(),
+              ),
+          ];
+    final hasResults = filteredSections.any((s) => s.$2.isNotEmpty);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Menu')),
+      appBar: SearchableAppBar(
+        title: const Text('Menu'),
+        hint: 'Cari menu (shift, stok, printer...)',
+        initialSearch: _search,
+        onSearchChanged: (val) => setState(() => _search = val),
+        onSearchClosed: () => setState(() => _search = ''),
+      ),
       body: RefreshIndicator(
         onRefresh: () => ref.refresh(unreadCountProvider.future),
         child: ListView(
@@ -213,23 +244,24 @@ class MenuScreen extends ConsumerWidget {
           children: [
             MaxWidth(
               width: 640,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final (title, links) in sections)
-                    if (links.isNotEmpty) ...[
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, top: 14, bottom: 8),
-                        child: Text(
-                          title.toUpperCase(),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.8,
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      ),
+              child: hasResults
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        for (final (title, links) in filteredSections)
+                          if (links.isNotEmpty) ...[
+                            Padding(
+                              padding: const EdgeInsets.only(left: 4, top: 14, bottom: 8),
+                              child: Text(
+                                title.toUpperCase(),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
                       Container(
                         decoration: BoxDecoration(
                           color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -325,7 +357,15 @@ class MenuScreen extends ConsumerWidget {
                       ),
                     ],
                 ],
-              ),
+              )
+              : Padding(
+                  padding: const EdgeInsets.only(top: 48),
+                  child: EmptyState(
+                    icon: LucideIcons.searchX,
+                    title: 'Menu tidak ditemukan',
+                    description: 'Tidak ada menu yang cocok dengan "$_search"',
+                  ),
+                ),
             ),
           ],
         ),

@@ -7,9 +7,9 @@ import '../../../core/paging/paged.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../data_changes.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
-import '../../pos/pos_providers.dart';
 import '../data/product_models.dart';
 import '../data/products_repository.dart';
 import '../products_providers.dart';
@@ -22,7 +22,12 @@ class CategoriesScreen extends ConsumerWidget {
     final canManage = ref.watch(currentUserProvider)?.canManageMasterData ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Kategori')),
+      appBar: SearchableAppBar(
+        title: const Text('Kategori'),
+        hint: 'Cari kategori',
+        initialSearch: ref.watch(categoriesSearchProvider),
+        onSearchChanged: ref.read(categoriesSearchProvider.notifier).set,
+      ),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
               onPressed: () => FormSheet.show<void>(context, const _CategorySheet()),
@@ -30,27 +35,17 @@ class CategoriesScreen extends ConsumerWidget {
               label: const Text('Kategori'),
             )
           : null,
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SearchField(hint: 'Cari kategori', onChanged: ref.read(categoriesSearchProvider.notifier).set),
-          ),
-          Expanded(
-            child: PagedListView(
-              value: ref.watch(categoriesProvider),
-              onLoadMore: () => ref.read(categoriesProvider.notifier).loadMore(),
-              onRefresh: () => ref.refresh(categoriesProvider.future),
-              padding: const EdgeInsets.fromLTRB(0, 4, 0, 96),
-              empty: const EmptyState(icon: LucideIcons.tags, title: 'Belum ada kategori'),
-              itemBuilder: (context, category) => _CategoryCard(
-                category: category,
-                canManage: canManage,
-                onTap: canManage ? () => FormSheet.show<void>(context, _CategorySheet(category: category)) : null,
-              ),
-            ),
-          ),
-        ],
+      body: PagedListView(
+        value: ref.watch(categoriesProvider),
+        onLoadMore: () => ref.read(categoriesProvider.notifier).loadMore(),
+        onRefresh: () => ref.refresh(categoriesProvider.future),
+        padding: const EdgeInsets.fromLTRB(0, 4, 0, 96),
+        empty: const EmptyState(icon: LucideIcons.tags, title: 'Belum ada kategori'),
+        itemBuilder: (context, category) => _CategoryCard(
+          category: category,
+          canManage: canManage,
+          onTap: canManage ? () => FormSheet.show<void>(context, _CategorySheet(category: category)) : null,
+        ),
       ),
     );
   }
@@ -167,10 +162,7 @@ class _CategorySheetState extends ConsumerState<_CategorySheet> {
     super.dispose();
   }
 
-  void _refreshLists() => ref
-    ..invalidate(categoriesProvider)
-    ..invalidate(allCategoriesProvider)
-    ..invalidate(posCategoriesProvider);
+  void _refreshLists() => ref.read(dataChangesProvider).after({DataChange.products});
 
   Future<void> _save() async {
     setState(() {
@@ -242,7 +234,7 @@ class _CategorySheetState extends ConsumerState<_CategorySheet> {
           onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
           decoration: InputDecoration(labelText: 'Urutan tampil', helperText: 'Angka kecil tampil lebih dulu di kasir.', errorText: _error?.fieldError('sort_order')),
         ),
-        SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Aktif'), value: _active, onChanged: (value) => setState(() => _active = value)),
+        AppSwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Aktif'), value: _active, onChanged: (value) => setState(() => _active = value)),
         if (generalError != null) Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),
         const SizedBox(height: 8),
         FilledButton(onPressed: _busy ? null : _save, child: const Text('Simpan')),

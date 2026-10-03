@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
@@ -46,24 +47,34 @@ class DashboardScreen extends ConsumerWidget {
         titleSpacing: 16,
         title: Row(
           children: [
-            Container(
-              width: 38,
-              height: 38,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.12),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: theme.colorScheme.primary.withValues(alpha: 0.3),
-                  width: 1.5,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: Text(
-                (user?.name.characters.take(1).toString() ?? 'U').toUpperCase(),
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
+            Tooltip(
+              message: 'Buka Profil',
+              child: InkWell(
+                borderRadius: BorderRadius.circular(20),
+                onTap: () {
+                  unawaited(HapticFeedback.lightImpact());
+                  context.push('/account');
+                },
+                child: Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    (user?.name.characters.take(1).toString() ?? 'U').toUpperCase(),
+                    style: TextStyle(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -153,6 +164,7 @@ class DashboardScreen extends ConsumerWidget {
       body: AsyncView(
         value: dashboard,
         onRetry: () => ref.invalidate(dashboardProvider),
+        loading: const DashboardSkeleton(),
         data: (data) {
           final lowStockStat = data.stats.where((s) => s.key == 'low_stock').firstOrNull;
           final lowStockCount = lowStockStat?.count ?? (data.lowStock?.length ?? 0);

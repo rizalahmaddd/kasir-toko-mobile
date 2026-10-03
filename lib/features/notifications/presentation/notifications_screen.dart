@@ -5,6 +5,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../dashboard/dashboard.dart';
 import '../notifications.dart';
 
 class NotificationsScreen extends ConsumerWidget {
@@ -15,7 +16,8 @@ class NotificationsScreen extends ConsumerWidget {
       await ref.read(notificationsRepositoryProvider).markAllRead();
       ref
         ..invalidate(notificationsProvider)
-        ..invalidate(unreadCountProvider);
+        ..invalidate(unreadCountProvider)
+        ..invalidate(dashboardProvider);
     } on ApiException catch (error) {
       if (context.mounted) {
         showError(context, error);
@@ -29,7 +31,8 @@ class NotificationsScreen extends ConsumerWidget {
         await ref.read(notificationsRepositoryProvider).markRead(notification.id);
         ref
           ..invalidate(notificationsProvider)
-          ..invalidate(unreadCountProvider);
+          ..invalidate(unreadCountProvider)
+          ..invalidate(dashboardProvider);
       } on ApiException {
         // Opening the record matters more than the read flag.
       }

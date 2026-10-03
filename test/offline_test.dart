@@ -101,6 +101,33 @@ void main() {
       expect(after.search(term: '899001').items.single.stock, 7);
       expect(after.search(term: 'galon').items.single.stock, 10);
     });
+
+    test('answers the product list with its filters and sorting', () {
+      expect(snapshot.records()!.items.map((p) => p.id), [3, 1, 2]);
+      expect(snapshot.records(sort: '-price')!.items.map((p) => p.id), [3, 2, 1]);
+      expect(snapshot.records(categoryId: 1, search: 'air')!.items.map((p) => p.id), [3, 1]);
+      expect(snapshot.records(status: 'inactive'), isNull);
+    });
+
+    test('recomputes low stock after offline sales and summarises stock', () {
+      final after = CatalogSnapshot([
+        {..._product(1, 'Air Mineral 600ml'), 'min_stock': '5', 'cost_price': 500},
+        {..._product(2, 'Beras Premium 5kg'), 'min_stock': '2', 'cost_price': 4000},
+        _product(3, 'Air Galon', track: false),
+      ], DateTime(2026)).deduct({1: 6, 2: 10});
+
+      expect(after.stock(level: 'low').items.map((p) => p.id), [1]);
+      expect(after.stock(level: 'out').items.map((p) => p.id), [2]);
+      expect(after.stock().items, hasLength(2));
+      final summary = after.stockSummary();
+      expect((summary.tracked, summary.low, summary.out, summary.value), (2, 1, 1, 2000));
+    });
+
+    test('derives categories and single products', () {
+      expect(snapshot.categories().map((c) => c.id), [1, 2]);
+      expect(snapshot.record(2)?.name, 'Beras Premium 5kg');
+      expect(snapshot.record(99), isNull);
+    });
   });
 
   group('offline queue', () {

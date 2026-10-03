@@ -15,6 +15,7 @@ class SearchField extends StatefulWidget {
     this.controller,
     this.focusNode,
     this.autofocus = false,
+    this.dense = false,
     this.debounceDuration = const Duration(milliseconds: 350),
     this.trailing,
     this.leading,
@@ -27,6 +28,7 @@ class SearchField extends StatefulWidget {
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final bool autofocus;
+  final bool dense;
   final Duration debounceDuration;
   final Widget? trailing;
   final Widget? leading;
@@ -37,8 +39,10 @@ class SearchField extends StatefulWidget {
 
 class _SearchFieldState extends State<SearchField> {
   late TextEditingController _effectiveController;
+  late FocusNode _effectiveFocusNode;
   Timer? _debounce;
   bool _ownsController = false;
+  bool _ownsFocusNode = false;
 
   @override
   void initState() {
@@ -50,9 +54,21 @@ class _SearchFieldState extends State<SearchField> {
       _ownsController = true;
     }
     _effectiveController.addListener(_onControllerChanged);
+
+    if (widget.focusNode != null) {
+      _effectiveFocusNode = widget.focusNode!;
+    } else {
+      _effectiveFocusNode = FocusNode();
+      _ownsFocusNode = true;
+    }
+    _effectiveFocusNode.addListener(_onFocusChanged);
   }
 
   void _onControllerChanged() {
+    if (mounted) setState(() {});
+  }
+
+  void _onFocusChanged() {
     if (mounted) setState(() {});
   }
 
@@ -77,6 +93,21 @@ class _SearchFieldState extends State<SearchField> {
         widget.initialValue != _effectiveController.text.trim()) {
       _effectiveController.text = widget.initialValue;
     }
+
+    if (widget.focusNode != oldWidget.focusNode) {
+      oldWidget.focusNode?.removeListener(_onFocusChanged);
+      if (widget.focusNode != null) {
+        if (_ownsFocusNode) {
+          _effectiveFocusNode.dispose();
+          _ownsFocusNode = false;
+        }
+        _effectiveFocusNode = widget.focusNode!;
+      } else {
+        _effectiveFocusNode = FocusNode();
+        _ownsFocusNode = true;
+      }
+      _effectiveFocusNode.addListener(_onFocusChanged);
+    }
   }
 
   @override
@@ -85,6 +116,10 @@ class _SearchFieldState extends State<SearchField> {
     _effectiveController.removeListener(_onControllerChanged);
     if (_ownsController) {
       _effectiveController.dispose();
+    }
+    _effectiveFocusNode.removeListener(_onFocusChanged);
+    if (_ownsFocusNode) {
+      _effectiveFocusNode.dispose();
     }
     super.dispose();
   }
@@ -103,17 +138,22 @@ class _SearchFieldState extends State<SearchField> {
     final border = isDark ? AppColors.slate700.withValues(alpha: 0.7) : AppColors.slate200;
     final primary = theme.colorScheme.primary;
     final muted = theme.colorScheme.onSurfaceVariant;
+    final isFocused = _effectiveFocusNode.hasFocus;
 
     return Container(
       decoration: BoxDecoration(
         color: surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: border),
+        borderRadius: BorderRadius.circular(widget.dense ? 10 : 12),
+        border: Border.all(
+          color: isFocused ? primary : border,
+          width: isFocused ? 1.4 : 1.0,
+        ),
       ),
       child: TextField(
         controller: _effectiveController,
-        focusNode: widget.focusNode,
+        focusNode: _effectiveFocusNode,
         autofocus: widget.autofocus,
+        textAlignVertical: TextAlignVertical.center,
         onChanged: _changed,
         onSubmitted: (val) {
           _debounce?.cancel();
@@ -123,7 +163,7 @@ class _SearchFieldState extends State<SearchField> {
         onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
         textInputAction: TextInputAction.search,
         style: TextStyle(
-          fontSize: 14,
+          fontSize: widget.dense ? 13.5 : 14,
           fontWeight: FontWeight.w400,
           color: isDark ? AppColors.slate100 : AppColors.slate900,
         ),
@@ -131,20 +171,28 @@ class _SearchFieldState extends State<SearchField> {
           isDense: true,
           hintText: widget.hint,
           hintStyle: TextStyle(
-            fontSize: 14,
+            fontSize: widget.dense ? 13.5 : 14,
             fontWeight: FontWeight.w400,
             color: muted,
           ),
           filled: false,
           border: InputBorder.none,
           enabledBorder: InputBorder.none,
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide(color: primary, width: 1.5),
+          focusedBorder: InputBorder.none,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: widget.dense ? 9 : 11,
           ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          prefixIcon: widget.leading ?? Icon(LucideIcons.search, size: 18, color: muted),
-          prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          prefixIcon: widget.leading ??
+              Icon(
+                LucideIcons.search,
+                size: widget.dense ? 16 : 18,
+                color: isFocused ? primary : muted,
+              ),
+          prefixIconConstraints: BoxConstraints(
+            minWidth: widget.dense ? 36 : 40,
+            minHeight: widget.dense ? 36 : 40,
+          ),
           suffixIcon: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -164,6 +212,129 @@ class _SearchFieldState extends State<SearchField> {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Standard AppBar with integrated collapsible search mode.
+///
+/// Features:
+/// - By default displays clean [title] and action icons, including a search icon button.
+/// - Clicking the search icon smoothly activates search mode with an autofocus [SearchField].
+/// - When searching, tapping the back arrow or clearing closes search mode.
+/// - If [initialSearch] is already provided, automatically starts in search mode.
+class SearchableAppBar extends StatefulWidget implements PreferredSizeWidget {
+  const SearchableAppBar({
+    super.key,
+    required this.title,
+    required this.hint,
+    required this.onSearchChanged,
+    this.onSearchSubmitted,
+    this.initialSearch = '',
+    this.actions = const [],
+    this.onSearchClosed,
+    this.leading,
+    this.bottom,
+    this.titleSpacing,
+    this.centerTitle,
+  });
+
+  final Widget title;
+  final String hint;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<String>? onSearchSubmitted;
+  final String initialSearch;
+  final List<Widget> actions;
+  final VoidCallback? onSearchClosed;
+  final Widget? leading;
+  final PreferredSizeWidget? bottom;
+  final double? titleSpacing;
+  final bool? centerTitle;
+
+  @override
+  Size get preferredSize => Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0.0));
+
+  @override
+  State<SearchableAppBar> createState() => _SearchableAppBarState();
+}
+
+class _SearchableAppBarState extends State<SearchableAppBar> {
+  late bool _isSearching;
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _isSearching = widget.initialSearch.isNotEmpty;
+    _controller = TextEditingController(text: widget.initialSearch);
+  }
+
+  @override
+  void didUpdateWidget(SearchableAppBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialSearch != oldWidget.initialSearch) {
+      if (widget.initialSearch != _controller.text) {
+        _controller.text = widget.initialSearch;
+      }
+      if (widget.initialSearch.isNotEmpty && !_isSearching) {
+        setState(() => _isSearching = true);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _closeSearch() {
+    _controller.clear();
+    widget.onSearchChanged('');
+    widget.onSearchClosed?.call();
+    setState(() => _isSearching = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isSearching) {
+      return AppBar(
+        titleSpacing: 0,
+        centerTitle: false,
+        leading: IconButton(
+          icon: const Icon(LucideIcons.arrowLeft, size: 20),
+          tooltip: 'Kembali',
+          onPressed: _closeSearch,
+        ),
+        title: Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: SearchField(
+            controller: _controller,
+            hint: widget.hint,
+            dense: true,
+            autofocus: true,
+            onChanged: widget.onSearchChanged,
+            onSubmitted: widget.onSearchSubmitted,
+          ),
+        ),
+        bottom: widget.bottom,
+      );
+    }
+
+    return AppBar(
+      titleSpacing: widget.titleSpacing,
+      centerTitle: widget.centerTitle,
+      leading: widget.leading,
+      title: widget.title,
+      actions: [
+        IconButton(
+          icon: const Icon(LucideIcons.search, size: 20),
+          tooltip: 'Cari',
+          onPressed: () => setState(() => _isSearching = true),
+        ),
+        ...widget.actions,
+      ],
+      bottom: widget.bottom,
     );
   }
 }
@@ -513,3 +684,45 @@ Future<bool> confirmAction(
 
   return result ?? false;
 }
+
+/// Standard application SwitchListTile adhering to the theme design system.
+///
+/// Ensures consistent thumb and track styling across light and dark modes,
+/// without ad-hoc color overrides that break knob contrast.
+class AppSwitchListTile extends StatelessWidget {
+  const AppSwitchListTile({
+    super.key,
+    required this.value,
+    required this.onChanged,
+    this.title,
+    this.subtitle,
+    this.secondary,
+    this.contentPadding = EdgeInsets.zero,
+    this.dense,
+    this.shape,
+  });
+
+  final bool value;
+  final ValueChanged<bool>? onChanged;
+  final Widget? title;
+  final Widget? subtitle;
+  final Widget? secondary;
+  final EdgeInsetsGeometry contentPadding;
+  final bool? dense;
+  final ShapeBorder? shape;
+
+  @override
+  Widget build(BuildContext context) {
+    return SwitchListTile(
+      value: value,
+      onChanged: onChanged,
+      title: title,
+      subtitle: subtitle,
+      secondary: secondary,
+      contentPadding: contentPadding,
+      dense: dense,
+      shape: shape,
+    );
+  }
+}
+

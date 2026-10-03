@@ -12,7 +12,7 @@ import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/money_field.dart';
 import '../../auth/auth_controller.dart';
-import '../../offline/catalog_snapshot.dart';
+import '../../data_changes.dart';
 import '../../offline/offline_queue.dart';
 import '../../sales/data/sale_models.dart';
 import '../../shift/shift_controller.dart';
@@ -190,10 +190,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     try {
       final sale = await ref.read(posRepositoryProvider).checkout(cart: cart, payments: payments, expectedTotal: _total);
       ref.read(cartProvider.notifier).clear();
-      ref
-        ..invalidate(catalogProvider)
-        ..invalidate(posConfigProvider)
-        ..invalidate(currentShiftProvider);
+      unawaited(ref.read(dataChangesProvider).saleRecorded({for (final item in cart.items) item.productId: item.quantity}));
       if (mounted) {
         Navigator.pop(context, sale);
       }
@@ -270,9 +267,8 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     );
 
     ref.read(offlineQueueProvider.notifier).add(sale);
-    ref.read(catalogSnapshotProvider.notifier).deduct({for (final item in cart.items) item.productId: item.quantity});
+    unawaited(ref.read(dataChangesProvider).saleQueued({for (final item in cart.items) item.productId: item.quantity}));
     ref.read(cartProvider.notifier).clear();
-    ref.invalidate(catalogProvider);
     Navigator.pop(context, sale);
   }
 

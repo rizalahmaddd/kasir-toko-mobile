@@ -12,6 +12,7 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../sales/data/sale_models.dart';
 import '../receivables.dart';
+import 'payment_history_sheet.dart';
 import 'receivable_payment_sheet.dart';
 
 class ReceivablesScreen extends ConsumerWidget {
@@ -24,32 +25,31 @@ class ReceivablesScreen extends ConsumerWidget {
     final colors = StatusColors.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Piutang (kasbon)')),
+      appBar: SearchableAppBar(
+        title: const Text('Piutang (kasbon)'),
+        hint: 'No. transaksi, nama, atau HP pelanggan',
+        initialSearch: ref.watch(receivablesSearchProvider),
+        onSearchChanged: ref.read(receivablesSearchProvider.notifier).set,
+      ),
       body: PagedListView(
         value: receivables,
         onLoadMore: () => ref.read(receivablesProvider.notifier).loadMore(),
         onRefresh: () => ref.refresh(receivablesProvider.future),
         header: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-          child: Column(
-            children: [
-              IntrinsicHeight(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: StatTile(label: 'Total belum lunas', value: rupiah(asInt(meta['total_due'])), color: colors.warning, icon: LucideIcons.handCoins),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: StatTile(label: 'Pelanggan', value: '${asInt(meta['customer_count'])}', icon: LucideIcons.users),
-                    ),
-                  ],
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: StatTile(label: 'Total belum lunas', value: rupiah(asInt(meta['total_due'])), color: colors.warning, icon: LucideIcons.handCoins),
                 ),
-              ),
-              const SizedBox(height: 12),
-              SearchField(hint: 'No. transaksi, nama, atau HP pelanggan', onChanged: ref.read(receivablesSearchProvider.notifier).set),
-            ],
+                const SizedBox(width: 8),
+                Expanded(
+                  child: StatTile(label: 'Pelanggan', value: '${asInt(meta['customer_count'])}', icon: LucideIcons.users),
+                ),
+              ],
+            ),
           ),
         ),
         empty: const EmptyState(icon: LucideIcons.handCoins, title: 'Tidak ada kasbon', description: 'Semua kasbon sudah lunas.'),
@@ -201,7 +201,19 @@ class _ReceivableCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        visualDensity: VisualDensity.compact,
+                        tooltip: 'Riwayat pembayaran',
+                        icon: const Icon(LucideIcons.history, size: 16),
+                        onPressed: () => PaymentHistorySheet.show(
+                          context,
+                          saleId: sale.id,
+                          number: sale.number,
+                          customerName: sale.customer?.name,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
                       SizedBox(
                         height: 32,
                         child: FilledButton.tonal(

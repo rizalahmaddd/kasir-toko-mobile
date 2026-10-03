@@ -47,6 +47,11 @@ class ApiException implements Exception {
     );
   }
 
+  factory ApiException.notCached() => ApiException(
+        message: 'Sedang offline dan data ini belum pernah dibuka di perangkat ini. Coba lagi setelah terhubung ke server.',
+        isNetworkError: true,
+      );
+
   final String message;
   final int? statusCode;
 

@@ -4,6 +4,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../network/api_exception.dart';
 import '../theme/app_theme.dart';
+import 'app_skeleton.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({super.key, required this.icon, required this.title, this.description, this.action});
@@ -63,18 +64,25 @@ class ErrorState extends StatelessWidget {
 
 /// Loading / error / data switch with a consistent look for every list and detail screen.
 class AsyncView<T> extends StatelessWidget {
-  const AsyncView({super.key, required this.value, required this.data, this.onRetry});
+  const AsyncView({
+    super.key,
+    required this.value,
+    required this.data,
+    this.onRetry,
+    this.loading,
+  });
 
   final AsyncValue<T> value;
   final Widget Function(T data) data;
   final VoidCallback? onRetry;
+  final Widget? loading;
 
   @override
   Widget build(BuildContext context) {
     return switch (value) {
       AsyncData(:final value) => data(value),
       AsyncError(:final error) => ErrorState(error: error, onRetry: onRetry),
-      _ => const Center(child: CircularProgressIndicator()),
+      _ => loading ?? const DefaultListSkeleton(),
     };
   }
 }

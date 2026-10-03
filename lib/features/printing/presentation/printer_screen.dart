@@ -6,6 +6,7 @@ import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../printer.dart';
@@ -47,13 +48,19 @@ class _PrinterScreenState extends ConsumerState<PrinterScreen> {
   List<BluetoothInfo>? _devices;
   String? _error;
   bool _scanning = false;
+  bool _devicesExpanded = false;
+  bool _testingConnection = false;
   _PreviewKind _preview = _PreviewKind.sale;
   late final _sample = sampleSale();
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scan());
+    final hasConfigured = ref.read(printerSettingsProvider).isConfigured;
+    _devicesExpanded = !hasConfigured;
+    if (!hasConfigured) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scan());
+    }
   }
 
   Future<void> _scan() async {
@@ -85,10 +92,42 @@ class _PrinterScreenState extends ConsumerState<PrinterScreen> {
     }
   }
 
+  Future<void> _testConnection(PrinterSettings settings) async {
+    if (!settings.isConfigured) return;
+    setState(() => _testingConnection = true);
+    try {
+      final isEnabled = await PrintBluetoothThermal.bluetoothEnabled;
+      if (!isEnabled) {
+        if (mounted) {
+          showMessage(context, 'Bluetooth HP Anda sedang mati. Nyalakan Bluetooth dulu.', isError: true);
+        }
+        return;
+      }
+      final isConnected = await PrintBluetoothThermal.connectionStatus ||
+          await PrintBluetoothThermal.connect(macPrinterAddress: settings.address!);
+      if (mounted) {
+        if (isConnected) {
+          showMessage(context, 'Printer ${settings.name ?? 'struk'} terhubung dan siap digunakan.');
+        } else {
+          showMessage(context, 'Tidak dapat terhubung ke ${settings.name ?? 'printer'}. Pastikan printer menyala dan dekat.', isError: true);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        showMessage(context, 'Gagal cek koneksi: $e', isError: true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _testingConnection = false);
+      }
+    }
+  }
+
   Future<void> _choose(BluetoothInfo device) async {
     final name = device.name.isEmpty ? device.macAdress : device.name;
     await ref.read(printerSettingsProvider.notifier).choose(device.macAdress, name);
     if (mounted) {
+      setState(() => _devicesExpanded = false);
       showMessage(context, '$name dipilih sebagai printer struk.');
     }
   }
@@ -104,19 +143,38 @@ class _PrinterScreenState extends ConsumerState<PrinterScreen> {
     final profile = ref.watch(receiptProfileProvider);
 
     final setup = [
-      _StatusCard(settings: settings),
-      const SizedBox(height: 4),
-      SectionTitle(
-        'Perangkat Bluetooth',
-        trailing: TextButton.icon(
-          onPressed: _scanning ? null : _scan,
-          icon: _scanning
-              ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2))
-              : const Icon(LucideIcons.refreshCw, size: 16),
-          label: const Text('Pindai'),
-        ),
+      _StatusCard(
+        settings: settings,
+        testingConnection: _testingConnection,
+        onTestConnection: () => _testConnection(settings),
       ),
-      _devicesSection(settings),
+      const SizedBox(height: 6),
+      if (!_devicesExpanded && settings.isConfigured) ...[
+        _devicesCollapsedCard(settings),
+      ] else ...[
+        SectionTitle(
+          'Perangkat Bluetooth',
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (settings.isConfigured)
+                TextButton.icon(
+                  onPressed: () => setState(() => _devicesExpanded = false),
+                  icon: const Icon(LucideIcons.chevronUp, size: 15),
+                  label: const Text('Tutup'),
+                ),
+              TextButton.icon(
+                onPressed: _scanning ? null : _scan,
+                icon: _scanning
+                    ? const SizedBox.square(dimension: 14, child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(LucideIcons.refreshCw, size: 15),
+                label: const Text('Pindai'),
+              ),
+            ],
+          ),
+        ),
+        _devicesSection(settings),
+      ],
       const SectionTitle('Kertas & cetak'),
       _PrintOptions(settings: settings),
       const SectionTitle('Isi struk'),
@@ -200,7 +258,7 @@ class _PrinterScreenState extends ConsumerState<PrinterScreen> {
             constraints: const BoxConstraints(maxWidth: 640),
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: settings.isConfigured
@@ -215,8 +273,86 @@ class _PrinterScreenState extends ConsumerState<PrinterScreen> {
     );
   }
 
+  Widget _devicesCollapsedCard(PrinterSettings settings) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = theme.colorScheme.onSurfaceVariant;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () {
+            setState(() => _devicesExpanded = true);
+            if (_devices == null && !_scanning) {
+              _scan();
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(LucideIcons.bluetooth, size: 18, color: theme.colorScheme.primary),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Perangkat Bluetooth (${_devices?.length ?? 0} ter-pair)',
+                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Daftar disembunyikan karena printer sudah aktif.',
+                        style: TextStyle(fontSize: 11.5, color: muted),
+                      ),
+                    ],
+                  ),
+                ),
+                TextButton.icon(
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                  ),
+                  onPressed: () {
+                    setState(() => _devicesExpanded = true);
+                    if (_devices == null && !_scanning) {
+                      _scan();
+                    }
+                  },
+                  icon: const Icon(LucideIcons.refreshCw, size: 14),
+                  label: const Text('Ganti printer'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _devicesSection(PrinterSettings settings) {
-    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final muted = theme.colorScheme.onSurfaceVariant;
     final hint = Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
@@ -236,6 +372,27 @@ class _PrinterScreenState extends ConsumerState<PrinterScreen> {
             child: Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error, fontSize: 13)),
           ),
         ],
+      );
+    }
+    if (_scanning && (_devices == null || _devices!.isEmpty)) {
+      return AppShimmer(
+        child: Column(
+          children: [
+            hint,
+            for (var i = 0; i < 3; i++)
+              Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                height: 60,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  ),
+                ),
+              ),
+          ],
+        ),
       );
     }
     if (_devices == null) {
@@ -288,13 +445,19 @@ class _Panel extends StatelessWidget {
   }
 }
 
-class _StatusCard extends ConsumerWidget {
-  const _StatusCard({required this.settings});
+class _StatusCard extends StatelessWidget {
+  const _StatusCard({
+    required this.settings,
+    required this.testingConnection,
+    required this.onTestConnection,
+  });
 
   final PrinterSettings settings;
+  final bool testingConnection;
+  final VoidCallback onTestConnection;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     final active = settings.isConfigured;
@@ -303,70 +466,114 @@ class _StatusCard extends ConsumerWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: isDark ? AppColors.slate800 : Colors.white,
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: active ? AppColors.emerald500.withValues(alpha: 0.4) : (isDark ? AppColors.slate700 : AppColors.slate200),
+          color: active ? AppColors.emerald500.withValues(alpha: 0.4) : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
           width: active ? 1.2 : 1.0,
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: active ? AppColors.emerald500.withValues(alpha: 0.15) : neutral, borderRadius: BorderRadius.circular(12)),
-            child: Icon(active ? LucideIcons.printerCheck : LucideIcons.printer, size: 22, color: active ? AppColors.emerald600 : muted),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: active ? AppColors.emerald500.withValues(alpha: 0.15) : neutral,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  active ? LucideIcons.printerCheck : LucideIcons.printer,
+                  size: 22,
+                  color: active ? AppColors.emerald600 : muted,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
-                      child: Text(
-                        settings.name ?? 'Belum ada printer',
-                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            settings.name ?? 'Belum ada printer',
+                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          decoration: BoxDecoration(
+                            color: active ? AppColors.emerald500.withValues(alpha: 0.12) : neutral,
+                            borderRadius: BorderRadius.circular(5),
+                          ),
+                          child: Text(
+                            active ? 'Aktif' : 'Nonaktif',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: active ? AppColors.emerald600 : muted,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                      decoration: BoxDecoration(color: active ? AppColors.emerald500.withValues(alpha: 0.12) : neutral, borderRadius: BorderRadius.circular(5)),
-                      child: Text(
-                        active ? 'Aktif' : 'Nonaktif',
-                        style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: active ? AppColors.emerald600 : muted),
-                      ),
+                    const SizedBox(height: 3),
+                    Text(
+                      active ? '${settings.address} · ${settings.paperWidth} mm' : 'Pilih printer Bluetooth thermal di bawah.',
+                      style: TextStyle(fontSize: 12, color: muted),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
-                Text(
-                  active ? '${settings.address} · ${settings.paperWidth} mm' : 'Pilih printer Bluetooth thermal di bawah.',
-                  style: TextStyle(fontSize: 12, color: muted),
+              ),
+              if (active)
+                Consumer(
+                  builder: (context, ref, _) => IconButton.filledTonal(
+                    tooltip: 'Lupakan printer',
+                    icon: const Icon(LucideIcons.trash2, size: 16),
+                    onPressed: () async {
+                      if (await confirmAction(
+                        context,
+                        title: 'Lupakan printer?',
+                        message: 'Struk tidak bisa dicetak sampai printer dipilih lagi.',
+                        confirmLabel: 'Lupakan',
+                        danger: true,
+                      )) {
+                        await ref.read(printerSettingsProvider.notifier).forget();
+                      }
+                    },
+                  ),
                 ),
-              ],
-            ),
+            ],
           ),
-          if (active)
-            IconButton.filledTonal(
-              tooltip: 'Lupakan printer',
-              icon: const Icon(LucideIcons.x, size: 16),
-              onPressed: () async {
-                if (await confirmAction(
-                  context,
-                  title: 'Lupakan printer?',
-                  message: 'Struk tidak bisa dicetak sampai printer dipilih lagi.',
-                  confirmLabel: 'Lupakan',
-                )) {
-                  await ref.read(printerSettingsProvider.notifier).forget();
-                }
-              },
+          if (active) ...[
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(40),
+                backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                foregroundColor: isDark ? AppColors.slate100 : AppColors.slate800,
+                side: BorderSide(
+                  color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              onPressed: testingConnection ? null : onTestConnection,
+              icon: testingConnection
+                  ? const SizedBox.square(dimension: 15, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Icon(LucideIcons.radio, size: 16, color: isDark ? AppColors.emerald400 : AppColors.emerald600),
+              label: Text(
+                testingConnection ? 'Mengecek printer...' : 'Tes koneksi printer',
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
             ),
+          ],
         ],
       ),
     );
@@ -430,14 +637,14 @@ class _PrintOptions extends ConsumerWidget {
             onSelectionChanged: (value) => notifier.setFeedLines(value.first),
           ),
           const SizedBox(height: 4),
-          SwitchListTile(
+          AppSwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Potong kertas otomatis', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             subtitle: const Text('Matikan kalau printer tidak punya pemotong.', style: TextStyle(fontSize: 12)),
             value: settings.cut,
             onChanged: notifier.setCut,
           ),
-          SwitchListTile(
+          AppSwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Cetak otomatis setelah bayar', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             subtitle: Text(
@@ -469,7 +676,7 @@ class _ReceiptContent extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          SwitchListTile(
+          AppSwitchListTile(
             contentPadding: EdgeInsets.zero,
             title: const Text('Tampilkan alamat & telepon toko', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
             subtitle: const Text('Matikan supaya struk lebih pendek dan hemat kertas.', style: TextStyle(fontSize: 12)),

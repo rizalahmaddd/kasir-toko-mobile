@@ -238,7 +238,8 @@ class AccountScreen extends ConsumerWidget {
                         ),
                         Divider(height: 1, indent: 64, color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
                       ],
-                      SwitchListTile(
+                      AppSwitchListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         secondary: Container(
                           width: 36,
                           height: 36,
@@ -265,7 +266,7 @@ class AccountScreen extends ConsumerWidget {
                 // Logout Actions
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     side: BorderSide(color: danger.withValues(alpha: 0.5)),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),

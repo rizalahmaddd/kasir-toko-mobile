@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../data_changes.dart';
 import '../customers_providers.dart';
 import '../data/customers_repository.dart';
 
@@ -23,7 +25,7 @@ class CustomerFormScreen extends ConsumerWidget {
     return ref.watch(customerProvider(customerId!)).when(
           data: (customer) => _CustomerForm(customer: customer),
           error: (error, _) => Scaffold(appBar: AppBar(), body: ErrorState(error: error, onRetry: () => ref.invalidate(customerProvider(customerId!)))),
-          loading: () => Scaffold(appBar: AppBar(), body: const Center(child: CircularProgressIndicator())),
+          loading: () => Scaffold(appBar: AppBar(), body: const DefaultListSkeleton(itemCount: 4)),
         );
   }
 }
@@ -89,10 +91,7 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
 
     try {
       final saved = await ref.read(customersRepositoryProvider).save(input, id: _c?.id);
-      ref.invalidate(customersProvider);
-      if (_c != null) {
-        ref.invalidate(customerProvider(saved.id));
-      }
+      ref.read(dataChangesProvider).after({DataChange.customers});
       if (mounted) {
         showMessage(context, _c == null ? '${saved.name} ditambahkan.' : 'Perubahan disimpan.');
         if (_c == null) {
@@ -148,7 +147,7 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
                   _field(_address, 'Alamat (opsional)', 'address', maxLines: 2),
                   _field(_npwp, 'NPWP (opsional)', 'npwp', keyboard: TextInputType.number),
                   _field(_term, 'Tempo bayar (hari)', 'payment_term_days', keyboard: TextInputType.number, hint: '0 = tunai'),
-                  SwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Aktif'), value: _active, onChanged: (value) => setState(() => _active = value)),
+                  AppSwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Aktif'), value: _active, onChanged: (value) => setState(() => _active = value)),
                   if (generalError != null) Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),
                   const SizedBox(height: 12),
                   FilledButton(

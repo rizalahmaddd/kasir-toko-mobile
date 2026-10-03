@@ -11,10 +11,10 @@ import '../../core/storage/app_storage.dart';
 import '../../core/utils/json.dart';
 import '../auth/access.dart';
 import '../auth/auth_controller.dart';
+import '../data_changes.dart';
 import '../pos/data/pos_repository.dart';
-import '../pos/pos_providers.dart';
+import '../sales/data/sales_repository.dart';
 import '../sales/sales_controller.dart';
-import '../shift/shift_controller.dart';
 import 'catalog_snapshot.dart';
 
 enum QueuedStatus { pending, failed }
@@ -183,10 +183,7 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
     } finally {
       syncState.set(SyncState(lastSyncAt: DateTime.now(), lastSynced: sent));
       if (sent > 0) {
-        ref
-          ..invalidate(salesProvider)
-          ..invalidate(currentShiftProvider)
-          ..invalidate(catalogProvider);
+        ref.read(dataChangesProvider).after({DataChange.sales});
       }
     }
 
@@ -196,6 +193,8 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
 
 /// Retries queued sales when connectivity returns, when the app comes back to the foreground,
 /// whenever a request reaches the server again, and every minute while anything is waiting.
+/// While the server is unreachable it is checked every 30 seconds; once it answers again the main
+/// screens reload so nothing keeps showing the offline copy.
 final offlineSyncerProvider = Provider<void>((ref) {
   void trigger() {
     if (ref.read(myQueueProvider).any((sale) => sale.status == QueuedStatus.pending)) {
@@ -203,11 +202,43 @@ final offlineSyncerProvider = Provider<void>((ref) {
     }
   }
 
+  Future<void> checkServer() async {
+    if (ref.read(serverReachableProvider) || ref.read(currentUserProvider) == null) {
+      return;
+    }
+    try {
+      await ref.read(apiClientProvider).get('auth/me');
+    } on ApiException {
+      // Still unreachable; serverReachableProvider stays false.
+    }
+  }
+
   final connectivity = Connectivity().onConnectivityChanged.listen((results) {
     if (results.any((result) => result != ConnectivityResult.none)) {
       trigger();
+      unawaited(checkServer());
     }
   });
+
+  // Keeps an offline copy of what the cashier is likely to open next: the dashboard and today's
+  // sales. Products and stock are answered from the catalog snapshot instead.
+  DateTime? warmedAt;
+  Future<void> warmUp() async {
+    final user = ref.read(currentUserProvider);
+    if (user == null || (warmedAt != null && DateTime.now().difference(warmedAt!) < const Duration(minutes: 30))) {
+      return;
+    }
+    warmedAt = DateTime.now();
+    try {
+      await ref.read(apiClientProvider).get('dashboard');
+      if (user.canViewSales) {
+        await fetchSales(ref.read(salesRepositoryProvider), SalesFilter.today(), 1);
+      }
+    } on ApiException {
+      warmedAt = null;
+    }
+  }
+
   Future<void> refreshCatalog() async {
     if (!(ref.read(currentUserProvider)?.canSell ?? false)) {
       return;
@@ -225,16 +256,34 @@ final offlineSyncerProvider = Provider<void>((ref) {
   final lifecycle = AppLifecycleListener(
     onResume: () {
       trigger();
+      unawaited(checkServer());
       unawaited(refreshCatalog());
+      unawaited(warmUp());
     },
   );
   final timer = Timer.periodic(const Duration(minutes: 1), (_) => trigger());
-  final catalogTimer = Timer.periodic(const Duration(minutes: 15), (_) => refreshCatalog());
+  final pingTimer = Timer.periodic(const Duration(seconds: 30), (_) => checkServer());
+  final catalogTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+    refreshCatalog();
+    warmUp();
+  });
   Future.microtask(refreshCatalog);
+  Future.microtask(warmUp);
+  DateTime? offlineSince;
   ref.listen(serverReachableProvider, (previous, reachable) {
-    if (reachable && previous == false) {
-      trigger();
+    if (!reachable) {
+      offlineSince ??= DateTime.now();
+      return;
     }
+    if (previous == false) {
+      trigger();
+      // A blip of a few seconds didn't leave anything stale worth a reload of every screen.
+      final wasOffline = offlineSince != null && DateTime.now().difference(offlineSince!) > const Duration(seconds: 15);
+      if (wasOffline) {
+        ref.read(dataChangesProvider).after(DataChange.values.toSet());
+      }
+    }
+    offlineSince = null;
   });
   Future.microtask(trigger);
 
@@ -242,6 +291,7 @@ final offlineSyncerProvider = Provider<void>((ref) {
     connectivity.cancel();
     lifecycle.dispose();
     timer.cancel();
+    pingTimer.cancel();
     catalogTimer.cancel();
   });
 });

@@ -7,9 +7,9 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/money_field.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../data_changes.dart';
 import '../data/product_models.dart';
 import '../data/products_repository.dart';
-import '../products_providers.dart';
 
 const _titles = {'stock_in': 'Stok masuk', 'stock_out': 'Stok keluar', 'opname': 'Stok opname'};
 
@@ -64,11 +64,7 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
             unitCost: widget.type == 'stock_in' && _cost.text.isNotEmpty ? parseRupiah(_cost.text) : null,
             note: _note.text.trim().isEmpty ? null : _note.text.trim(),
           );
-      ref
-        ..invalidate(productDetailProvider(widget.product.id))
-        ..invalidate(productsProvider)
-        ..invalidate(stockProvider)
-        ..invalidate(movementsProvider);
+      ref.read(dataChangesProvider).after({DataChange.products});
       if (mounted) {
         Navigator.pop(context, true);
         showMessage(context, '${_titles[widget.type]} ${widget.product.name} dicatat.');

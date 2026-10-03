@@ -6,6 +6,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/paging/paged.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/shift_models.dart';
@@ -46,6 +47,7 @@ class ShiftsScreen extends ConsumerWidget {
           Expanded(
             child: PagedListView(
               value: ref.watch(shiftsProvider),
+              skeleton: const ShiftsListSkeleton(),
               onLoadMore: () => ref.read(shiftsProvider.notifier).loadMore(),
               onRefresh: () => ref.refresh(shiftsProvider.future),
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),

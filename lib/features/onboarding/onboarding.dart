@@ -1,15 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/utils/json.dart';
 import '../auth/auth_controller.dart';
 import '../auth/data/current_user.dart';
-import '../offline/catalog_snapshot.dart';
-import '../pos/pos_providers.dart';
+import '../data_changes.dart';
 import '../printing/printer.dart';
-import '../products/products_providers.dart';
 
 /// A store type the owner can start from, with what applying it would create and change.
 class StorePreset {
@@ -135,18 +131,7 @@ class OnboardingActions {
   Future<void> _finish(TenantInfo tenant) async {
     await _ref.read(authControllerProvider.notifier).updateTenant(tenant);
 
-    _ref
-      ..invalidate(posConfigProvider)
-      ..invalidate(posCategoriesProvider)
-      ..invalidate(catalogProvider)
-      ..invalidate(productsProvider)
-      ..invalidate(allCategoriesProvider)
-      ..invalidate(categoriesProvider)
-      ..invalidate(stockProvider)
-      ..invalidate(receiptProfileProvider);
-
-    if (_ref.read(catalogSnapshotProvider).value != null) {
-      unawaited(_ref.read(catalogSnapshotProvider.notifier).download().then((_) {}, onError: (_) {}));
-    }
+    _ref.read(dataChangesProvider).after({DataChange.products, DataChange.shifts});
+    _ref.invalidate(receiptProfileProvider);
   }
 }

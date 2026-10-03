@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/paging/paged.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
@@ -34,8 +35,11 @@ class ProductsScreen extends ConsumerWidget {
     final canManage = ref.watch(currentUserProvider)?.canManageMasterData ?? false;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: SearchableAppBar(
         title: const Text('Produk'),
+        hint: 'Cari nama, SKU, atau barcode',
+        initialSearch: query.search,
+        onSearchChanged: (term) => notifier.set((search: term, categoryId: query.categoryId, status: query.status, sort: query.sort)),
         actions: [
           PopupMenuButton<String>(
             tooltip: 'Urutkan',
@@ -66,15 +70,7 @@ class ProductsScreen extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SearchField(
-              initialValue: query.search,
-              hint: 'Cari nama, SKU, atau barcode',
-              onChanged: (term) => notifier.set((search: term, categoryId: query.categoryId, status: query.status, sort: query.sort)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -138,6 +134,7 @@ class ProductsScreen extends ConsumerWidget {
           Expanded(
             child: PagedListView(
               value: ref.watch(productsProvider),
+              skeleton: const ProductListSkeleton(),
               onLoadMore: () => ref.read(productsProvider.notifier).loadMore(),
               onRefresh: () => ref.refresh(productsProvider.future),
               padding: const EdgeInsets.only(bottom: 96),

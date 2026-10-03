@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/server_config.dart';
+import '../offline/offline_cache.dart';
 import 'api_exception.dart';
 
 /// In-memory copy of the Bearer token; the persisted copy lives in secure storage.
@@ -79,15 +80,45 @@ final dioProvider = Provider<Dio>((ref) {
   return dio;
 });
 
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref.watch(dioProvider)));
+// The cache is read lazily: watching it would loop through the signed-in user back to this client.
+final apiClientProvider = Provider<ApiClient>((ref) => ApiClient(ref.watch(dioProvider), () => ref.read(offlineCacheProvider)));
 
 class ApiClient {
-  ApiClient(this._dio);
+  ApiClient(this._dio, [this._cache]);
 
   final Dio _dio;
+  final OfflineCache Function()? _cache;
 
-  Future<dynamic> get(String path, {Map<String, dynamic>? query}) =>
-      _send(() => _dio.get<dynamic>(path, queryParameters: _clean(query)));
+  /// When the server can't be reached, answers with the last copy of the same request kept on the
+  /// device. Pass `offlineCopy: false` when the caller has a better offline source of its own.
+  Future<dynamic> get(String path, {Map<String, dynamic>? query, bool offlineCopy = true}) async {
+    final params = _clean(query);
+    final cache = _keepsCopy(path) ? _cache?.call() : null;
+    final key = _cacheKey(path, params);
+    try {
+      final body = await _send(() => _dio.get<dynamic>(path, queryParameters: params));
+      await cache?.putResponse(key, body);
+      return body;
+    } on ApiException catch (error) {
+      if (!error.isNetworkError || cache == null || !offlineCopy) {
+        rethrow;
+      }
+      return await cache.getResponse(key) ?? (throw ApiException.notCached());
+    }
+  }
+
+  /// The copy [get] would fall back to, for callers that try their own offline source first.
+  Future<dynamic> offlineCopy(String path, {Map<String, dynamic>? query}) async =>
+      _keepsCopy(path) ? await _cache?.call().getResponse(_cacheKey(path, _clean(query))) : null;
+
+  // pos/* already works offline from the catalog snapshot and its own cache (a stale copy of
+  // pos/shift would hide a shift opened since); a QRIS code or login state must never be replayed.
+  static bool _keepsCopy(String path) => path == 'pos/customers' || (!path.startsWith('pos/') && !path.startsWith('auth/') && path != 'search');
+
+  static String _cacheKey(String path, Map<String, dynamic>? query) {
+    final params = (query?.entries.toList() ?? [])..sort((a, b) => a.key.compareTo(b.key));
+    return [path, for (final p in params) '${p.key}=${p.value}'].join('&');
+  }
 
   Future<dynamic> post(String path, {Object? data}) => _send(() => _dio.post<dynamic>(path, data: data));
 

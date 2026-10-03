@@ -62,6 +62,60 @@ class OfflineCache {
     }
   }
 
+  static const _maxResponses = 400;
+  static int _writesSincePrune = 0;
+
+  Future<Directory> _responsesDir() async => Directory('${(await getApplicationSupportDirectory()).path}/responses');
+
+  // FNV-1a: a stable, filesystem-safe name for any request key, whatever its length.
+  String _hash(String input) {
+    var hash = 0xcbf29ce484222325;
+    for (final unit in utf8.encode('$_server|$input')) {
+      hash = (hash ^ unit) * 0x100000001b3;
+    }
+    return hash.toUnsigned(64).toRadixString(16);
+  }
+
+  /// Keeps the body of a successful GET so the same screen can still open without the server.
+  Future<void> putResponse(String key, Object? body) async {
+    try {
+      final dir = await _responsesDir();
+      await dir.create(recursive: true);
+      await File('${dir.path}/${_hash(key)}.json').writeAsString(jsonEncode({'server': _server, 'key': key, 'value': body}), flush: true);
+      if (++_writesSincePrune >= 25) {
+        _writesSincePrune = 0;
+        await _prune(dir);
+      }
+    } on Object {
+      // A full disk or missing storage plugin only costs the offline copy, never the request itself.
+    }
+  }
+
+  Future<dynamic> getResponse(String key) async {
+    try {
+      final file = File('${(await _responsesDir()).path}/${_hash(key)}.json');
+      if (!await file.exists()) {
+        return null;
+      }
+      final entry = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
+      return entry['server'] == _server && entry['key'] == key ? entry['value'] : null;
+    } on Object {
+      return null;
+    }
+  }
+
+  /// Search terms and filters each get their own entry, so drop the least recently written ones.
+  Future<void> _prune(Directory dir) async {
+    final files = await dir.list().where((entity) => entity is File).cast<File>().toList();
+    if (files.length <= _maxResponses) {
+      return;
+    }
+    final dated = [for (final file in files) (file: file, modified: await file.lastModified())]..sort((a, b) => a.modified.compareTo(b.modified));
+    for (final entry in dated.take(files.length - _maxResponses)) {
+      await entry.file.delete();
+    }
+  }
+
   Future<void> clear() async {
     for (final key in _prefs.getKeys().where((key) => key.startsWith(_prefix)).toList()) {
       await _prefs.remove(key);
@@ -69,6 +123,10 @@ class OfflineCache {
     final file = await _file('catalog');
     if (await file.exists()) {
       await file.delete();
+    }
+    final responses = await _responsesDir();
+    if (await responses.exists()) {
+      await responses.delete(recursive: true);
     }
   }
 }

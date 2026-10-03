@@ -28,16 +28,18 @@ class _MovementsScreenState extends ConsumerState<MovementsScreen> {
     final query = (productId: widget.productId, type: _type, search: _search);
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.productName == null ? 'Kartu stok' : 'Kartu stok · ${widget.productName}')),
+      appBar: widget.productId == null
+          ? SearchableAppBar(
+              title: const Text('Kartu stok'),
+              hint: 'Cari produk',
+              initialSearch: _search,
+              onSearchChanged: (term) => setState(() => _search = term),
+            )
+          : AppBar(title: Text('Kartu stok · ${widget.productName}')),
       body: Column(
         children: [
-          if (widget.productId == null)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: SearchField(hint: 'Cari produk', onChanged: (term) => setState(() => _search = term)),
-            ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
               children: [
                 FilterDropdownPill<String>(

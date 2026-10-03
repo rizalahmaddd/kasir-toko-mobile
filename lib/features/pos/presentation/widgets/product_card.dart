@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,7 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/utils/image_url_resolver.dart';
+import '../../../../core/widgets/app_cached_image.dart';
 import '../../data/pos_models.dart';
 
 class PosProductCard extends ConsumerWidget {
@@ -34,7 +33,6 @@ class PosProductCard extends ConsumerWidget {
     final muted = theme.colorScheme.onSurfaceVariant;
     final isOutOfStock = product.isOutOfStock;
     final hasInCart = inCartQuantity > 0;
-    final resolvedUrl = ref.resolveImage(product.imageUrl);
 
     final nameInitials = product.name.trim().isNotEmpty
         ? product.name.trim().characters.take(2).toString().toUpperCase()
@@ -90,25 +88,16 @@ class PosProductCard extends ConsumerWidget {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Container(
-                        color: isDark ? AppColors.slate950 : AppColors.slate100,
-                        child: resolvedUrl != null && resolvedUrl.isNotEmpty
-                            ? CachedNetworkImage(
-                                imageUrl: resolvedUrl,
-                                fit: BoxFit.cover,
-                                placeholder: (_, _) => _ProductPlaceholder(
-                                  initials: nameInitials,
-                                  sku: product.sku,
-                                ),
-                                errorWidget: (_, _, _) => _ProductPlaceholder(
-                                  initials: nameInitials,
-                                  sku: product.sku,
-                                ),
-                              )
-                            : _ProductPlaceholder(
-                                initials: nameInitials,
-                                sku: product.sku,
-                              ),
+                      AppCachedImage(
+                        imageUrl: product.imageUrl,
+                        height: 114,
+                        width: double.infinity,
+                        borderRadius: 13,
+                        memCacheWidth: 350,
+                        fallback: _ProductPlaceholder(
+                          initials: nameInitials,
+                          sku: product.sku,
+                        ),
                       ),
 
                       // Low stock indicator badge

@@ -88,6 +88,7 @@ class TenantInfo {
     this.blockedMessage,
     this.onboarded = true,
     this.storeType,
+    this.renewal,
   });
 
   factory TenantInfo.fromJson(Map<String, dynamic> json) => TenantInfo(
@@ -100,6 +101,7 @@ class TenantInfo {
         blockedMessage: json['blocked_message'] as String?,
         onboarded: json['onboarded'] as bool? ?? true,
         storeType: json['store_type'] as String?,
+        renewal: json['renewal'] is Map<String, dynamic> ? RenewalInfo.fromJson(json['renewal'] as Map<String, dynamic>) : null,
       );
 
   final int id;
@@ -120,6 +122,9 @@ class TenantInfo {
   /// Key of the applied store preset, e.g. `kafe`; null when skipped or not chosen yet.
   final String? storeType;
 
+  /// How to renew, sent by /auth/me only while the shop is blocked; null on older servers.
+  final RenewalInfo? renewal;
+
   bool get isTrial => plan == 'trial';
 
   TenantInfo blocked(String? reason, {String? message}) => TenantInfo(
@@ -132,6 +137,7 @@ class TenantInfo {
         blockedMessage: message,
         onboarded: onboarded,
         storeType: storeType,
+        renewal: renewal,
       );
 
   Map<String, dynamic> toJson() => {
@@ -144,5 +150,48 @@ class TenantInfo {
         'blocked_message': blockedMessage,
         'onboarded': onboarded,
         'store_type': storeType,
+        'renewal': renewal?.toJson(),
       };
+}
+
+/// Service admin contact, payment steps, and paid plan prices, set from the platform panel.
+class RenewalInfo {
+  const RenewalInfo({this.contact, this.paymentInstructions, this.plans = const []});
+
+  factory RenewalInfo.fromJson(Map<String, dynamic> json) => RenewalInfo(
+        contact: json['contact'] as String?,
+        paymentInstructions: json['payment_instructions'] as String?,
+        plans: [
+          for (final plan in json['plans'] as List? ?? const [])
+            if (plan is Map<String, dynamic>) RenewalPlan.fromJson(plan),
+        ],
+      );
+
+  final String? contact;
+  final String? paymentInstructions;
+  final List<RenewalPlan> plans;
+
+  bool get isEmpty => (contact ?? '').isEmpty && (paymentInstructions ?? '').isEmpty && plans.isEmpty;
+
+  Map<String, dynamic> toJson() => {
+        'contact': contact,
+        'payment_instructions': paymentInstructions,
+        'plans': [for (final plan in plans) plan.toJson()],
+      };
+}
+
+class RenewalPlan {
+  const RenewalPlan({required this.key, required this.label, required this.price});
+
+  factory RenewalPlan.fromJson(Map<String, dynamic> json) => RenewalPlan(
+        key: json['key'] as String? ?? '',
+        label: json['label'] as String? ?? '',
+        price: (json['price'] as num?)?.toInt() ?? 0,
+      );
+
+  final String key;
+  final String label;
+  final int price;
+
+  Map<String, dynamic> toJson() => {'key': key, 'label': label, 'price': price};
 }

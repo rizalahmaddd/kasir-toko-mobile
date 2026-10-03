@@ -9,6 +9,7 @@ import 'core/offline/offline_cache.dart';
 import 'core/storage/app_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
+import 'features/offline/presentation/offline_screen.dart';
 import 'router.dart';
 
 Future<void> main() async {
@@ -42,6 +43,15 @@ class KasirApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       themeMode: ref.watch(themeModeProvider),
       routerConfig: ref.watch(routerProvider),
+      builder: (context, child) => OfflineBannerFrame(
+        onTap: () {
+          final router = ref.read(routerProvider);
+          if (router.routerDelegate.currentConfiguration.uri.path != '/offline') {
+            router.push('/offline');
+          }
+        },
+        child: child!,
+      ),
       locale: const Locale('id', 'ID'),
       supportedLocales: const [Locale('id', 'ID'), Locale('en')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,

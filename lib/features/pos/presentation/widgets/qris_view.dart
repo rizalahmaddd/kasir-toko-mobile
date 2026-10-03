@@ -6,6 +6,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/app_skeleton.dart';
 import '../../data/pos_models.dart';
 import '../../data/pos_repository.dart';
 
@@ -215,17 +216,20 @@ class QrisPaymentView extends ConsumerWidget {
               ),
             ),
           _ => const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 12),
-                  Text(
-                    'Menyiapkan QRIS...',
-                    style: TextStyle(color: AppColors.slate600, fontSize: 13),
-                  ),
-                ],
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: AppShimmer(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SkeletonBox(width: 224, height: 224, borderRadius: 14),
+                    SizedBox(height: 20),
+                    SkeletonBox(width: 140, height: 12, borderRadius: 4),
+                    SizedBox(height: 8),
+                    SkeletonBox(width: 180, height: 24, borderRadius: 6),
+                    SizedBox(height: 12),
+                    SkeletonBox(width: 160, height: 24, borderRadius: 12),
+                  ],
+                ),
               ),
             ),
         },

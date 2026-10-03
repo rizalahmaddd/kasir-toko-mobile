@@ -7,11 +7,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
-import '../../pos/pos_providers.dart';
+import '../../data_changes.dart';
 import '../../printing/presentation/printer_screen.dart';
 import '../../printing/printer.dart';
 import '../../receivables/presentation/receivable_payment_sheet.dart';
-import '../../shift/shift_controller.dart';
 import '../data/sale_models.dart';
 import '../data/sales_repository.dart';
 import '../sales_controller.dart';
@@ -43,11 +42,7 @@ class SaleDetailScreen extends ConsumerWidget {
 
     try {
       await ref.read(salesRepositoryProvider).voidSale(sale.id, reason);
-      ref
-        ..invalidate(saleDetailProvider(sale.id))
-        ..invalidate(salesProvider)
-        ..invalidate(currentShiftProvider)
-        ..invalidate(catalogProvider);
+      ref.read(dataChangesProvider).after({DataChange.sales});
       if (context.mounted) {
         showMessage(context, 'Transaksi dibatalkan. Stok dikembalikan.');
       }
@@ -372,7 +367,7 @@ class _Body extends StatelessWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: const Color(0xFFD97706),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                     onPressed: () => ReceivablePaymentSheet.show(
@@ -393,7 +388,7 @@ class _Body extends StatelessWidget {
                     Expanded(
                       child: OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () => ReceiptSheet.show(context, sale.id),
@@ -407,7 +402,7 @@ class _Body extends StatelessWidget {
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF25D366),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         onPressed: () => openWhatsApp(context, sale.whatsappUrl),

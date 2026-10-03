@@ -8,6 +8,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
@@ -33,6 +34,7 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
   final _search = TextEditingController();
   final _scroll = ScrollController();
   Timer? _debounce;
+  bool _showSearch = false;
 
   @override
   void initState() {
@@ -74,7 +76,9 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
 
   void _clearSearch() {
     _search.clear();
+    _showSearch = false;
     ref.read(catalogQueryProvider.notifier).search('');
+    if (mounted) setState(() {});
   }
 
   Future<void> _scan() async {
@@ -109,6 +113,7 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
     final shift = ref.watch(currentShiftProvider).value;
     final user = ref.watch(currentUserProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isSearching = _showSearch || _search.text.isNotEmpty;
 
     return Column(
       children: [
@@ -120,52 +125,72 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
               // Top strip: Shift & Cashier identity + Quick Actions
               Row(
                 children: [
-                  InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      context.push('/shift');
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: isDark ? AppColors.slate900 : AppColors.slate100,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isDark ? AppColors.slate800 : AppColors.slate200,
+                  Flexible(
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        unawaited(HapticFeedback.lightImpact());
+                        context.push('/shift');
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.slate900 : AppColors.slate100,
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: isDark ? AppColors.slate800 : AppColors.slate200,
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.emerald500,
-                              shape: BoxShape.circle,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.emerald500,
+                                shape: BoxShape.circle,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: 6),
-                          Text(
-                            shift != null ? '#${shift.number}' : 'Kasir',
-                            style: const TextStyle(
-                              fontSize: 11.5,
-                              fontWeight: FontWeight.w700,
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: Text(
+                                shift != null
+                                    ? '#${shift.number} · ${user?.name.split(' ').first ?? 'Kasir'}'
+                                    : 'Kasir',
+                                style: const TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
-                          ),
-                          Text(
-                            ' · ${user?.name.split(' ').first ?? 'Kasir'}',
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark ? AppColors.slate400 : AppColors.slate600,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
                   const Spacer(),
+                  // Search toggle button
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: isSearching ? 'Tutup pencarian' : 'Cari produk',
+                    icon: Icon(
+                      isSearching ? LucideIcons.searchX : LucideIcons.search,
+                      size: 20,
+                      color: isSearching ? Theme.of(context).colorScheme.primary : null,
+                    ),
+                    onPressed: () {
+                      unawaited(HapticFeedback.lightImpact());
+                      setState(() {
+                        _showSearch = !isSearching;
+                        if (!_showSearch) {
+                          _clearSearch();
+                        }
+                      });
+                    },
+                  ),
                   // Held orders button with badge
                   Badge(
                     isLabelVisible: heldCount > 0,
@@ -207,14 +232,17 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              // Unified sleek search input
-              SearchField(
-                controller: _search,
-                hint: 'Cari nama produk, SKU, barcode...',
-                onChanged: _onSearchChanged,
-                onSubmitted: _onSearchSubmitted,
-              ),
+              if (isSearching) ...[
+                const SizedBox(height: 8),
+                SearchField(
+                  controller: _search,
+                  dense: true,
+                  autofocus: true,
+                  hint: 'Cari nama produk, SKU, barcode...',
+                  onChanged: _onSearchChanged,
+                  onSubmitted: _onSearchSubmitted,
+                ),
+              ],
             ],
           ),
         ),
@@ -227,6 +255,7 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
           child: AsyncView(
             value: catalog,
             onRetry: () => ref.invalidate(catalogProvider),
+            loading: const PosCatalogSkeleton(),
             data: (page) {
               if (page.products.isEmpty) {
                 return const EmptyState(
@@ -241,6 +270,8 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                 child: GridView.builder(
                   controller: _scroll,
                   physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+                  // ignore: deprecated_member_use
+                  cacheExtent: 600,
                   padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
                   gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                     maxCrossAxisExtent: 200,
@@ -251,7 +282,12 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                   itemCount: page.products.length + (page.loadingMore ? 1 : 0),
                   itemBuilder: (context, index) {
                     if (index >= page.products.length) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const AppShimmer(
+                        child: SkeletonBox(
+                          height: 226,
+                          borderRadius: 14,
+                        ),
+                      );
                     }
                     final product = page.products[index];
                     final inCart = cart.items
@@ -260,6 +296,7 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                         .fold<double>(0, (a, b) => a + b);
 
                     return PosProductCard(
+                      key: ValueKey('pos_product_${product.id}'),
                       product: product,
                       inCartQuantity: inCart,
                       onTap: () => addToCart(context, ref, product),

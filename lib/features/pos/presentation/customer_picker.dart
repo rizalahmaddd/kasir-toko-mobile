@@ -9,6 +9,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../data_changes.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
@@ -161,6 +162,7 @@ class _QuickCustomerDialogState extends ConsumerState<_QuickCustomerDialog> {
 
     try {
       final customer = await ref.read(posRepositoryProvider).createCustomer(name: _name.text.trim(), phone: _phone.text.trim());
+      ref.read(dataChangesProvider).after({DataChange.customers});
       if (mounted) {
         Navigator.pop(context, customer);
       }

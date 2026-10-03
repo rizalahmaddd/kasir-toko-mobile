@@ -1,14 +1,16 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../offline/offline_queue.dart';
 import '../data/sale_models.dart';
 import 'sale_tile.dart';
 import '../sales_controller.dart';
@@ -24,8 +26,6 @@ class SalesScreen extends ConsumerStatefulWidget {
 
 class _SalesScreenState extends ConsumerState<SalesScreen> {
   final _scroll = ScrollController();
-  final _search = TextEditingController();
-  Timer? _debounce;
 
   @override
   void initState() {
@@ -39,9 +39,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _scroll.dispose();
-    _search.dispose();
     super.dispose();
   }
 
@@ -56,21 +54,17 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: SearchableAppBar(
         title: const Text('Riwayat Transaksi'),
+        hint: 'No. transaksi, pelanggan, atau barang',
+        initialSearch: filter.search,
+        onSearchChanged: (value) => _apply(_filter.copyWith(search: value)),
+        onSearchClosed: () => _apply(_filter.copyWith(search: '')),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 4, 12, 8),
-            child: SearchField(
-              controller: _search,
-              hint: 'No. transaksi, pelanggan, atau nama barang',
-              onChanged: (value) => _apply(_filter.copyWith(search: value)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -122,6 +116,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
             child: AsyncView(
               value: sales,
               onRetry: () => ref.invalidate(salesProvider),
+              loading: const SalesListSkeleton(),
               data: (state) => RefreshIndicator(
                 onRefresh: () => ref.refresh(salesProvider.future),
                 child: CustomScrollView(
@@ -129,6 +124,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   slivers: [
                     SliverToBoxAdapter(child: _Summary(page: state.page)),
+                    const SliverToBoxAdapter(child: _QueuedNotice()),
                     if (state.page.items.isEmpty)
                       const SliverFillRemaining(
                         hasScrollBody: false,
@@ -146,7 +142,12 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                       ),
                     if (state.loadingMore)
                       const SliverToBoxAdapter(
-                        child: Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator())),
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          child: AppShimmer(
+                            child: SkeletonBox(height: 72, borderRadius: 14),
+                          ),
+                        ),
                       ),
                   ],
                 ),
@@ -154,6 +155,49 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Sales recorded offline only reach this list once the server has them.
+class _QueuedNotice extends ConsumerWidget {
+  const _QueuedNotice();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final queued = ref.watch(myQueueProvider);
+    if (queued.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final color = StatusColors.of(context).warning;
+    final total = queued.fold<int>(0, (sum, sale) => sum + sale.total);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Material(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12),
+          onTap: () => context.push('/offline'),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            child: Row(
+              children: [
+                Icon(LucideIcons.cloudUpload, size: 18, color: color),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    '${queued.length} transaksi offline (${rupiah(total)}) belum terkirim, jadi belum masuk daftar ini.',
+                    style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Icon(LucideIcons.chevronRight, size: 16, color: color),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

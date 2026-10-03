@@ -23,8 +23,11 @@ class StockScreen extends ConsumerWidget {
     final colors = StatusColors.of(context);
 
     return Scaffold(
-      appBar: AppBar(
+      appBar: SearchableAppBar(
         title: const Text('Stok barang'),
+        hint: 'Cari nama, SKU, atau barcode',
+        initialSearch: query.search,
+        onSearchChanged: (term) => notifier.set((search: term, level: query.level)),
         actions: [
           IconButton(
             tooltip: 'Kartu stok',
@@ -72,13 +75,6 @@ class StockScreen extends ConsumerWidget {
                   ],
                 ),
               ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: SearchField(
-                hint: 'Cari nama, SKU, atau barcode',
-                onChanged: (term) => notifier.set((search: term, level: query.level)),
-              ),
-            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
               child: Row(

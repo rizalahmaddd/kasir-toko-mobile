@@ -8,8 +8,10 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../data_changes.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../data/product_models.dart';
@@ -51,6 +53,7 @@ class ProductDetailScreen extends ConsumerWidget {
       body: AsyncView(
         value: product,
         onRetry: () => ref.invalidate(productDetailProvider(productId)),
+        loading: const ProductDetailSkeleton(),
         data: (product) => RefreshIndicator(
           onRefresh: () => ref.refresh(productDetailProvider(productId).future),
           child: ListView(
@@ -93,6 +96,7 @@ class ProductDetailScreen extends ConsumerWidget {
     try {
       await ref.read(productsRepositoryProvider).deleteProduct(product.id);
       ref.read(productsProvider.notifier).remove((item) => item.id == product.id);
+      ref.read(dataChangesProvider).after({DataChange.products});
       if (context.mounted) {
         context.pop();
         showMessage(context, '${product.name} dihapus.');
@@ -162,9 +166,7 @@ class _HeaderState extends ConsumerState<_Header> {
         setState(() => _uploading = true);
         await repository.uploadImage(widget.product.id, file.path);
       }
-      ref
-        ..invalidate(productDetailProvider(widget.product.id))
-        ..invalidate(productsProvider);
+      ref.read(dataChangesProvider).after({DataChange.products});
     } on ApiException catch (error) {
       if (mounted) {
         showError(context, error);
@@ -417,7 +419,7 @@ class _StockCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () => StockAdjustSheet.show(context, product, 'stock_in'),
@@ -429,7 +431,7 @@ class _StockCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () => StockAdjustSheet.show(context, product, 'stock_out'),
@@ -441,7 +443,7 @@ class _StockCard extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      padding: const EdgeInsets.all(8),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
                     onPressed: () => StockAdjustSheet.show(context, product, 'opname'),
@@ -476,7 +478,10 @@ class _RecentMovements extends ConsumerWidget {
           trailing: TextButton(onPressed: () => context.push('/stock/movements?product=${product.id}&name=${Uri.encodeComponent(product.name)}'), child: const Text('Lihat semua')),
         ),
         if (movements.isLoading && items.isEmpty)
-          const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()))
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 4),
+            child: DefaultListSkeleton(itemCount: 3),
+          )
         else if (items.isEmpty)
           Padding(
             padding: const EdgeInsets.all(8),

@@ -6,12 +6,13 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../data_changes.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../../offline/offline_queue.dart';
-import '../../pos/pos_providers.dart';
 import '../../printing/presentation/printer_screen.dart';
 import '../../printing/printer.dart';
 import '../../sales/presentation/sale_tile.dart';
@@ -56,15 +57,18 @@ class ShiftScreen extends ConsumerWidget {
         AsyncData(:final value?) => ShiftView(
             shift: value,
             onRefresh: notifier.refresh,
-            recordCash: notifier.recordCash,
+            recordCash: ({required type, required amount, required reason}) async {
+              await notifier.recordCash(type: type, amount: amount, reason: reason);
+              ref.read(dataChangesProvider).after({DataChange.shifts});
+            },
             close: ({required countedCash, note}) async {
               final closed = await notifier.close(countedCash: countedCash, note: note);
-              ref.invalidate(posConfigProvider);
+              ref.read(dataChangesProvider).after({DataChange.shifts});
               return closed;
             },
           ),
         AsyncError(:final error) => ShiftLoadError(error: error),
-        _ => const Center(child: CircularProgressIndicator()),
+        _ => const ShiftsListSkeleton(),
       },
     );
   }
@@ -81,11 +85,10 @@ class ShiftDetailScreen extends ConsumerWidget {
     final shift = ref.watch(shiftDetailProvider(shiftId));
     final repository = ref.read(shiftRepositoryProvider);
 
-    void refreshAll() => ref
+    void reload() => ref
       ..invalidate(shiftDetailProvider(shiftId))
-      ..invalidate(shiftSalesProvider(shiftId))
-      ..invalidate(shiftsProvider)
-      ..invalidate(currentShiftProvider);
+      ..invalidate(shiftSalesProvider(shiftId));
+    void changed() => ref.read(dataChangesProvider).after({DataChange.shifts});
 
     return Scaffold(
       appBar: AppBar(
@@ -105,15 +108,14 @@ class ShiftDetailScreen extends ConsumerWidget {
         data: (shift) => ShiftView(
           shift: shift,
           showSales: true,
-          onRefresh: () async => refreshAll(),
+          onRefresh: () async => reload(),
           recordCash: ({required type, required amount, required reason}) async {
             await repository.recordCashFor(shiftId, type: type, amount: amount, reason: reason);
-            refreshAll();
+            changed();
           },
           close: ({required countedCash, note}) async {
             final closed = await repository.close(shiftId, countedCash: countedCash, note: note);
-            refreshAll();
-            ref.invalidate(posConfigProvider);
+            changed();
             return closed;
           },
         ),
@@ -432,7 +434,7 @@ class _ShiftSales extends ConsumerWidget {
               ],
             ),
           AsyncError(:final error) => Text(errorMessage(error)),
-          _ => const Center(child: CircularProgressIndicator()),
+          _ => const SalesListSkeleton(itemCount: 3, showSummary: false, shrinkWrap: true),
         },
       ],
     );

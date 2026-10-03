@@ -48,7 +48,15 @@ class SaleItem {
 }
 
 class SalePayment {
-  const SalePayment({required this.kind, required this.method, required this.methodLabel, required this.amount, this.reference, required this.paidAt});
+  const SalePayment({
+    required this.kind,
+    required this.method,
+    required this.methodLabel,
+    required this.amount,
+    this.reference,
+    required this.paidAt,
+    this.cashierName,
+  });
 
   factory SalePayment.fromJson(Map<String, dynamic> json) => SalePayment(
         kind: json['kind'] as String? ?? 'sale',
@@ -57,6 +65,7 @@ class SalePayment {
         amount: _int(json['amount']),
         reference: json['reference'] as String?,
         paidAt: _date(json['paid_at']),
+        cashierName: (json['user'] as Map<String, dynamic>?)?['name'] as String?,
       );
 
   final String kind;
@@ -65,6 +74,7 @@ class SalePayment {
   final int amount;
   final String? reference;
   final DateTime paidAt;
+  final String? cashierName;
 }
 
 class SaleSummary {

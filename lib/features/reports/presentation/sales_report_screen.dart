@@ -9,7 +9,6 @@ import '../../../core/utils/json.dart';
 import '../../../core/widgets/bar_chart.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/filter_pills.dart';
-import '../../../core/widgets/period_picker.dart';
 import '../../../core/widgets/state_views.dart';
 import '../reports.dart';
 
@@ -29,8 +28,17 @@ class SalesReportScreen extends ConsumerWidget {
         ),
         body: Column(
           children: [
-            const SizedBox(height: 8),
-            PeriodPicker(range: range, onChanged: ref.read(reportRangeProvider.notifier).set),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 2),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: DateFilterPill(
+                  selectedRange: range,
+                  defaultPreset: 'month',
+                  onRangeChanged: ref.read(reportRangeProvider.notifier).set,
+                ),
+              ),
+            ),
             const Expanded(child: TabBarView(children: [_Overview(), _Daily(), _Products()])),
           ],
         ),
@@ -344,23 +352,27 @@ class _DailyReportCard extends StatelessWidget {
 
 const _productSorts = {'revenue': 'Omzet', 'profit': 'Laba', 'qty': 'Jumlah', 'margin': 'Margin'};
 
-class _Products extends ConsumerWidget {
+class _Products extends ConsumerStatefulWidget {
   const _Products();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_Products> createState() => _ProductsState();
+}
+
+class _ProductsState extends ConsumerState<_Products> {
+  bool _showSearch = false;
+
+  @override
+  Widget build(BuildContext context) {
     final query = ref.watch(productReportQueryProvider);
     final notifier = ref.read(productReportQueryProvider.notifier);
     final report = ref.watch(productReportProvider);
+    final isSearching = _showSearch || query.search.isNotEmpty;
 
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-          child: SearchField(hint: 'Cari produk', onChanged: (term) => notifier.set((sort: query.sort, search: term))),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
           child: Row(
             children: [
               FilterDropdownPill<String>(
@@ -370,9 +382,38 @@ class _Products extends ConsumerWidget {
                 items: [for (final e in _productSorts.entries) (e.key, 'Urut ${e.value}')],
                 onChanged: (sort) => notifier.set((sort: sort ?? 'revenue', search: query.search)),
               ),
+              const Spacer(),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: isSearching ? 'Tutup pencarian' : 'Cari produk',
+                icon: Icon(
+                  isSearching ? LucideIcons.x : LucideIcons.search,
+                  size: 20,
+                  color: isSearching ? Theme.of(context).colorScheme.primary : null,
+                ),
+                onPressed: () {
+                  setState(() {
+                    _showSearch = !isSearching;
+                    if (!_showSearch) {
+                      notifier.set((sort: query.sort, search: ''));
+                    }
+                  });
+                },
+              ),
             ],
           ),
         ),
+        if (isSearching)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            child: SearchField(
+              dense: true,
+              autofocus: true,
+              initialValue: query.search,
+              hint: 'Cari produk',
+              onChanged: (term) => notifier.set((sort: query.sort, search: term)),
+            ),
+          ),
         const SizedBox(height: 2),
         Expanded(
           child: AsyncView(

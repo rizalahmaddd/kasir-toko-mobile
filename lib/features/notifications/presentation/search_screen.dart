@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../../../core/network/api_exception.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../products/products_providers.dart';
@@ -22,7 +23,6 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _controller = TextEditingController();
-  Timer? _debounce;
   List<SearchGroup> _results = const [];
   bool _loading = false;
   String? _error;
@@ -30,14 +30,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   void dispose() {
-    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
-  }
-
-  void _changed(String value) {
-    _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 400), () => _search(value.trim()));
   }
 
   Future<void> _search(String term) async {
@@ -46,6 +40,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       setState(() {
         _results = const [];
         _error = null;
+        _loading = false;
       });
       return;
     }
@@ -86,70 +81,37 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return Scaffold(
       appBar: AppBar(
         titleSpacing: 0,
-        title: Container(
-          height: 42,
-          margin: const EdgeInsets.only(right: 16),
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-            ),
-          ),
-          child: Row(
-            children: [
-              const Icon(LucideIcons.search, size: 18, color: Color(0xFF94A3B8)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: TextField(
-                  controller: _controller,
-                  autofocus: true,
-                  onChanged: (val) {
-                    setState(() {});
-                    _changed(val);
-                  },
-                  textInputAction: TextInputAction.search,
-                  decoration: const InputDecoration(
-                    hintText: 'Cari produk, transaksi, pelanggan…',
-                    hintStyle: TextStyle(fontSize: 13.5, color: Color(0xFF94A3B8)),
-                    border: InputBorder.none,
-                    isDense: true,
-                    contentPadding: EdgeInsets.zero,
-                  ),
-                ),
-              ),
-              if (_controller.text.isNotEmpty)
-                GestureDetector(
-                  onTap: () {
-                    _controller.clear();
-                    setState(() {
-                      _results = const [];
-                      _error = null;
-                    });
-                  },
-                  child: const Icon(LucideIcons.x, size: 16, color: Color(0xFF94A3B8)),
-                ),
-            ],
+        title: Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: SearchField(
+            controller: _controller,
+            hint: 'Cari produk, transaksi, pelanggan…',
+            autofocus: true,
+            onChanged: (val) => _search(val.trim()),
+            onSubmitted: (val) => _search(val.trim()),
           ),
         ),
-        bottom: _loading ? const PreferredSize(preferredSize: Size.fromHeight(2), child: LinearProgressIndicator(minHeight: 2)) : null,
+        bottom: _loading && _results.isNotEmpty
+            ? const PreferredSize(
+                preferredSize: Size.fromHeight(2),
+                child: LinearProgressIndicator(minHeight: 2),
+              )
+            : null,
       ),
       body: _error != null
           ? EmptyState(icon: LucideIcons.circleAlert, title: 'Pencarian gagal', description: _error)
-          : _results.isEmpty
-              ? EmptyState(
-                  icon: LucideIcons.search,
-                  title: _controller.text.trim().length < 2 ? 'Ketik minimal 2 huruf' : 'Tidak ada hasil',
-                  description: 'Cari produk berdasarkan nama, kode, nomor nota, atau nama pelanggan.',
-                )
-              : ListView(
+          : _loading && _results.isEmpty
+              ? const DefaultListSkeleton(itemCount: 6)
+              : _results.isEmpty
+                  ? EmptyState(
+                      icon: LucideIcons.search,
+                      title: _controller.text.trim().length < 2 ? 'Ketik minimal 2 huruf' : 'Tidak ada hasil',
+                      description: 'Cari produk berdasarkan nama, kode, nomor nota, atau nama pelanggan.',
+                    )
+                  : ListView(
                   padding: const EdgeInsets.only(bottom: 32),
                   children: [
                     for (final group in _results) ...[

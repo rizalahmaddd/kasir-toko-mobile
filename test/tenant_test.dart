@@ -56,6 +56,37 @@ void main() {
       expect(restored.tenant?.blockedMessage, 'Langganan habis.');
     });
 
+    test('reads how to renew a blocked shop and keeps it in the cached profile', () {
+      final user = CurrentUser.fromJson(_userJson(tenant: {
+        'id': 9,
+        'name': 'Toko Maju',
+        'plan': 'trial',
+        'plan_label': 'Uji Coba',
+        'blocked_reason': 'trial_expired',
+        'renewal': {
+          'contact': 'WA 0812-0000-1111',
+          'payment_instructions': 'Transfer BCA 123',
+          'plans': [
+            {'key': 'basic', 'label': 'Basic', 'price': 99000},
+          ],
+        },
+      }));
+      final restored = CurrentUser.fromJson(user.toJson());
+      final renewal = restored.tenant?.renewal;
+
+      expect(renewal?.contact, 'WA 0812-0000-1111');
+      expect(renewal?.paymentInstructions, 'Transfer BCA 123');
+      expect(renewal?.plans.single.label, 'Basic');
+      expect(renewal?.plans.single.price, 99000);
+      expect(restored.tenant?.blocked('trial_expired').renewal, isNotNull);
+    });
+
+    test('has no renewal info while the shop is usable or on older servers', () {
+      final user = CurrentUser.fromJson(_userJson(tenant: {'id': 9, 'name': 'Toko Maju', 'plan': 'pro', 'plan_label': 'Pro', 'renewal': null}));
+
+      expect(user.tenant?.renewal, isNull);
+    });
+
     test('accepts profiles from servers without multi-tenancy', () {
       final user = CurrentUser.fromJson(_userJson());
 

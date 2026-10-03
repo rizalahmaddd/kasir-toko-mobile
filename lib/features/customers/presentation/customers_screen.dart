@@ -22,7 +22,12 @@ class CustomersScreen extends ConsumerWidget {
     final canManage = ref.watch(currentUserProvider)?.canManageMasterData ?? false;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Pelanggan')),
+      appBar: SearchableAppBar(
+        title: const Text('Pelanggan'),
+        hint: 'Cari nama, kode, atau nomor HP',
+        initialSearch: query.search,
+        onSearchChanged: (term) => notifier.set((search: term, isActive: query.isActive)),
+      ),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
               onPressed: () => context.push('/customer/new'),
@@ -33,11 +38,7 @@ class CustomersScreen extends ConsumerWidget {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SearchField(hint: 'Cari nama, kode, atau nomor HP', onChanged: (term) => notifier.set((search: term, isActive: query.isActive))),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
               children: [
                 FilterDropdownPill<bool>(

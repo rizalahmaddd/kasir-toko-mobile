@@ -9,9 +9,9 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/responsive.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
-import '../../offline/presentation/offline_screen.dart';
 import '../../shift/presentation/open_shift_card.dart';
 import '../../shift/shift_controller.dart';
 import '../cart_controller.dart';
@@ -43,13 +43,12 @@ class PosScreen extends ConsumerWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const OfflineBanner(),
             Expanded(
               child: switch (shift) {
                 AsyncData(value: null) => const OpenShiftCard(),
                 AsyncData() => const _Cashier(),
                 AsyncError(:final error) => ShiftLoadError(error: error),
-                _ => const Center(child: CircularProgressIndicator()),
+                _ => const PosCatalogSkeleton(),
               },
             ),
           ],

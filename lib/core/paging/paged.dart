@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../network/api_client.dart';
+import '../widgets/app_skeleton.dart';
 import '../widgets/state_views.dart';
 
 class PagedState<T> {
@@ -72,6 +73,7 @@ class PagedListView<T> extends StatefulWidget {
     required this.onLoadMore,
     required this.onRefresh,
     required this.empty,
+    this.skeleton,
     this.header,
     this.separated = true,
     this.padding = const EdgeInsets.only(bottom: 24),
@@ -82,6 +84,7 @@ class PagedListView<T> extends StatefulWidget {
   final VoidCallback onLoadMore;
   final Future<void> Function() onRefresh;
   final Widget empty;
+  final Widget? skeleton;
   final Widget? header;
   final bool separated;
   final EdgeInsets padding;
@@ -114,6 +117,7 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
     return AsyncView(
       value: widget.value,
       onRetry: widget.onRefresh,
+      loading: widget.skeleton,
       data: (state) {
         final header = widget.header;
         final headerCount = header == null ? 0 : 1;
@@ -141,7 +145,27 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
               }
               final i = index - headerCount;
               if (i >= state.items.length) {
-                return const Padding(padding: EdgeInsets.all(16), child: Center(child: CircularProgressIndicator()));
+                return const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: AppShimmer(
+                    child: Row(
+                      children: [
+                        SkeletonBox(width: 44, height: 44, borderRadius: 8),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SkeletonBox(width: 130, height: 13, borderRadius: 4),
+                              SizedBox(height: 6),
+                              SkeletonBox(width: 80, height: 10, borderRadius: 3),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
               }
               final tile = widget.itemBuilder(context, state.items[i]);
               return widget.separated && i > 0 ? Column(mainAxisSize: MainAxisSize.min, children: [const Divider(indent: 16, endIndent: 16), tile]) : tile;

@@ -1,17 +1,14 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
-
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/utils/image_url_resolver.dart';
+import '../../../core/widgets/app_cached_image.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/product_models.dart';
 
-class ProductThumb extends ConsumerWidget {
+class ProductThumb extends StatelessWidget {
   const ProductThumb({
     super.key,
     this.url,
@@ -24,11 +21,10 @@ class ProductThumb extends ConsumerWidget {
   final double size;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final resolvedUrl = ref.resolveImage(url);
 
-    final placeholder = Container(
+    final fallback = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
@@ -52,20 +48,15 @@ class ProductThumb extends ConsumerWidget {
             ),
     );
 
-    if (resolvedUrl == null || resolvedUrl.isEmpty) {
-      return placeholder;
-    }
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: CachedNetworkImage(
-        imageUrl: resolvedUrl,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        placeholder: (_, _) => placeholder,
-        errorWidget: (_, _, _) => placeholder,
-      ),
+    return AppCachedImage(
+      imageUrl: url,
+      width: size,
+      height: size,
+      borderRadius: 8,
+      memCacheWidth: (size * 2.5).toInt(),
+      memCacheHeight: (size * 2.5).toInt(),
+      fallback: fallback,
+      placeholder: fallback,
     );
   }
 }

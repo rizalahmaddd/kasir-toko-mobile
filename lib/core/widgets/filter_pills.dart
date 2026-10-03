@@ -138,10 +138,14 @@ class DateFilterPill extends StatelessWidget {
     super.key,
     required this.selectedRange,
     required this.onRangeChanged,
+    this.defaultPreset = 'today',
   });
 
   final DateTimeRange selectedRange;
   final ValueChanged<DateTimeRange> onRangeChanged;
+
+  /// Preset the screen opens with; the pill only looks highlighted once the user moves away from it.
+  final String defaultPreset;
 
   String _detectPresetKey() {
     final now = DateTime.now();
@@ -156,6 +160,8 @@ class DateFilterPill extends StatelessWidget {
     if (start == d7 && end == today) return '7days';
     final mStart = DateTime(today.year, today.month, 1);
     if (start == mStart && end == today) return 'month';
+    final lastMonthEnd = mStart.subtract(const Duration(days: 1));
+    if (start == DateTime(lastMonthEnd.year, lastMonthEnd.month, 1) && end == lastMonthEnd) return 'lastMonth';
 
     return 'custom';
   }
@@ -171,6 +177,8 @@ class DateFilterPill extends StatelessWidget {
         return '7 hari';
       case 'month':
         return 'Bulan ini';
+      case 'lastMonth':
+        return 'Bulan lalu';
       default:
         if (selectedRange.start == selectedRange.end) {
           return dateOnly(selectedRange.start);
@@ -193,6 +201,9 @@ class DateFilterPill extends StatelessWidget {
       case 'month':
         final mStart = DateTime(today.year, today.month, 1);
         onRangeChanged(DateTimeRange(start: mStart, end: today));
+      case 'lastMonth':
+        final lastMonthEnd = DateTime(today.year, today.month, 1).subtract(const Duration(days: 1));
+        onRangeChanged(DateTimeRange(start: DateTime(lastMonthEnd.year, lastMonthEnd.month, 1), end: lastMonthEnd));
       case 'custom':
         final range = await showDateRangePicker(
           context: context,
@@ -210,13 +221,14 @@ class DateFilterPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final key = _detectPresetKey();
-    final isActive = key != 'today'; // Today is default
+    final isActive = key != defaultPreset;
 
     const options = [
       ('today', 'Hari ini'),
       ('yesterday', 'Kemarin'),
       ('7days', '7 hari terakhir'),
       ('month', 'Bulan ini'),
+      ('lastMonth', 'Bulan lalu'),
     ];
 
     return Theme(

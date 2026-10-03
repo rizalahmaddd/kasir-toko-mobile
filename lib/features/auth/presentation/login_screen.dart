@@ -260,7 +260,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               const SizedBox(width: 10),
                               Expanded(
                                 child: Text(
-                                  'Kode verifikasi telah dikirim ke $_maskedPhone.',
+                                  'Kalau akun terdaftar, kode verifikasi dikirim ke $_maskedPhone.',
                                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                                 ),
                               ),

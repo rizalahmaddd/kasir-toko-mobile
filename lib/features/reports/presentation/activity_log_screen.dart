@@ -28,15 +28,16 @@ class ActivityLogScreen extends ConsumerWidget {
     final notifier = ref.read(activityQueryProvider.notifier);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Log aktivitas')),
+      appBar: SearchableAppBar(
+        title: const Text('Log aktivitas'),
+        hint: 'Cari aktivitas',
+        initialSearch: query.search,
+        onSearchChanged: (term) => notifier.set((search: term, logName: query.logName)),
+      ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-            child: SearchField(hint: 'Cari aktivitas', onChanged: (term) => notifier.set((search: term, logName: query.logName))),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: Row(
               children: [
                 FilterDropdownPill<String>(

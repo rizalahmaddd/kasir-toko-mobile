@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
@@ -9,6 +10,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../auth/auth_controller.dart';
 import '../../pos/cart_controller.dart';
 import '../catalog_snapshot.dart';
 import '../offline_queue.dart';
@@ -220,7 +222,7 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
                       const SizedBox(height: 12),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                         ),
                         onPressed: _downloading ? null : _download,
@@ -391,42 +393,59 @@ class _QueuedSaleCard extends StatelessWidget {
   }
 }
 
-/// Thin strip above the cashier screen while offline or while sales wait to be sent.
-class OfflineBanner extends ConsumerWidget {
-  const OfflineBanner({super.key});
+/// Strip above every screen once signed in, while offline or while sales wait to be sent.
+/// Offline, every list and detail shows the last copy kept on the device, so say so.
+class OfflineBannerFrame extends ConsumerWidget {
+  const OfflineBannerFrame({super.key, required this.child, required this.onTap});
+
+  final Widget child;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final signedIn = ref.watch(currentUserProvider) != null;
     final reachable = ref.watch(serverReachableProvider);
     final waiting = ref.watch(myQueueProvider).length;
     final syncing = ref.watch(syncStateProvider).syncing;
-    if (reachable && waiting == 0) {
-      return const SizedBox.shrink();
+    if (!signedIn || (reachable && waiting == 0)) {
+      return child;
     }
 
+    final theme = Theme.of(context);
     final colors = StatusColors.of(context);
     final color = reachable ? colors.info : colors.warning;
     final text = [
-      if (!reachable) 'Offline — memakai katalog di perangkat',
+      if (!reachable) 'Offline — menampilkan data terakhir di perangkat',
       if (waiting > 0) syncing ? 'Mengirim $waiting transaksi…' : '$waiting transaksi menunggu dikirim',
     ].join(' · ');
+    final dark = theme.brightness == Brightness.dark;
 
-    return Material(
-      color: color.withValues(alpha: 0.14),
-      child: InkWell(
-        onTap: () => context.push('/offline'),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Icon(reachable ? LucideIcons.refreshCw : LucideIcons.cloudOff, size: 16, color: color),
-              const SizedBox(width: 8),
-              Expanded(child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13))),
-              Icon(LucideIcons.chevronRight, size: 16, color: color),
-            ],
+    return Column(
+      children: [
+        AnnotatedRegion<SystemUiOverlayStyle>(
+          value: dark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
+          child: Material(
+            color: Color.alphaBlend(color.withValues(alpha: 0.16), theme.colorScheme.surface),
+            child: InkWell(
+              onTap: onTap,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, MediaQuery.paddingOf(context).top + 6, 16, 6),
+                child: Row(
+                  children: [
+                    Icon(reachable ? LucideIcons.refreshCw : LucideIcons.cloudOff, size: 15, color: color),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(text, maxLines: 2, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12.5)),
+                    ),
+                    Icon(LucideIcons.chevronRight, size: 15, color: color),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
-      ),
+        Expanded(child: MediaQuery.removePadding(context: context, removeTop: true, child: child)),
+      ],
     );
   }
 }

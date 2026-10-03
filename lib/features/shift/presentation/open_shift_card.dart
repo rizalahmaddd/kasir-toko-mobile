@@ -6,7 +6,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/money_field.dart';
 import '../../../core/widgets/state_views.dart';
-import '../../pos/pos_providers.dart';
+import '../../data_changes.dart';
 import '../shift_controller.dart';
 
 /// Shown in place of the cashier and shift screens until the cashier opens a shift.
@@ -36,7 +36,7 @@ class _OpenShiftCardState extends ConsumerState<OpenShiftCard> {
 
     try {
       await ref.read(currentShiftProvider.notifier).open(parseRupiah(_cash.text));
-      ref.invalidate(posConfigProvider);
+      ref.read(dataChangesProvider).after({DataChange.shifts});
     } on ApiException catch (error) {
       setState(() => _error = error.fieldError('opening_cash') ?? error.message);
     } finally {
