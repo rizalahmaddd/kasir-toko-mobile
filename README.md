@@ -1,83 +1,134 @@
 # Kasir Toko Mobile
 
-Aplikasi kasir Flutter untuk HP dan tablet, client dari REST API v1 [Kasir Toko (web-pos)](../web-pos). Dokumentasi API ada di `/docs/api` pada server.
+Aplikasi kasir Flutter untuk HP dan tablet, client dari REST API v1 [Kasir Toko (web-pos)](../kasir-toko). Dokumentasi API tersedia di `/docs/api` pada server web.
 
-Satu build bisa dipakai dua cara:
+- **Package ID / Application ID (Android)**: `com.jagodev.kasirtoko`
+- **Bundle Identifier (iOS)**: `com.jagodev.kasirtoko`
 
-- **Layanan SaaS (hosted)**: semua toko memakai satu server yang alamatnya dikunci di build. Toko baru bisa mendaftar langsung dari aplikasi.
-- **Server sendiri**: toko menjalankan web-pos di LAN atau servernya sendiri, dan alamat server diisi di layar login.
+Satu build dapat digunakan dalam dua mode:
 
-## Fitur
+- **Layanan SaaS (hosted)**: Semua toko menggunakan server cloud terpusat (`https://kasirtoko.biz.id`). Field server disembunyikan dan toko baru dapat mendaftar langsung dari aplikasi.
+- **Server sendiri (self-hosted)**: Toko menjalankan aplikasi web di LAN atau VPS sendiri, alamat server diisi langsung di layar login.
 
-- **Akun**: login username/email/HP + password atau OTP WhatsApp, daftar toko baru (build hosted), ganti profil & password, keluar dari semua perangkat.
-- **Kasir**: katalog per kategori, cari nama/SKU/barcode, scan kamera, scanner USB/Bluetooth (langsung terbaca tanpa fokus ke kolom), jumlah desimal, diskon per barang & transaksi (kalau punya izin `pos.discount`), catatan, pelanggan (cari/tambah cepat), pajak.
-- **Pembayaran**: tunai (nominal cepat + kembalian), QRIS bernominal, transfer, kartu, bayar campuran, kasbon.
-- **Transaksi tertunda**, kompatibel dengan kasir web (ditunda di web bisa dilanjutkan di app, dan sebaliknya).
-- **Shift**: buka dengan modal awal, kas masuk/keluar, tutup dengan hitung selisih uang laci, riwayat shift.
-- **Riwayat transaksi**: filter, detail, struk (bagikan/WhatsApp/cetak), pembatalan.
-- **Back office**: dashboard, produk (termasuk foto), kategori, stok & kartu stok, pelanggan, piutang (kasbon), laporan penjualan, log aktivitas, notifikasi, pencarian global. Menu tampil sesuai izin dan sakelar fitur dari `auth/me`.
-- **Printer thermal Bluetooth** (ESC/POS) untuk struk dan rekap shift.
-- **Mode offline**: kasir tetap bisa berjualan saat server tidak terjangkau. Transaksi masuk antrean dan dikirim otomatis begitu koneksi kembali.
-- **Layout tablet**: katalog dan keranjang berdampingan. Di HP, katalog tampil dengan bar keranjang di bawah.
+---
 
-## Perilaku penting
+## Fitur Utama
 
-- Keranjang disimpan di perangkat dan disinkronkan ulang harga/stoknya saat app dibuka lagi.
-- Tiap keranjang punya `client_uuid`, jadi menekan bayar ulang setelah koneksi putus (atau sinkronisasi antrean offline) tidak membuat transaksi dobel.
-- Total dihitung dengan rumus yang sama dengan `App\Services\Pos\CartCalculator`. Kalau server menolak (`price_changed`, `insufficient_stock`, `unavailable`), keranjang diperbarui otomatis dan kasir memeriksa ulang.
-- Font Inter dibundel, jadi app tetap rapi di jaringan toko tanpa internet.
+- **Autentikasi & Akun**:
+  - Login username/email/nomor HP + password atau OTP WhatsApp.
+  - Social Login: **Google Sign-In** dan **Sign in with Apple**.
+  - Pendaftaran toko baru (pada build hosted).
+  - Profil, ganti password, dan opsi keluar dari seluruh perangkat.
+- **Layar Kasir**:
+  - Katalog produk dengan filter kategori dan pilihan kepadatan kartu (standar / kompak).
+  - Pencarian nama, SKU, dan barcode.
+  - Pemindai barcode kamera, barcode scanner USB & Bluetooth (otomatis terbaca tanpa perlu fokus ke input).
+  - Kuantitas desimal untuk barang timbangan/eceran.
+  - Diskon per item dan diskon transaksi (berdasarkan izin `pos.discount`).
+  - Catatan transaksi, pilihan/tambah cepat pelanggan, dan perhitungan pajak.
+- **Pembayaran**:
+  - Tunai (saran pecahan uang cepat & hitung kembalian).
+  - **QRIS Dinamis**: Tampilan QRIS bernominal otomatis dengan fitur **layar tetap menyala (wakelock)** dan **kecerahan layar otomatis maksimal** agar mudah dipindai pelanggan.
+  - Transfer bank, kartu debit/kredit, pembayaran campuran (split payment), dan kasbon/piutang pelanggan.
+- **Transaksi Tertunda**: Simpan keranjang sementara dan lanjutkan kapan saja; kompatibel penuh dengan keranjang tertunda di kasir web.
+- **Shift Kasir**: Buka shift dengan modal awal, pencatatan kas masuk/keluar, tutup shift dengan hitung selisih uang laci, serta riwayat shift.
+- **Riwayat & Struk**: Filter transaksi, rincian pembayaran, pembatalan (void), cetak struk via printer thermal Bluetooth (ESC/POS 58/80mm), atau bagikan via WhatsApp.
+- **Back Office & Manajemen**:
+  - Dashboard performa toko dengan status sinkronisasi offline dan peringatan shift.
+  - Manajemen produk (foto, barcode, harga, HPP, stok minimum), kategori, dan mutasi kartu stok.
+  - Manajemen pelanggan, piutang (kasbon), log aktivitas, dan notifikasi stok/sistem.
+  - Laporan penjualan komprehensif.
+  - Perlindungan **Fitur Pro**: Dialog interaktif upgrade paket langganan bagi toko di luar paket Pro/Trial.
+- **Mode Offline & Sinkronisasi**:
+  - Kasir tetap dapat bertransaksi meski jaringan internet/server terputus.
+  - Transaksi offline masuk antrean aman dan disinkronkan otomatis saat koneksi kembali.
+- **Desain Responsif**:
+  - Tampilan khusus tablet (katalog dan keranjang belanja berdampingan).
+  - Tampilan ponsel (katalog dengan bottom sheet keranjang belanja).
 
-### Multi-tenant
+---
 
-- `auth/me` membawa data toko (`tenant`): nama, paket, dan masa aktif. Data ini tampil di layar **Akun**.
-- Toko yang di-suspend atau habis masa aktifnya mendapat jawaban `402` dengan `reason`. App lalu pindah ke layar **"Toko belum bisa dipakai"** yang punya tombol *Periksa lagi* dan *Keluar*. Antrean offline berhenti mengirim (tidak ditandai gagal) sampai toko aktif lagi.
-- Cache offline (katalog, konfigurasi kasir, dll.) diberi tanda server + toko, jadi toko lain yang login di HP yang sama tidak pernah membaca data toko sebelumnya. Saat login ke toko yang berbeda, keranjang dan cache lama dihapus. Transaksi offline yang belum terkirim tetap disimpan dan baru dikirim saat kasir pemiliknya login lagi.
+## Perilaku Penting & Keamanan Data
 
-## Menjalankan
+- **Penyimpanan Lokal Keranjang**: Keranjang belanja tersimpan aman di perangkat dan otomatis disinkronkan kembali harga serta stoknya saat aplikasi dibuka ulang.
+- **Idempotensi Transaksi**: Setiap keranjang memiliki `client_uuid`, sehingga penekanan tombol bayar berulang saat jaringan lambat atau proses sinkronisasi offline tidak akan menghasilkan transaksi ganda.
+- **Validasi Harga & Stok Server**: Total transaksi dihitung dengan algoritma yang identik dengan server (`CartCalculator`). Jika terdapat perubahan harga atau stok tidak mencukupi, aplikasi otomatis memperbarui keranjang dan meminta kasir memverifikasi ulang.
+- **Multi-tenant & Isolasi Data**:
+  - Informasi toko (`tenant`), nama, paket, dan sisa masa aktif diperoleh via endpoint `auth/me`.
+  - Jika toko dinonaktifkan atau masa aktif langganan habis, respons `402 Payment Required` akan mengarahkan aplikasi ke layar informasi perpanjangan langganan.
+  - Cache offline (katalog, pengaturan kasir, dsb.) diisolasi per toko. Jika kasir berganti akun/toko pada perangkat yang sama, data toko sebelumnya otomatis dibersihkan demi privasi.
+- **Tipografi**: Font Inter dibundel secara lokal agar UI tetap konsisten dan rapi tanpa ketergantungan koneksi internet.
 
-Server sendiri (alamat bisa diganti di layar login, `API_BASE_URL` hanya nilai awal):
+---
 
+## Menjalankan & Membangun Aplikasi
+
+### 1. Pengembangan Lokal (Self-Hosted)
+Alamat server dapat diganti langsung pada halaman login aplikasi:
 ```bash
 flutter pub get
 flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000
 ```
 
-Build layanan SaaS (alamat server dikunci ke `https://kasirtoko.biz.id`, field server disembunyikan, tombol daftar toko muncul):
-
+### 2. Build Produksi SaaS (Hosted)
+Mengunci endpoint server ke domain produksi (`https://kasirtoko.biz.id`), menyembunyikan konfigurasi URL di halaman login, dan membuka formulir pendaftaran:
 ```bash
 flutter build apk --release --dart-define=HOSTED=true
 ```
 
-Tambahkan `--dart-define=API_BASE_URL=...` untuk mengarahkan build hosted ke server lain, misalnya staging.
-
-Server lokal lewat HTTP diizinkan (`usesCleartextTraffic` di Android, ATS di iOS) karena server toko yang dijalankan sendiri umumnya ada di LAN. Build hosted sebaiknya memakai HTTPS.
-
-## Test
-
+Untuk membagi file APK per arsitektur CPU (split APK):
 ```bash
-flutter test                                              # unit + widget
-E2E_SERVER=http://127.0.0.1:8000 flutter test test/e2e    # alur kasir & back office ke API sungguhan
+flutter build apk --release --split-per-abi --dart-define=HOSTED=true
 ```
 
-Test e2e login sebagai `kasir` dan `owner` (password `password`; bisa diganti lewat `E2E_LOGIN`, `E2E_ADMIN`, `E2E_PASSWORD`), membuka shift, dan mencatat penjualan, jadi arahkan ke database percobaan seperti hasil `php artisan migrate:fresh --seed` di web-pos, bukan produksi.
+---
 
-## Struktur
+## CI/CD & Rilis Otomatis (GitHub Actions)
+
+Aplikasi telah dilengkapi workflow otomatisasi rilis pada [`.github/workflows/release-apk.yml`](.github/workflows/release-apk.yml):
+
+- **Pemicu (Trigger)**: Otomatis berjalan saat push git tag `v*` (contoh: `v1.0.0`, `v1.0.1+2`) atau dijalankan manual (`workflow_dispatch`).
+- **Target Environment**: `production` (kredensial signing aman menggunakan GitHub Actions Secrets).
+- **Hasil Rilis (Split per ABI)**:
+  - `kasirtoko-${TAG}-arm64-v8a.apk`: Mayoritas smartphone Android modern (64-bit).
+  - `kasirtoko-${TAG}-armeabi-v7a.apk`: Smartphone Android generasi lama (32-bit).
+  - `kasirtoko-${TAG}-x86_64.apk`: Emulator Android dan perangkat berbasis Intel/AMD.
+- **Aset Tambahan**: File hash SHA-256 (`checksums.txt`) untuk validasi keaslian file rilis.
+- **Distribusi**: Otomatis membuat GitHub Release baru serta mengunggah file ke tab Artifacts GitHub Actions.
+
+---
+
+## Pengujian (Testing)
+
+```bash
+# Menjalankan unit dan widget test
+flutter test --dart-define=HOSTED=true
+
+# Menjalankan test e2e terhadap server API sungguhan
+E2E_SERVER=http://127.0.0.1:8000 flutter test test/e2e
+```
+
+*Catatan: Pengujian e2e melakukan login sebagai `kasir` dan `owner` (password default: `password`), membuka shift, dan melakukan checkout transaksi. Gunakan database testing (`php artisan migrate:fresh --seed`), bukan database produksi.*
+
+---
+
+## Struktur Direktori
 
 ```
 lib/
-  core/       config server (mode hosted), HTTP client (dio), error API, cache offline, theme, widget bersama
+  core/           Konfigurasi server (hosted mode), HTTP client (Dio), tema, cache offline, widget bersama
   features/
-    auth/          login, daftar toko, layar toko diblokir, sesi (token di secure storage)
-    pos/           katalog, keranjang, pembayaran, transaksi tertunda
-    shift/         shift kasir
-    sales/         riwayat, detail, struk
-    offline/       snapshot katalog & antrean transaksi offline
-    printing/      printer thermal Bluetooth, tata letak struk
-    products/      produk, kategori, stok
-    customers/     pelanggan
-    receivables/   piutang (kasbon)
-    reports/       laporan penjualan, log aktivitas
-    dashboard/     ringkasan
-    notifications/ notifikasi & pencarian global
-    home/          navigasi, menu, akun
+    auth/         Autentikasi (password, social auth Google/Apple), register toko, status langganan
+    pos/          Katalog, keranjang, pembayaran QRIS/tunai/split, transaksi tertunda
+    shift/        Buka/tutup shift kasir dan rekap laci uang
+    sales/        Riwayat transaksi, detail penjualan, dan cetak struk
+    offline/      Snapshot katalog offline dan antrean transaksi tertunda
+    printing/     Integrasi printer thermal Bluetooth (ESC/POS)
+    products/     Manajemen produk, kategori, dan kartu stok
+    customers/    Data pelanggan toko
+    receivables/  Manajemen kasbon/piutang penjualan
+    reports/      Laporan omzet, laba kotor, dan riwayat aktivitas
+    dashboard/    Ringkasan performa penjualan dan status operasional
+    notifications/Pusat notifikasi dan pencarian global
+    home/         Navigasi bottom bar, drawer menu, dan akun toko
 ```
