@@ -103,9 +103,23 @@ class OnboardingRepository {
 
   Future<List<StorePreset>> presets() async => ApiClient.list(await _api.get('onboarding/presets')).map(StorePreset.fromJson).toList();
 
-  Future<PresetResult> apply(String storeType, {required bool includeSampleProducts}) async => PresetResult.fromJson(
-        ApiClient.data(await _api.post('onboarding/apply', data: {'store_type': storeType, 'include_sample_products': includeSampleProducts})),
-      );
+  Future<PresetResult> apply(
+    String storeType, {
+    required bool includeSampleProducts,
+    List<String>? categories,
+    Map<String, dynamic>? settings,
+  }) async {
+    final payload = <String, dynamic>{
+      'store_type': storeType,
+      'include_sample_products': includeSampleProducts,
+    };
+    if (categories != null) payload['categories'] = categories;
+    if (settings != null) payload['settings'] = settings;
+
+    return PresetResult.fromJson(
+      ApiClient.data(await _api.post('onboarding/apply', data: payload)),
+    );
+  }
 
   Future<TenantInfo> skip() async => TenantInfo.fromJson(ApiClient.data(await _api.post('onboarding/skip')));
 }
@@ -119,8 +133,18 @@ class OnboardingActions {
 
   final Ref _ref;
 
-  Future<PresetResult> apply(String storeType, {required bool includeSampleProducts}) async {
-    final result = await _ref.read(onboardingRepositoryProvider).apply(storeType, includeSampleProducts: includeSampleProducts);
+  Future<PresetResult> apply(
+    String storeType, {
+    required bool includeSampleProducts,
+    List<String>? categories,
+    Map<String, dynamic>? settings,
+  }) async {
+    final result = await _ref.read(onboardingRepositoryProvider).apply(
+          storeType,
+          includeSampleProducts: includeSampleProducts,
+          categories: categories,
+          settings: settings,
+        );
     await _finish(result.tenant);
     return result;
   }

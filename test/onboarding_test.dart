@@ -67,18 +67,27 @@ class _NoSnapshot extends CatalogSnapshotNotifier {
 class _FakeRepository implements OnboardingRepository {
   final calls = <String>[];
   ApiException? applyError;
+  List<String>? lastCategories;
+  Map<String, dynamic>? lastSettings;
 
   @override
   Future<List<StorePreset>> presets() async => [StorePreset.fromJson(_presetJson('kafe', 'Kafe / Coffee Shop'))];
 
   @override
-  Future<PresetResult> apply(String storeType, {required bool includeSampleProducts}) async {
+  Future<PresetResult> apply(
+    String storeType, {
+    required bool includeSampleProducts,
+    List<String>? categories,
+    Map<String, dynamic>? settings,
+  }) async {
+    lastCategories = categories;
+    lastSettings = settings;
     calls.add('apply $storeType samples=$includeSampleProducts');
     if (applyError != null) {
       throw applyError!;
     }
     return PresetResult.fromJson({
-      'categories_created': 2,
+      'categories_created': categories?.length ?? 2,
       'products_created': includeSampleProducts ? 12 : 0,
       'products_skipped': 0,
       'tenant': {'id': 9, 'name': 'Toko Maju', 'onboarded': true, 'store_type': storeType},
@@ -216,6 +225,29 @@ void main() {
       expect(find.textContaining('sudah punya transaksi'), findsOneWidget);
       expect(find.text('Terapkan'), findsOneWidget);
       expect(container.read(currentUserProvider)?.needsOnboarding, isTrue);
+    });
+
+    testWidgets('applies preset with custom selected categories and settings', (tester) async {
+      final (container, repository) = await _pump(tester);
+
+      await tester.tap(find.text('Kafe / Coffee Shop'));
+      await tester.pumpAndSettle();
+
+      // Uncheck category "Non Kopi"
+      await tester.tap(find.text('Non Kopi'));
+      await tester.pumpAndSettle();
+
+      // Toggle negative stock (currently true in mock, will become false)
+      await tester.ensureVisible(find.text('Jual saat stok habis / minus'));
+      await tester.tap(find.text('Jual saat stok habis / minus'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Terapkan'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastCategories, ['Kopi']);
+      expect(repository.lastSettings?['allow_negative_stock'], isFalse);
+      expect(container.read(currentUserProvider)?.needsOnboarding, isFalse);
     });
   });
 }
