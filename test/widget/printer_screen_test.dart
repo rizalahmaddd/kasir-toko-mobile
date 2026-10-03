@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:web_pos_mobile/core/storage/app_storage.dart';
 import 'package:web_pos_mobile/core/theme/app_theme.dart';
 import 'package:web_pos_mobile/features/printing/presentation/printer_screen.dart';
@@ -19,6 +20,15 @@ const _profile = ReceiptProfile(
   footer: 'Terima kasih atas kunjungan Anda',
   taxLabel: 'PPN',
 );
+
+class _FakePrinterService extends PrinterService {
+  _FakePrinterService(super.ref);
+
+  @override
+  Future<List<BluetoothInfo>> pairedDevices() async => [
+    BluetoothInfo(name: 'RPP02N', macAdress: 'AA:BB'),
+  ];
+}
 
 Future<SharedPreferences> _pump(WidgetTester tester, Size size, {Map<String, Object> prefs = const {}}) async {
   await initializeDateFormatting('id_ID');
@@ -42,6 +52,7 @@ Future<SharedPreferences> _pump(WidgetTester tester, Size size, {Map<String, Obj
       overrides: [
         sharedPreferencesProvider.overrideWithValue(preferences),
         receiptProfileProvider.overrideWith((ref) async => _profile),
+        printerServiceProvider.overrideWith((ref) => _FakePrinterService(ref)),
       ],
       child: MaterialApp(theme: AppTheme.dark(), home: const PrinterScreen()),
     ),
