@@ -134,11 +134,27 @@ jobs:
           if-no-files-found: error
 
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG_NAME="${GITHUB_REF_NAME}"
+          if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "develop" ] || [ "$TAG_NAME" = "main" ]; then
+            TAG_NAME="v1.0.1"
+          fi
+
+          echo "Maintaining single release: deleting older GitHub releases..."
+          for old_tag in $(gh release list --limit 100 --json tagName -q '.[].tagName'); do
+            if [ "$old_tag" != "$TAG_NAME" ]; then
+              echo "Deleting previous release: $old_tag"
+              gh release delete "$old_tag" --yes || true
+            fi
+          done
+
+          # If release for current tag already exists, delete it first to ensure clean recreation
+          gh release delete "$TAG_NAME" --yes 2>/dev/null || true
+
+          echo "Creating new GitHub release for $TAG_NAME..."
           gh release create "$TAG_NAME" release-artifacts/* \
             --title "Kasir Toko Mobile $TAG_NAME" \
             --notes "### Release Kasir Toko Mobile \`$TAG_NAME\`

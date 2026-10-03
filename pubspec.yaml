@@ -1,7 +1,7 @@
 name: web_pos_mobile
 description: "Aplikasi kasir Kasir Toko untuk HP dan tablet."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.13.2
