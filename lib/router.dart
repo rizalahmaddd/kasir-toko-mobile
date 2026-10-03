@@ -21,6 +21,7 @@ import 'features/offline/presentation/offline_screen.dart';
 import 'features/notifications/presentation/search_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
 import 'features/pos/presentation/pos_screen.dart';
+import 'features/pos/presentation/pos_settings_screen.dart';
 import 'features/printing/presentation/printer_screen.dart';
 import 'features/products/presentation/categories_screen.dart';
 import 'features/products/presentation/movements_screen.dart';
@@ -81,6 +82,9 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under('/onboarding')) {
     return user.isSuperadmin && user.tenant != null;
+  }
+  if (under('/pos-settings')) {
+    return user.canManagePosSettings;
   }
 
   return true;
@@ -165,6 +169,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page('/search', (_) => const SearchScreen()),
       _page('/account', (_) => const AccountScreen()),
       _page('/printer', (_) => const PrinterScreen()),
+      _page('/pos-settings', (_) => const PosSettingsScreen()),
       _page('/offline', (_) => const OfflineScreen()),
     ],
   );

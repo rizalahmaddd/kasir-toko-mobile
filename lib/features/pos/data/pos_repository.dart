@@ -44,6 +44,21 @@ class PosRepository {
         },
       );
 
+  Future<PosConfig> updateSettings({
+    bool? allowNegativeStock,
+    bool? allowCredit,
+    bool? autoPrint,
+  }) async {
+    final payload = <String, dynamic>{};
+    if (allowNegativeStock != null) payload['allow_negative_stock'] = allowNegativeStock;
+    if (allowCredit != null) payload['allow_credit'] = allowCredit;
+    if (autoPrint != null) payload['auto_print'] = autoPrint;
+
+    final data = ApiClient.data(await _api.patch('pos/settings', data: payload));
+    await _cache.put('pos_config', data);
+    return PosConfig.fromJson(data);
+  }
+
   Future<List<Category>> categories() => _orOffline(
         () async {
           final list = ApiClient.list(await _api.get('pos/categories'));

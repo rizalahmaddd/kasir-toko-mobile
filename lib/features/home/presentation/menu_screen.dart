@@ -199,6 +199,16 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             badgeCount: null,
             badgeColor: null,
           ),
+          if (user.canManagePosSettings)
+            (
+              icon: LucideIcons.slidersHorizontal,
+              label: 'Pengaturan kasir',
+              path: '/pos-settings',
+              caption: 'Stok minus, kasbon, & preferensi POS',
+              color: const Color(0xFF6366F1),
+              badgeCount: null,
+              badgeColor: null,
+            ),
           (
             icon: LucideIcons.circleUser,
             label: 'Akun & Profil',

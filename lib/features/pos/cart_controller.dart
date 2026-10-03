@@ -57,6 +57,11 @@ class CartController extends Notifier<Cart> {
     }
     state = state.copyWith(items: items);
 
+    if (product.trackStock && _allowNegativeStock && wanted > product.stock) {
+      final curStock = product.stock <= 0 ? 'kosong' : 'sisa ${fmt.quantity(product.stock)} ${product.unit}';
+      return 'Stok sistem ${product.name} $curStock. Tetap ditambahkan.';
+    }
+
     return null;
   }
 

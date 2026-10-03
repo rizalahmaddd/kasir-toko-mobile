@@ -19,4 +19,6 @@ extension Access on CurrentUser {
 
   bool get canViewSalesReport => _gate('reports.sales', 'reports.sales.view');
   bool get canViewActivityLog => _gate('reports.activity-log', 'reports.activity.view');
+
+  bool get canManagePosSettings => can('settings.pos.manage') || canManageMasterData;
 }

@@ -140,6 +140,8 @@ class ApiClient {
 
   Future<dynamic> put(String path, {Object? data}) => _send(() => _dio.put<dynamic>(path, data: data));
 
+  Future<dynamic> patch(String path, {Object? data}) => _send(() => _dio.patch<dynamic>(path, data: data));
+
   Future<dynamic> delete(String path) => _send(() => _dio.delete<dynamic>(path));
 
   Future<dynamic> upload(String path, {required String field, required String filePath}) async {

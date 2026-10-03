@@ -21,6 +21,7 @@ class PosConfig {
     required this.allowNegativeStock,
     required this.allowCredit,
     required this.canDiscount,
+    this.autoPrint = false,
     required this.receiptWidth,
     required this.quickCash,
     required this.paymentMethods,
@@ -35,6 +36,7 @@ class PosConfig {
         allowNegativeStock: json['allow_negative_stock'] as bool? ?? false,
         allowCredit: json['allow_credit'] as bool? ?? false,
         canDiscount: json['can_discount'] as bool? ?? false,
+        autoPrint: json['auto_print'] as bool? ?? false,
         receiptWidth: '${json['receipt_width'] ?? '58'}',
         quickCash: (json['quick_cash'] as List? ?? const []).map(_int).toList(),
         paymentMethods: (json['payment_methods'] as List? ?? const [])
@@ -51,6 +53,7 @@ class PosConfig {
   final bool allowNegativeStock;
   final bool allowCredit;
   final bool canDiscount;
+  final bool autoPrint;
   final String receiptWidth;
   final List<int> quickCash;
   final List<PaymentMethodOption> paymentMethods;

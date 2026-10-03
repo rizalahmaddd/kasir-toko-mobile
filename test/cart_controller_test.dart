@@ -94,4 +94,36 @@ void main() {
     expect(cart.discountType, DiscountType.percent);
     expect(cart.items.single.total, 7500);
   });
+
+  test('adding beyond tracked stock succeeds with gentle notice when allowNegativeStock is enabled', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    const config = PosConfig(
+      taxRate: 0,
+      taxLabel: 'PPN',
+      allowNegativeStock: true,
+      allowCredit: true,
+      canDiscount: true,
+      receiptWidth: '58',
+      quickCash: [],
+      paymentMethods: [],
+      qrisEnabled: false,
+      hasOpenShift: true,
+      heldOrdersCount: 0,
+    );
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      posConfigProvider.overrideWith((ref) => Future.value(config)),
+    ]);
+    addTearDown(container.dispose);
+
+    // Warm up the provider
+    await container.read(posConfigProvider.future);
+    final cart = container.read(cartProvider.notifier);
+
+    expect(cart.add(_rice, quantity: 2), isNull);
+    final notice = cart.add(_rice, quantity: 1);
+    expect(notice, contains('Tetap ditambahkan'));
+    expect(container.read(cartProvider).items.single.quantity, 3);
+  });
 }

@@ -9,13 +9,21 @@ import '../../../core/widgets/state_views.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
+import '../pos_providers.dart';
 
 void addToCart(BuildContext context, WidgetRef ref, Product product, {double quantity = 1}) {
   final warning = ref.read(cartProvider.notifier).add(product, quantity: quantity);
 
   if (warning != null) {
-    unawaited(HapticFeedback.heavyImpact());
-    showMessage(context, warning, isError: true);
+    final allowNegative = ref.read(posConfigProvider).value?.allowNegativeStock ?? false;
+    final isBlocked = product.trackStock && !allowNegative;
+    if (isBlocked) {
+      unawaited(HapticFeedback.heavyImpact());
+      showMessage(context, warning, isError: true);
+    } else {
+      unawaited(HapticFeedback.lightImpact());
+      showMessage(context, warning, isError: false);
+    }
   } else {
     unawaited(HapticFeedback.selectionClick());
   }

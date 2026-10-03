@@ -10,6 +10,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_cached_image.dart';
 import '../../data/pos_models.dart';
+import '../../pos_providers.dart';
 
 class PosProductCard extends ConsumerWidget {
   const PosProductCard({
@@ -31,7 +32,10 @@ class PosProductCard extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final colors = StatusColors.of(context);
     final muted = theme.colorScheme.onSurfaceVariant;
-    final isOutOfStock = product.isOutOfStock;
+    final allowNegative = ref.watch(posConfigProvider).value?.allowNegativeStock ?? false;
+    final isOutOfStock = product.isOutOfStock && !allowNegative;
+    final isNegativeStock = product.trackStock && product.stock <= 0 && allowNegative;
+    final isLowStock = product.isLowStock && !isOutOfStock && !isNegativeStock;
     final hasInCart = inCartQuantity > 0;
 
     final nameInitials = product.name.trim().isNotEmpty
@@ -100,8 +104,40 @@ class PosProductCard extends ConsumerWidget {
                         ),
                       ),
 
+                      // Negative stock indicator badge
+                      if (isNegativeStock)
+                        Positioned(
+                          top: 6,
+                          left: 6,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: AppColors.rose500,
+                              borderRadius: BorderRadius.circular(6),
+                              boxShadow: const [
+                                BoxShadow(color: Colors.black38, blurRadius: 4),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(LucideIcons.triangleAlert, size: 10, color: Colors.white),
+                                const SizedBox(width: 3),
+                                Text(
+                                  'Stok ${quantity(product.stock)}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
                       // Low stock indicator badge
-                      if (product.isLowStock && !isOutOfStock)
+                      if (isLowStock)
                         Positioned(
                           top: 6,
                           left: 6,
@@ -253,13 +289,22 @@ class PosProductCard extends ConsumerWidget {
                                         color: colors.danger,
                                       ),
                                     )
+                                  else if (isNegativeStock)
+                                    Text(
+                                      'Stok: ${quantity(product.stock)} ${product.unit}',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: colors.danger,
+                                      ),
+                                    )
                                   else if (product.trackStock)
                                     Text(
                                       '${quantity(product.stock)} ${product.unit}',
                                       style: AppTypography.quantity(
                                         fontSize: 10.5,
                                         fontWeight: FontWeight.w600,
-                                        color: product.isLowStock ? colors.warning : muted,
+                                        color: isLowStock ? colors.warning : muted,
                                       ),
                                     ),
                                 ],
