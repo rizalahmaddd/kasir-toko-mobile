@@ -21,6 +21,7 @@ import '../../auth/data/auth_repository.dart';
 import '../../auth/data/current_user.dart';
 import '../../offline/offline_queue.dart';
 import '../../shift/shift_controller.dart';
+import '../../../core/services/in_app_update_service.dart';
 import 'about_sheet.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_radius.dart';
@@ -196,6 +197,7 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
     final theme = Theme.of(context);
     final isDark = ref.watch(themeModeProvider) == ThemeMode.dark;
     final danger = StatusColors.of(context).danger;
+    final updateState = ref.watch(inAppUpdateServiceProvider);
 
     if (user == null) {
       return const SizedBox.shrink();
@@ -458,6 +460,60 @@ class _AccountScreenState extends ConsumerState<AccountScreen> {
                         subtitle: const Text(HomeStrings.accountAboutSubtitle, style: TextStyle(fontSize: 12)),
                         trailing: const Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
                         onTap: () => _openAboutSheet(context),
+                      ),
+                      Divider(height: 1, indent: 64, color: isDark ? AppColors.slate700 : AppColors.slate100),
+                      ListTile(
+                        leading: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: AppColors.violet500.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.r10),
+                          ),
+                          child: updateState.isChecking
+                              ? const Padding(
+                                  padding: EdgeInsets.all(AppSpacing.s8),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.violet600),
+                                )
+                              : Icon(
+                                  updateState.isDownloaded ? AppIcons.download : AppIcons.refreshCw,
+                                  size: AppSizes.s18,
+                                  color: AppColors.violet600,
+                                ),
+                        ),
+                        title: const Text(AboutStrings.checkUpdateTitle, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: Text(
+                          updateState.isDownloading
+                              ? '${AboutStrings.updateDownloading} (${(updateState.downloadProgress * 100).toStringAsFixed(0)}%)'
+                              : (updateState.isDownloaded
+                                  ? AboutStrings.updateDownloaded
+                                  : AboutStrings.checkUpdateSubtitle),
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: updateState.isDownloaded ? AppColors.emerald600 : null,
+                            fontWeight: updateState.isDownloaded ? FontWeight.w600 : null,
+                          ),
+                        ),
+                        trailing: updateState.isDownloaded
+                            ? FilledButton(
+                                style: FilledButton.styleFrom(
+                                  backgroundColor: AppColors.emerald600,
+                                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s4),
+                                  visualDensity: VisualDensity.compact,
+                                ),
+                                onPressed: () => ref.read(inAppUpdateServiceProvider.notifier).completeFlexibleUpdate(),
+                                child: const Text(AboutStrings.restartToUpdate, style: TextStyle(fontSize: 11)),
+                              )
+                            : const Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
+                        onTap: updateState.isChecking || updateState.isDownloading
+                            ? null
+                            : () {
+                                if (updateState.isDownloaded) {
+                                  ref.read(inAppUpdateServiceProvider.notifier).completeFlexibleUpdate();
+                                } else {
+                                  ref.read(inAppUpdateServiceProvider.notifier).checkForUpdate(silent: false, context: context);
+                                }
+                              },
                       ),
                     ],
                   ),

@@ -1488,6 +1488,15 @@ abstract final class AboutStrings {
   static const deleteAccountTitle = 'Penghapusan Akun & Data';
   static const deleteAccountSubtitle = 'Informasi hak hapus data pengguna';
   static String copyright(int year) => '© $year Kasir Toko POS. Hak Cipta Dilindungi.';
+  static const checkUpdateTitle = 'Periksa Pembaruan';
+  static const checkUpdateSubtitle = 'Cek versi terbaru di toko aplikasi';
+  static const checkUpdateLoading = 'Memeriksa pembaruan...';
+  static const noUpdateAvailable = 'Aplikasi sudah menggunakan versi terbaru.';
+  static const updateAvailable = 'Versi baru tersedia!';
+  static const updateDownloading = 'Mengunduh pembaruan...';
+  static const updateDownloaded = 'Pembaruan siap dipasang. Mulai ulang untuk menerapkan.';
+  static const restartToUpdate = 'Pasang Sekarang';
+  static const updateCheckFailed = 'Tidak dapat memeriksa pembaruan saat ini.';
 }
 
 abstract final class ProStrings {

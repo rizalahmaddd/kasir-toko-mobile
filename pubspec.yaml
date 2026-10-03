@@ -37,6 +37,7 @@ dependencies:
   package_info_plus: ^10.2.2
   wakelock_plus: ^1.8.1
   screen_brightness: ^2.1.11
+  in_app_update_flutter: ^3.0.1
 
 dev_dependencies:
   flutter_test:

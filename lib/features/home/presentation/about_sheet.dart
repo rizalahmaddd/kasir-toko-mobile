@@ -5,6 +5,7 @@ import 'package:web_pos_mobile/core/constants/app_icons.dart';
 import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/config/server_config.dart';
+import '../../../core/services/in_app_update_service.dart';
 import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_sizes.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -39,6 +40,7 @@ class AboutSheet extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final serverUrl = ref.watch(serverUrlProvider);
     final packageInfo = ref.watch(_packageInfoProvider).value;
+    final updateState = ref.watch(inAppUpdateServiceProvider);
 
     return Container(
       decoration: BoxDecoration(
@@ -154,7 +156,64 @@ class AboutSheet extends ConsumerWidget {
               color: Colors.transparent,
               child: Column(
                 children: [
-                ListTile(
+                  ListTile(
+                    leading: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.violet500.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.r10),
+                      ),
+                      child: updateState.isChecking
+                          ? const Padding(
+                              padding: EdgeInsets.all(AppSpacing.s8),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.violet600),
+                            )
+                          : Icon(
+                              updateState.isDownloaded ? AppIcons.download : AppIcons.refreshCw,
+                              size: AppSizes.s18,
+                              color: AppColors.violet600,
+                            ),
+                    ),
+                    title: const Text(
+                      AboutStrings.checkUpdateTitle,
+                      style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
+                    ),
+                    subtitle: Text(
+                      updateState.isDownloading
+                          ? '${AboutStrings.updateDownloading} (${(updateState.downloadProgress * 100).toStringAsFixed(0)}%)'
+                          : (updateState.isDownloaded
+                              ? AboutStrings.updateDownloaded
+                              : AboutStrings.checkUpdateSubtitle),
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        color: updateState.isDownloaded ? AppColors.emerald600 : null,
+                        fontWeight: updateState.isDownloaded ? FontWeight.w600 : null,
+                      ),
+                    ),
+                    trailing: updateState.isDownloaded
+                        ? FilledButton(
+                            style: FilledButton.styleFrom(
+                              backgroundColor: AppColors.emerald600,
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s4),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                            onPressed: () => ref.read(inAppUpdateServiceProvider.notifier).completeFlexibleUpdate(),
+                            child: const Text(AboutStrings.restartToUpdate, style: TextStyle(fontSize: 11)),
+                          )
+                        : const Icon(AppIcons.chevronRight, size: AppSizes.s15, color: AppColors.slate400),
+                    onTap: updateState.isChecking || updateState.isDownloading
+                        ? null
+                        : () {
+                            if (updateState.isDownloaded) {
+                              ref.read(inAppUpdateServiceProvider.notifier).completeFlexibleUpdate();
+                            } else {
+                              ref.read(inAppUpdateServiceProvider.notifier).checkForUpdate(silent: false, context: context);
+                            }
+                          },
+                  ),
+                  Divider(height: 1, indent: 64, color: isDark ? AppColors.slate800 : AppColors.slate200),
+                  ListTile(
                   leading: Container(
                     width: 36,
                     height: 36,

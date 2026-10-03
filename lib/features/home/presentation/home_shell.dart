@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:web_pos_mobile/core/constants/app_icons.dart';
 import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
+import '../../../core/services/in_app_update_service.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/display_service.dart';
 import '../../../core/utils/responsive.dart';
 import '../../auth/access.dart';
@@ -41,6 +43,11 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(inAppUpdateServiceProvider.notifier).checkForUpdate(silent: true, context: context);
+      }
+    });
   }
 
   @override
@@ -91,6 +98,27 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
     ref.listen<PosDisplaySettings>(posDisplaySettingsProvider, (prev, next) {
       if (prev?.keepScreenOn != next.keepScreenOn) {
         _syncWakelock();
+      }
+    });
+    ref.listen<InAppUpdateState>(inAppUpdateServiceProvider, (prev, next) {
+      if (prev?.status != InAppUpdateStatus.downloaded && next.status == InAppUpdateStatus.downloaded) {
+        final messenger = ScaffoldMessenger.maybeOf(context);
+        if (messenger != null) {
+          messenger.hideCurrentSnackBar();
+          messenger.showSnackBar(
+            SnackBar(
+              content: const Text(AboutStrings.updateDownloaded),
+              duration: const Duration(days: 1),
+              action: SnackBarAction(
+                label: AboutStrings.restartToUpdate,
+                textColor: AppColors.emerald400,
+                onPressed: () {
+                  ref.read(inAppUpdateServiceProvider.notifier).completeFlexibleUpdate();
+                },
+              ),
+            ),
+          );
+        }
       }
     });
     final tabs = visibleTabs(ref.watch(currentUserProvider));
