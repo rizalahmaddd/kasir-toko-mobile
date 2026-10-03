@@ -1,4 +1,4 @@
-name: Release APK
+name: Release Android (APK & AAB)
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Release Split APKs
+    name: Build & Release Android (APK & AAB)
     runs-on: ubuntu-latest
     environment: production
 
@@ -69,7 +69,7 @@ jobs:
           storeFile=${GITHUB_WORKSPACE}/android/app/upload.jks
           EOF
 
-      - name: Build Split APKs
+      - name: Build Split APKs & App Bundle (AAB)
         run: |
           TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
           RAW_VERSION="${TAG_NAME#v}"
@@ -81,25 +81,42 @@ jobs:
             BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
           fi
 
-          echo "Building APK for Version: $VERSION_NAME, Build: $BUILD_NUMBER (HOSTED=true)"
+          echo "Building Android Release for Version: $VERSION_NAME, Build: $BUILD_NUMBER (HOSTED=true)"
+          
+          # 1. Build Split APKs
           flutter build apk --release --split-per-abi --dart-define=HOSTED=true --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
 
-      - name: Rename and Package APKs
+          # 2. Build Android App Bundle (.aab) for Google Play Store
+          flutter build appbundle --release --dart-define=HOSTED=true --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+
+      - name: Rename and Package Artifacts
         run: |
           TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
-          mkdir -p release-apks
+          mkdir -p release-artifacts
 
+          # Package Split APKs
           for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
             [ -f "$apk" ] || continue
             filename=$(basename "$apk")
             abi=$(echo "$filename" | sed -E 's/^app-(.*)-release\.apk$/\1/')
             target_name="kasirtoko-${TAG_NAME}-${abi}.apk"
-            cp "$apk" "release-apks/${target_name}"
-            echo "Renamed: $filename -> $target_name"
+            cp "$apk" "release-artifacts/${target_name}"
+            echo "Packaged APK: $filename -> $target_name"
           done
 
-          cd release-apks
-          sha256sum *.apk > checksums.txt
+          # Package Android App Bundle (.aab)
+          aab="build/app/outputs/bundle/release/app-release.aab"
+          if [ -f "$aab" ]; then
+            target_aab="kasirtoko-${TAG_NAME}.aab"
+            cp "$aab" "release-artifacts/${target_aab}"
+            echo "Packaged AAB: $aab -> $target_aab"
+          else
+            echo "Error: $aab not found!"
+            exit 1
+          fi
+
+          cd release-artifacts
+          sha256sum * > checksums.txt
           echo "Generated Checksums:"
           cat checksums.txt
           cd ..
@@ -109,11 +126,11 @@ jobs:
         run: |
           rm -f android/app/upload.jks android/key.properties
 
-      - name: Upload APKs to Artifacts
+      - name: Upload Artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: kasirtoko-${{ github.ref_name }}-apks
-          path: release-apks/*
+          name: kasirtoko-${{ github.ref_name }}-android
+          path: release-artifacts/*
           if-no-files-found: error
 
       - name: Create GitHub Release
@@ -122,13 +139,14 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG_NAME="${GITHUB_REF_NAME}"
-          gh release create "$TAG_NAME" release-apks/* \
+          gh release create "$TAG_NAME" release-artifacts/* \
             --title "Kasir Toko Mobile $TAG_NAME" \
             --notes "### Release Kasir Toko Mobile \`$TAG_NAME\`
 
-          File APK telah di-build dengan arsitektur split-per-abi untuk ukuran file yang lebih optimal:
+          Aset rilis ini mencakup file **Android App Bundle (.aab)** resmi untuk Google Play Store serta **Split APK** untuk instalasi langsung:
+          - **\`kasirtoko-${TAG_NAME}.aab\`**: Android App Bundle resmi untuk upload ke Google Play Console.
           - **\`kasirtoko-${TAG_NAME}-arm64-v8a.apk\`**: Mayoritas smartphone Android modern (64-bit).
           - **\`kasirtoko-${TAG_NAME}-armeabi-v7a.apk\`**: Smartphone Android generasi lama (32-bit).
           - **\`kasirtoko-${TAG_NAME}-x86_64.apk\`**: Emulator & perangkat Chromebook/Intel/AMD 64-bit.
 
-          Checksum integritas file tersedia di \`checksums.txt\`."
+          Checksum integritas SHA-256 tersedia di file \`checksums.txt\`."

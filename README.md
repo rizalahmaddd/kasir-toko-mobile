@@ -85,11 +85,12 @@ flutter build apk --release --split-per-abi --dart-define=HOSTED=true
 
 ## CI/CD & Rilis Otomatis (GitHub Actions)
 
-Aplikasi telah dilengkapi workflow otomatisasi rilis pada [`.github/workflows/release-apk.yml`](.github/workflows/release-apk.yml):
+Aplikasi telah dilengkapi workflow otomatisasi rilis pada [`.github/workflows/release-android.yml`](.github/workflows/release-android.yml):
 
 - **Pemicu (Trigger)**: Otomatis berjalan saat push git tag `v*` (contoh: `v1.0.0`, `v1.0.1+2`) atau dijalankan manual (`workflow_dispatch`).
 - **Target Environment**: `production` (kredensial signing aman menggunakan GitHub Actions Secrets).
-- **Hasil Rilis (Split per ABI)**:
+- **Hasil Rilis (AAB & Split APK)**:
+  - `kasirtoko-${TAG}.aab`: **Android App Bundle resmi** siap upload langsung ke Google Play Console.
   - `kasirtoko-${TAG}-arm64-v8a.apk`: Mayoritas smartphone Android modern (64-bit).
   - `kasirtoko-${TAG}-armeabi-v7a.apk`: Smartphone Android generasi lama (32-bit).
   - `kasirtoko-${TAG}-x86_64.apk`: Emulator Android dan perangkat berbasis Intel/AMD.
