@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 /// Single-field dialog. Returns the trimmed text, or null when cancelled.
 Future<String?> promptText(
@@ -82,7 +83,7 @@ class _PromptDialogState extends State<_PromptDialog> {
         decoration: InputDecoration(labelText: widget.label, hintText: widget.hint, suffixText: widget.suffix),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text(CoreStrings.actionCancel)),
         FilledButton(onPressed: _submit, child: Text(widget.confirmLabel)),
       ],
     );

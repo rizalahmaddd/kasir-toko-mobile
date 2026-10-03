@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -12,6 +14,9 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/json.dart';
 import '../../../auth/access.dart';
 import '../../../auth/auth_controller.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class TodaySalesHero extends ConsumerWidget {
   const TodaySalesHero({super.key, required this.today});
@@ -38,7 +43,7 @@ class TodaySalesHero extends ConsumerWidget {
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.r18),
         color: isDark ? AppColors.slate900 : Colors.white,
         border: Border.all(
           color: isDark ? AppColors.slate800 : AppColors.slate200,
@@ -53,43 +58,43 @@ class TodaySalesHero extends ConsumerWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(AppRadius.r18),
         child: InkWell(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(AppRadius.r18),
           onTap: () {
             unawaited(HapticFeedback.lightImpact());
             if (canViewReports) {
-              context.push('/reports/sales');
+              context.push(AppRoutes.reportsSales);
             } else if (canViewSales) {
-              context.go('/sales');
+              context.go(AppRoutes.sales);
             }
           },
           child: Padding(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(AppSpacing.s18),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(7),
+                      padding: const EdgeInsets.all(AppSpacing.s7),
                       decoration: BoxDecoration(
                         color: theme.colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.12),
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(AppRadius.r10),
                       ),
                       child: Icon(
-                        LucideIcons.chartColumnIncreasing,
-                        size: 16,
+                        AppIcons.chartColumnIncreasing,
+                        size: AppSizes.s16,
                         color: theme.colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSizes.s10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Penjualan Hari Ini',
+                            DashboardStrings.todaySalesTitle,
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
@@ -97,7 +102,7 @@ class TodaySalesHero extends ConsumerWidget {
                             ),
                           ),
                           Text(
-                            count > 0 ? '$count transaksi dicatat' : 'Belum ada transaksi',
+                            count > 0 ? DashboardStrings.todayTransactionCount(count) : DashboardStrings.todayNoTransactions,
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark ? AppColors.slate400 : AppColors.slate500,
@@ -108,26 +113,26 @@ class TodaySalesHero extends ConsumerWidget {
                     ),
                     if (canViewReports || canViewSales)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s5),
                         decoration: BoxDecoration(
                           color: isDark ? AppColors.slate800 : AppColors.slate100,
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(AppRadius.r20),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              canViewReports ? 'Laporan' : 'Riwayat',
+                              canViewReports ? DashboardStrings.reportLinkLabel : DashboardStrings.historyLinkLabel,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: isDark ? AppColors.slate300 : AppColors.slate700,
                               ),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSizes.s4),
                             Icon(
-                              LucideIcons.arrowUpRight,
-                              size: 13,
+                              AppIcons.arrowUpRight,
+                              size: AppSizes.s13,
                               color: isDark ? AppColors.slate400 : AppColors.slate500,
                             ),
                           ],
@@ -135,7 +140,7 @@ class TodaySalesHero extends ConsumerWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: AppSizes.s14),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
@@ -148,7 +153,7 @@ class TodaySalesHero extends ConsumerWidget {
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSizes.s8),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
@@ -156,7 +161,7 @@ class TodaySalesHero extends ConsumerWidget {
                   children: [
                     if (diff != null) ...[
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s3),
                         decoration: BoxDecoration(
                           color: diff >= 0
                               ? (isDark
@@ -165,21 +170,21 @@ class TodaySalesHero extends ConsumerWidget {
                               : (isDark
                                   ? AppColors.rose500.withValues(alpha: 0.2)
                                   : AppColors.rose500.withValues(alpha: 0.12)),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(AppRadius.r6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
-                              diff >= 0 ? LucideIcons.trendingUp : LucideIcons.trendingDown,
-                              size: 13,
+                              diff >= 0 ? AppIcons.trendingUp : AppIcons.trendingDown,
+                              size: AppSizes.s13,
                               color: diff >= 0
                                   ? (isDark ? AppColors.emerald400 : AppColors.emerald700)
                                   : (isDark ? AppColors.rose500 : AppColors.rose600),
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: AppSizes.s4),
                             Text(
-                              '${diff >= 0 ? '+' : ''}${diff.toStringAsFixed(1)}%',
+                              DashboardStrings.percentChange(diff),
                               style: TextStyle(
                                 color: diff >= 0
                                     ? (isDark ? AppColors.emerald400 : AppColors.emerald700)
@@ -192,7 +197,7 @@ class TodaySalesHero extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        'vs kemarin (${rupiah(yesterday)})',
+                        DashboardStrings.vsYesterday(rupiah(yesterday)),
                         style: TextStyle(
                           color: isDark ? AppColors.slate400 : AppColors.slate500,
                           fontSize: 11,
@@ -200,7 +205,7 @@ class TodaySalesHero extends ConsumerWidget {
                       ),
                     ] else
                       Text(
-                        yesterday > 0 ? 'Kemarin ${rupiah(yesterday)}' : 'Awal periode hari ini',
+                        yesterday > 0 ? DashboardStrings.yesterdayAmount(rupiah(yesterday)) : DashboardStrings.periodStart,
                         style: TextStyle(
                           color: isDark ? AppColors.slate400 : AppColors.slate500,
                           fontSize: 11,
@@ -208,12 +213,12 @@ class TodaySalesHero extends ConsumerWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSizes.s16),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s10),
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.slate950.withValues(alpha: 0.6) : AppColors.slate50,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.r12),
                     border: Border.all(
                       color: isDark ? AppColors.slate800 : AppColors.slate200.withValues(alpha: 0.7),
                     ),
@@ -222,9 +227,9 @@ class TodaySalesHero extends ConsumerWidget {
                     children: [
                       Expanded(
                         child: _MetricSubItem(
-                          label: 'Transaksi',
+                          label: DashboardStrings.metricTransactions,
                           value: '$count',
-                          caption: count > 0 ? 'Selesai' : '-',
+                          caption: count > 0 ? DashboardStrings.metricCompleted : DashboardStrings.metricEmptyValue,
                           isDark: isDark,
                         ),
                       ),
@@ -235,9 +240,9 @@ class TodaySalesHero extends ConsumerWidget {
                       ),
                       Expanded(
                         child: _MetricSubItem(
-                          label: 'Rata-rata/Struk',
+                          label: DashboardStrings.metricAvgTicket,
                           value: count > 0 ? rupiah(avgTicket) : '-',
-                          caption: 'Nilai belanja',
+                          caption: DashboardStrings.metricCartValue,
                           isDark: isDark,
                         ),
                       ),
@@ -249,9 +254,9 @@ class TodaySalesHero extends ConsumerWidget {
                         ),
                         Expanded(
                           child: _MetricSubItem(
-                            label: 'Laba Kotor',
+                            label: DashboardStrings.metricGrossProfit,
                             value: rupiah(profit),
-                            caption: profitMargin != null ? '${profitMargin.toStringAsFixed(0)}% margin' : 'Setelah HPP',
+                            caption: profitMargin != null ? DashboardStrings.marginCaption(profitMargin) : DashboardStrings.afterCogs,
                             isDark: isDark,
                             valueColor: isDark ? AppColors.emerald400 : AppColors.emerald700,
                           ),
@@ -287,7 +292,7 @@ class _MetricSubItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -301,7 +306,7 @@ class _MetricSubItem extends StatelessWidget {
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSizes.s2),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
@@ -315,7 +320,7 @@ class _MetricSubItem extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 1),
+          const SizedBox(height: AppSizes.s1),
           Text(
             caption,
             maxLines: 1,

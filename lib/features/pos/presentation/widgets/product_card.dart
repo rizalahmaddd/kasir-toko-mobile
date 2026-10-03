@@ -3,14 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_fonts.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/app_cached_image.dart';
 import '../../data/pos_models.dart';
 import '../../pos_providers.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class PosProductCard extends ConsumerWidget {
   const PosProductCard({
@@ -19,12 +24,22 @@ class PosProductCard extends ConsumerWidget {
     required this.onTap,
     required this.onLongPress,
     this.inCartQuantity = 0,
+    this.onDecrement,
+    this.onEditQuantity,
+    this.isLarge = false,
+    this.customPhotoHeight,
   });
 
   final Product product;
   final VoidCallback onTap;
   final VoidCallback onLongPress;
   final double inCartQuantity;
+  final VoidCallback? onDecrement;
+  final VoidCallback? onEditQuantity;
+  final bool isLarge;
+  final double? customPhotoHeight;
+
+  bool get isCompact => (customPhotoHeight ?? (isLarge ? 155.0 : 114.0)) < 105.0;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -40,12 +55,15 @@ class PosProductCard extends ConsumerWidget {
 
     final nameInitials = product.name.trim().isNotEmpty
         ? product.name.trim().characters.take(2).toString().toUpperCase()
-        : 'IT';
+        : PosStrings.productInitialsFallback;
+
+    final photoHeight = customPhotoHeight ?? (isLarge ? 155.0 : 114.0);
+    final isCompact = photoHeight < 105.0;
 
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.slate900 : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.r14),
         border: Border.all(
           color: hasInCart
               ? theme.colorScheme.primary
@@ -70,7 +88,7 @@ class PosProductCard extends ConsumerWidget {
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.r14),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: () {
@@ -87,17 +105,17 @@ class PosProductCard extends ConsumerWidget {
               children: [
                 // Product Photo Container
                 SizedBox(
-                  height: 114,
+                  height: photoHeight,
                   width: double.infinity,
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
                       AppCachedImage(
                         imageUrl: product.imageUrl,
-                        height: 114,
+                        height: photoHeight,
                         width: double.infinity,
                         borderRadius: 13,
-                        memCacheWidth: 350,
+                        memCacheWidth: isLarge ? 480 : 350,
                         fallback: _ProductPlaceholder(
                           initials: nameInitials,
                           sku: product.sku,
@@ -110,10 +128,10 @@ class PosProductCard extends ConsumerWidget {
                           top: 6,
                           left: 6,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2_5),
                             decoration: BoxDecoration(
                               color: AppColors.rose500,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppRadius.r6),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black38, blurRadius: 4),
                               ],
@@ -121,10 +139,10 @@ class PosProductCard extends ConsumerWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(LucideIcons.triangleAlert, size: 10, color: Colors.white),
-                                const SizedBox(width: 3),
+                                const Icon(AppIcons.triangleAlert, size: AppSizes.s10, color: Colors.white),
+                                const SizedBox(width: AppSizes.s3),
                                 Text(
-                                  'Stok ${quantity(product.stock)}',
+                                  PosStrings.stockBadge(quantity(product.stock)),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 9.5,
@@ -142,10 +160,10 @@ class PosProductCard extends ConsumerWidget {
                           top: 6,
                           left: 6,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2.5),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2_5),
                             decoration: BoxDecoration(
                               color: AppColors.amber500,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppRadius.r6),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black38, blurRadius: 4),
                               ],
@@ -153,10 +171,10 @@ class PosProductCard extends ConsumerWidget {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(LucideIcons.triangleAlert, size: 10, color: Colors.white),
-                                const SizedBox(width: 3),
+                                const Icon(AppIcons.triangleAlert, size: AppSizes.s10, color: Colors.white),
+                                const SizedBox(width: AppSizes.s3),
                                 Text(
-                                  'Sisa ${quantity(product.stock)}',
+                                  PosStrings.stockLowBadge(quantity(product.stock)),
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 9.5,
@@ -174,16 +192,16 @@ class PosProductCard extends ConsumerWidget {
                           color: Colors.black.withValues(alpha: 0.55),
                           alignment: Alignment.center,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s3_5),
                             decoration: BoxDecoration(
                               color: Colors.red.shade700,
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppRadius.r6),
                               boxShadow: const [
                                 BoxShadow(color: Colors.black38, blurRadius: 4),
                               ],
                             ),
                             child: const Text(
-                              'HABIS',
+                              PosStrings.outOfStockBadge,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 10.5,
@@ -194,32 +212,100 @@ class PosProductCard extends ConsumerWidget {
                           ),
                         ),
 
-                      // Floating in-cart quantity badge
+                      // Floating in-cart quantity stepper / badge
                       if (hasInCart)
                         Positioned(
                           top: 6,
                           right: 6,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: const [
-                                BoxShadow(
-                                  color: Colors.black45,
-                                  blurRadius: 4,
-                                  offset: Offset(0, 1),
-                                ),
-                              ],
-                            ),
-                            child: Text(
-                              '${quantity(inCartQuantity)}×',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
+                          child: Material(
+                            color: theme.colorScheme.primary,
+                            borderRadius: BorderRadius.circular(AppRadius.r12),
+                            elevation: 3,
+                            shadowColor: Colors.black45,
+                            clipBehavior: Clip.antiAlias,
+                            child: onDecrement != null
+                                ? Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Minus or Trash icon button
+                                      InkWell(
+                                        onTap: () {
+                                          unawaited(HapticFeedback.selectionClick());
+                                          onDecrement!();
+                                        },
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: isLarge ? 9 : (isCompact ? 5 : 7),
+                                            vertical: isLarge ? 6 : (isCompact ? 3 : 4),
+                                          ),
+                                          child: Icon(
+                                            inCartQuantity <= 1 ? AppIcons.trash2 : AppIcons.minus,
+                                            size: isLarge ? 15 : (isCompact ? 11 : 13),
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      // Quantity (tappable to edit or delete)
+                                      InkWell(
+                                        onTap: () {
+                                          unawaited(HapticFeedback.selectionClick());
+                                          if (onEditQuantity != null) {
+                                            onEditQuantity!();
+                                          } else {
+                                            onLongPress();
+                                          }
+                                        },
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: isLarge ? 5 : (isCompact ? 3 : 3),
+                                            vertical: isLarge ? 6 : (isCompact ? 3 : 4),
+                                          ),
+                                          child: Text(
+                                            quantity(inCartQuantity),
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: isLarge ? 13 : (isCompact ? 10.5 : 11.5),
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                      // Plus / Add button
+                                      InkWell(
+                                        onTap: () {
+                                          if (!isOutOfStock) {
+                                            unawaited(HapticFeedback.selectionClick());
+                                          }
+                                          onTap();
+                                        },
+                                        child: Padding(
+                                          padding: EdgeInsets.symmetric(
+                                            horizontal: isLarge ? 9 : (isCompact ? 5 : 7),
+                                            vertical: isLarge ? 6 : (isCompact ? 3 : 4),
+                                          ),
+                                          child: Icon(
+                                            AppIcons.plus,
+                                            size: isLarge ? 15 : (isCompact ? 11 : 13),
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  )
+                                : Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: isCompact ? 5 : AppSpacing.s7,
+                                      vertical: isCompact ? 2.5 : AppSpacing.s3,
+                                    ),
+                                    child: Text(
+                                      PosStrings.inCartBadge(quantity(inCartQuantity)),
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: isLarge ? 12 : (isCompact ? 10 : 11),
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
                           ),
                         ),
                     ],
@@ -229,26 +315,31 @@ class PosProductCard extends ConsumerWidget {
                 // Product Details
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(9, 7, 9, 8),
+                    padding: EdgeInsets.fromLTRB(
+                      isCompact ? AppSpacing.s6 : AppSpacing.s9,
+                      isCompact ? AppSpacing.s5 : AppSpacing.s7,
+                      isCompact ? AppSpacing.s6 : AppSpacing.s9,
+                      isCompact ? AppSpacing.s5 : AppSpacing.s8,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Uniform 2-line title slot
                         SizedBox(
-                          height: 34,
+                          height: isLarge ? 36 : (isCompact ? 28 : 34),
                           child: Text(
                             product.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontWeight: FontWeight.w600,
-                              height: 1.25,
-                              fontSize: 12.5,
+                              height: 1.18,
+                              fontSize: isLarge ? 13.5 : (isCompact ? 11.0 : 12.5),
                               color: isDark ? AppColors.slate100 : AppColors.slate800,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 2),
+                        const SizedBox(height: AppSizes.s2),
                         if (product.sku != null && product.sku!.isNotEmpty)
                           Text(
                             product.sku!,
@@ -256,8 +347,8 @@ class PosProductCard extends ConsumerWidget {
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: isDark ? AppColors.slate400 : AppColors.slate500,
-                              fontSize: 10,
-                              fontFamily: 'monospace',
+                              fontSize: isLarge ? 11 : (isCompact ? 8.5 : 10),
+                              fontFamily: AppFonts.monospace,
                             ),
                           ),
                         const Spacer(),
@@ -274,7 +365,7 @@ class PosProductCard extends ConsumerWidget {
                                     child: Text(
                                       rupiah(product.price),
                                       style: AppTypography.money(
-                                        fontSize: 14,
+                                        fontSize: isLarge ? 16 : (isCompact ? 12.0 : 14.0),
                                         fontWeight: FontWeight.w700,
                                         color: theme.colorScheme.primary,
                                       ),
@@ -282,27 +373,27 @@ class PosProductCard extends ConsumerWidget {
                                   ),
                                   if (isOutOfStock)
                                     Text(
-                                      'Habis',
+                                      PosStrings.outOfStockLabel,
                                       style: TextStyle(
-                                        fontSize: 10.5,
+                                        fontSize: isLarge ? 11 : (isCompact ? 9.5 : 10.5),
                                         fontWeight: FontWeight.w700,
                                         color: colors.danger,
                                       ),
                                     )
                                   else if (isNegativeStock)
                                     Text(
-                                      'Stok: ${quantity(product.stock)} ${product.unit}',
+                                      PosStrings.negativeStockLabel(quantity(product.stock), product.unit),
                                       style: TextStyle(
-                                        fontSize: 10.5,
+                                        fontSize: isLarge ? 11 : (isCompact ? 9.5 : 10.5),
                                         fontWeight: FontWeight.w700,
                                         color: colors.danger,
                                       ),
                                     )
                                   else if (product.trackStock)
                                     Text(
-                                      '${quantity(product.stock)} ${product.unit}',
+                                      PosStrings.onHandQuantity(quantity(product.stock), product.unit),
                                       style: AppTypography.quantity(
-                                        fontSize: 10.5,
+                                        fontSize: isLarge ? 11 : (isCompact ? 9.5 : 10.5),
                                         fontWeight: FontWeight.w600,
                                         color: isLowStock ? colors.warning : muted,
                                       ),
@@ -311,8 +402,8 @@ class PosProductCard extends ConsumerWidget {
                               ),
                             ),
                             Container(
-                              width: 26,
-                              height: 26,
+                              width: isLarge ? 32 : (isCompact ? 22 : 26),
+                              height: isLarge ? 32 : (isCompact ? 22 : 26),
                               decoration: BoxDecoration(
                                 color: hasInCart
                                     ? theme.colorScheme.primary
@@ -320,8 +411,8 @@ class PosProductCard extends ConsumerWidget {
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                hasInCart ? LucideIcons.check : LucideIcons.plus,
-                                size: 14,
+                                hasInCart ? AppIcons.check : AppIcons.plus,
+                                size: isLarge ? AppSizes.s16 : (isCompact ? 11 : AppSizes.s14),
                                 color: hasInCart
                                     ? Colors.white
                                     : (isDark ? AppColors.slate300 : AppColors.slate700),
@@ -362,7 +453,7 @@ class _ProductPlaceholder extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: theme.colorScheme.surfaceContainerHigh,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.r10),
               border: Border.all(
                 color: theme.colorScheme.outlineVariant.withValues(alpha: 0.5),
               ),
@@ -378,7 +469,7 @@ class _ProductPlaceholder extends StatelessWidget {
             ),
           ),
           if (sku != null && sku!.isNotEmpty) ...[
-            const SizedBox(height: 5),
+            const SizedBox(height: AppSizes.s5),
             Text(
               sku!,
               maxLines: 1,
@@ -386,7 +477,7 @@ class _ProductPlaceholder extends StatelessWidget {
               style: TextStyle(
                 fontSize: 9.5,
                 color: muted.withValues(alpha: 0.8),
-                fontFamily: 'monospace',
+                fontFamily: AppFonts.monospace,
               ),
             ),
           ],

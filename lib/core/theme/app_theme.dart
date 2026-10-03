@@ -1,57 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../constants/app_fonts.dart';
+import '../constants/status_values.dart';
 import '../storage/app_storage.dart';
+import 'app_colors.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
 
-abstract final class AppColors {
-  static const emerald400 = Color(0xFF34D399);
-  static const emerald500 = Color(0xFF10B981);
-  static const emerald600 = Color(0xFF059669);
-  static const emerald700 = Color(0xFF047857);
-  static const amber500 = Color(0xFFF59E0B);
-  static const amber600 = Color(0xFFD97706);
-  static const rose500 = Color(0xFFF43F5E);
-  static const rose600 = Color(0xFFE11D48);
-  static const sky500 = Color(0xFF0EA5E9);
-  static const sky600 = Color(0xFF0284C7);
-
-  static const slate50 = Color(0xFFF8FAFC);
-  static const slate100 = Color(0xFFF1F5F9);
-  static const slate200 = Color(0xFFE2E8F0);
-  static const slate300 = Color(0xFFCBD5E1);
-  static const slate400 = Color(0xFF94A3B8);
-  static const slate500 = Color(0xFF64748B);
-  static const slate600 = Color(0xFF475569);
-  static const slate700 = Color(0xFF334155);
-  static const slate800 = Color(0xFF1E293B);
-  static const slate900 = Color(0xFF0F172A);
-  static const slate950 = Color(0xFF020617);
-}
-
-/// Semantic colors that Material's ColorScheme has no slot for.
-class StatusColors extends ThemeExtension<StatusColors> {
-  const StatusColors({required this.success, required this.warning, required this.danger, required this.info, required this.muted});
-
-  final Color success;
-  final Color warning;
-  final Color danger;
-  final Color info;
-  final Color muted;
-
-  static StatusColors of(BuildContext context) => Theme.of(context).extension<StatusColors>()!;
-
-  @override
-  StatusColors copyWith({Color? success, Color? warning, Color? danger, Color? info, Color? muted}) => StatusColors(
-        success: success ?? this.success,
-        warning: warning ?? this.warning,
-        danger: danger ?? this.danger,
-        info: info ?? this.info,
-        muted: muted ?? this.muted,
-      );
-
-  @override
-  StatusColors lerp(StatusColors? other, double t) => other == null ? this : t < 0.5 ? this : other;
-}
+export 'app_colors.dart';
 
 abstract final class AppTheme {
   static ThemeData dark() => _build(
@@ -126,9 +83,9 @@ abstract final class AppTheme {
       outlineVariant: border,
     );
 
-    final base = ThemeData(brightness: brightness, colorScheme: scheme, useMaterial3: true, fontFamily: 'Inter');
+    final base = ThemeData(brightness: brightness, colorScheme: scheme, useMaterial3: true, fontFamily: AppFonts.primary);
     final textTheme = base.textTheme.apply(bodyColor: text, displayColor: text);
-    final radius = BorderRadius.circular(10);
+    final radius = BorderRadius.circular(AppRadius.r10);
 
     return base.copyWith(
       scaffoldBackgroundColor: background,
@@ -147,13 +104,13 @@ abstract final class AppTheme {
         color: surface,
         elevation: 0,
         margin: EdgeInsets.zero,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: border)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r12), side: BorderSide(color: border)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: surface,
         isDense: true,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s14),
         border: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: border)),
         enabledBorder: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: border)),
         focusedBorder: OutlineInputBorder(borderRadius: radius, borderSide: BorderSide(color: primary, width: 1.5)),
@@ -179,7 +136,7 @@ abstract final class AppTheme {
       ),
       listTileTheme: ListTileThemeData(
         leadingAndTrailingTextStyle: textTheme.bodyLarge,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 2),
+        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s2),
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
@@ -191,7 +148,7 @@ abstract final class AppTheme {
         backgroundColor: surface,
         selectedColor: primary.withValues(alpha: 0.16),
         side: BorderSide(color: border),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r8)),
         labelStyle: TextStyle(color: text, fontWeight: FontWeight.w500),
       ),
       navigationBarTheme: NavigationBarThemeData(
@@ -221,11 +178,11 @@ abstract final class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: surface,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r16)),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r10)),
       ),
       tabBarTheme: TabBarThemeData(
         indicatorColor: primary,
@@ -268,7 +225,7 @@ abstract final class AppTheme {
         focusElevation: 4,
         hoverElevation: 5,
         highlightElevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r14)),
         extendedTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
       ),
     );
@@ -282,7 +239,7 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
   @override
   ThemeMode build() {
     final saved = ref.read(sharedPreferencesProvider).getString(StorageKeys.themeMode);
-    return saved == 'light' ? ThemeMode.light : ThemeMode.dark;
+    return saved == ThemePreferences.light ? ThemeMode.light : ThemeMode.dark;
   }
 
   Future<void> toggle() async {

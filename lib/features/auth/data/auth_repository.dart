@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_pos_mobile/core/constants/api_endpoints.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/app_storage.dart';
+import 'auth_config.dart';
 import 'current_user.dart';
 
 final authRepositoryProvider = Provider<AuthRepository>(
@@ -35,7 +37,7 @@ class AuthRepository {
     required String password,
     required String deviceName,
   }) async {
-    final body = await _api.post('auth/login', data: {'login': login, 'password': password, 'device_name': deviceName});
+    final body = await _api.post(ApiEndpoints.authLogin, data: {'login': login, 'password': password, 'device_name': deviceName});
     return _storeSession(ApiClient.data(body));
   }
 
@@ -48,7 +50,7 @@ class AuthRepository {
     required String password,
     required String deviceName,
   }) async {
-    final body = await _api.post('auth/register', data: {
+    final body = await _api.post(ApiEndpoints.authRegister, data: {
       'shop_name': shopName,
       'name': name,
       'username': username,
@@ -72,7 +74,7 @@ class AuthRepository {
   }
 
   Future<({String otpToken, String maskedPhone, int cooldown})> sendOtp(String login) async {
-    final data = ApiClient.data(await _api.post('auth/otp/send', data: {'login': login}));
+    final data = ApiClient.data(await _api.post(ApiEndpoints.authOtpSend, data: {'login': login}));
 
     return (
       otpToken: data['otp_token'] as String,
@@ -82,12 +84,57 @@ class AuthRepository {
   }
 
   Future<({String token, CurrentUser user})> verifyOtp({required String otpToken, required String otp, required String deviceName}) async {
-    final body = await _api.post('auth/otp/verify', data: {'otp_token': otpToken, 'otp': otp, 'device_name': deviceName});
+    final body = await _api.post(ApiEndpoints.authOtpVerify, data: {'otp_token': otpToken, 'otp': otp, 'device_name': deviceName});
     return _storeSession(ApiClient.data(body));
   }
 
+  Future<AuthConfig> getAuthConfig() async {
+    try {
+      final body = await _api.get(ApiEndpoints.authConfig);
+      return AuthConfig.fromJson(ApiClient.data(body));
+    } catch (_) {
+      return AuthConfig.empty;
+    }
+  }
+
+  Future<({String token, CurrentUser user})> loginWithGoogle({
+    required String idToken,
+    String? shopName,
+    required String deviceName,
+  }) async {
+    final body = await _api.post(ApiEndpoints.authGoogle, data: {
+      'id_token': idToken,
+      if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
+      'device_name': deviceName,
+    });
+    return _storeSession(ApiClient.data(body));
+  }
+
+  Future<({String token, CurrentUser user})> loginWithApple({
+    required String identityToken,
+    String? name,
+    String? shopName,
+    required String deviceName,
+  }) async {
+    final body = await _api.post(ApiEndpoints.authApple, data: {
+      'identity_token': identityToken,
+      if (name != null && name.isNotEmpty) 'name': name,
+      if (shopName != null && shopName.isNotEmpty) 'shop_name': shopName,
+      'device_name': deviceName,
+    });
+    return _storeSession(ApiClient.data(body));
+  }
+
+  Future<void> deleteAccount() async {
+    try {
+      await _api.delete(ApiEndpoints.authAccount);
+    } finally {
+      await clear();
+    }
+  }
+
   Future<CurrentUser> updateProfile({required String name, required String username, required String email, String? phone}) async {
-    final body = await _api.put('auth/profile', data: {'name': name, 'username': username, 'email': email, 'phone': phone});
+    final body = await _api.put(ApiEndpoints.authProfile, data: {'name': name, 'username': username, 'email': email, 'phone': phone});
     final user = CurrentUser.fromJson(ApiClient.data(body));
     await cacheUser(user);
 
@@ -96,20 +143,20 @@ class AuthRepository {
 
   Future<void> updatePassword({required String current, required String password, required bool revokeOthers}) =>
       _api.put(
-        'auth/password',
+        ApiEndpoints.authPassword,
         data: {'current_password': current, 'password': password, 'password_confirmation': password, 'revoke_other_tokens': revokeOthers},
       );
 
   Future<void> logoutAll() async {
     try {
-      await _api.post('auth/logout-all');
+      await _api.post(ApiEndpoints.authLogoutAll);
     } finally {
       await clear();
     }
   }
 
   Future<CurrentUser> me() async {
-    final user = CurrentUser.fromJson(ApiClient.data(await _api.get('auth/me')));
+    final user = CurrentUser.fromJson(ApiClient.data(await _api.get(ApiEndpoints.authMe)));
     await cacheUser(user);
 
     return user;
@@ -117,7 +164,7 @@ class AuthRepository {
 
   Future<void> logout() async {
     try {
-      await _api.post('auth/logout');
+      await _api.post(ApiEndpoints.authLogout);
     } finally {
       await clear();
     }

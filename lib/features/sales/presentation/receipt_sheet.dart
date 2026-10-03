@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:web_pos_mobile/core/constants/app_fonts.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
@@ -13,6 +15,8 @@ import '../../printing/presentation/printer_screen.dart';
 import '../../printing/printer.dart';
 import '../data/sale_models.dart';
 import '../data/sales_repository.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 final receiptProvider = AsyncNotifierProvider.autoDispose.family<ReceiptNotifier, Receipt, int>(ReceiptNotifier.new);
 
@@ -31,7 +35,7 @@ Future<void> openWhatsApp(BuildContext context, String? url) async {
   final opened = uri != null && await launchUrl(uri, mode: LaunchMode.externalApplication);
 
   if (!opened && context.mounted) {
-    showMessage(context, 'WhatsApp tidak bisa dibuka di perangkat ini.', isError: true);
+    showMessage(context, SalesStrings.whatsappUnavailable, isError: true);
   }
 }
 
@@ -103,22 +107,22 @@ class ReceiptSheet extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BottomSheetHeader(
-            title: 'Struk Pembelian',
+            title: SalesStrings.receiptTitle,
             subtitle: receipt.number,
             actions: [
               IconButton(
-                tooltip: 'Salin Teks',
-                icon: const Icon(LucideIcons.copy, size: 18),
+                tooltip: SalesStrings.copyTextTooltip,
+                icon: const Icon(AppIcons.copy, size: AppSizes.s18),
                 onPressed: () {
                   Clipboard.setData(ClipboardData(text: receipt.text));
-                  showMessage(context, 'Teks struk berhasil disalin');
+                  showMessage(context, SalesStrings.receiptCopied);
                 },
               ),
             ],
           ),
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s20, vertical: AppSpacing.s8),
               child: Center(
                 child: PhysicalShape(
                   clipper: const ReceiptClipper(teethSize: 6),
@@ -127,17 +131,17 @@ class ReceiptSheet extends ConsumerWidget {
                   shadowColor: Colors.black.withValues(alpha: 0.15),
                   child: Container(
                     width: receipt.paperWidth == '80' ? 380 : 310,
-                    padding: const EdgeInsets.fromLTRB(18, 22, 18, 22),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.s18, AppSpacing.s22, AppSpacing.s18, AppSpacing.s22),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(LucideIcons.receipt, size: 15, color: AppColors.slate500),
-                            SizedBox(width: 6),
+                            Icon(AppIcons.receipt, size: AppSizes.s15, color: AppColors.slate500),
+                            SizedBox(width: AppSizes.s6),
                             Text(
-                              'BUKTI PEMBAYARAN',
+                              SalesStrings.proofOfPayment,
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -147,7 +151,7 @@ class ReceiptSheet extends ConsumerWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSizes.s12),
                         _FormattedReceiptView(text: receipt.text),
                       ],
                     ),
@@ -157,38 +161,38 @@ class ReceiptSheet extends ConsumerWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s12, AppSpacing.s16, AppSpacing.s16),
             child: Row(
               children: [
                 if (printerConfigured) ...[
                   IconButton.filledTonal(
-                    tooltip: 'Cetak Struk',
-                    icon: const Icon(LucideIcons.printer, size: 18),
+                    tooltip: SalesStrings.printReceipt,
+                    icon: const Icon(AppIcons.printer, size: AppSizes.s18),
                     onPressed: () => runPrint(
                       context,
                       () => ref.read(printerServiceProvider).printSale(saleId),
-                      success: 'Struk dicetak.',
+                      success: SalesStrings.receiptPrinted,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSizes.s8),
                 ],
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => SharePlus.instance.share(ShareParams(text: receipt.text, subject: 'Struk ${receipt.number}')),
-                    icon: const Icon(LucideIcons.share2, size: 18),
-                    label: const Text('Bagikan'),
+                    onPressed: () => SharePlus.instance.share(ShareParams(text: receipt.text, subject: SalesStrings.receiptShareSubject(receipt.number))),
+                    icon: const Icon(AppIcons.share2, size: AppSizes.s18),
+                    label: const Text(SalesStrings.share),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 Expanded(
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF25D366),
+                      backgroundColor: AppColors.whatsappGreen,
                       foregroundColor: Colors.white,
                     ),
                     onPressed: () => openWhatsApp(context, receipt.whatsappUrl),
-                    icon: const Icon(LucideIcons.messageCircle, size: 18),
-                    label: const Text('WhatsApp'),
+                    icon: const Icon(AppIcons.messageCircle, size: AppSizes.s18),
+                    label: const Text(SalesStrings.whatsapp),
                   ),
                 ),
               ],
@@ -212,7 +216,7 @@ class _ReceiptDivider extends StatelessWidget {
         const dashSpace = 3.0;
         final dashCount = (boxWidth / (dashWidth + dashSpace)).floor().clamp(5, 100);
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: List.generate(dashCount, (_) {
@@ -220,7 +224,7 @@ class _ReceiptDivider extends StatelessWidget {
                 width: dashWidth,
                 height: 1,
                 child: DecoratedBox(
-                  decoration: BoxDecoration(color: Color(0xFFCBD5E1)),
+                  decoration: BoxDecoration(color: AppColors.slate300),
                 ),
               );
             }),
@@ -262,20 +266,20 @@ class _FormattedReceiptView extends StatelessWidget {
         inHeader = false;
         final clean = line.replaceAll('*', '');
         final colonIdx = clean.indexOf(':');
-        final label = colonIdx != -1 ? clean.substring(0, colonIdx).trim() : 'TOTAL';
+        final label = colonIdx != -1 ? clean.substring(0, colonIdx).trim() : SalesStrings.totalFallback;
         final amount = colonIdx != -1 ? clean.substring(colonIdx + 1).trim() : clean;
 
         widgets.add(
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   label.toUpperCase(),
                   style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontFamilyFallback: ['Menlo', 'Courier'],
+                    fontFamily: AppFonts.monospace,
+                    fontFamilyFallback: AppFonts.monospaceFallback,
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                     color: AppColors.slate900,
@@ -284,8 +288,8 @@ class _FormattedReceiptView extends StatelessWidget {
                 Text(
                   amount,
                   style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontFamilyFallback: ['Menlo', 'Courier'],
+                    fontFamily: AppFonts.monospace,
+                    fontFamilyFallback: AppFonts.monospaceFallback,
                     fontSize: 14,
                     fontWeight: FontWeight.w800,
                     color: AppColors.slate900,
@@ -302,13 +306,13 @@ class _FormattedReceiptView extends StatelessWidget {
       if (line.contains(' · ')) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 4),
+            padding: const EdgeInsets.only(bottom: AppSpacing.s4),
             child: Text(
               line,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'monospace',
-                fontFamilyFallback: ['Menlo', 'Courier'],
+                fontFamily: AppFonts.monospace,
+                fontFamilyFallback: AppFonts.monospaceFallback,
                 fontSize: 11,
                 color: AppColors.slate600,
               ),
@@ -323,13 +327,13 @@ class _FormattedReceiptView extends StatelessWidget {
         final storeName = line.replaceAll('*', '');
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 3),
+            padding: const EdgeInsets.only(bottom: AppSpacing.s3),
             child: Text(
               storeName,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'monospace',
-                fontFamilyFallback: ['Menlo', 'Courier'],
+                fontFamily: AppFonts.monospace,
+                fontFamilyFallback: AppFonts.monospaceFallback,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
                 color: AppColors.slate900,
@@ -350,16 +354,16 @@ class _FormattedReceiptView extends StatelessWidget {
 
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.only(bottom: AppSpacing.s6),
             child: Row(
               children: [
                 Padding(
-                  padding: const EdgeInsets.only(left: 6),
+                  padding: const EdgeInsets.only(left: AppSpacing.s6),
                   child: Text(
                     formula,
                     style: const TextStyle(
-                      fontFamily: 'monospace',
-                      fontFamilyFallback: ['Menlo', 'Courier'],
+                      fontFamily: AppFonts.monospace,
+                      fontFamilyFallback: AppFonts.monospaceFallback,
                       fontSize: 12,
                       color: AppColors.slate600,
                     ),
@@ -369,8 +373,8 @@ class _FormattedReceiptView extends StatelessWidget {
                 Text(
                   itemTotal,
                   style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontFamilyFallback: ['Menlo', 'Courier'],
+                    fontFamily: AppFonts.monospace,
+                    fontFamilyFallback: AppFonts.monospaceFallback,
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: AppColors.slate900,
@@ -389,27 +393,27 @@ class _FormattedReceiptView extends StatelessWidget {
         final discountAmount = line.replaceFirst('Diskon', '').trim();
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(left: 6, bottom: 6),
+            padding: const EdgeInsets.only(left: AppSpacing.s6, bottom: AppSpacing.s6),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
-                  'Diskon item',
+                  SalesStrings.itemDiscountLabel,
                   style: TextStyle(
-                    fontFamily: 'monospace',
-                    fontFamilyFallback: ['Menlo', 'Courier'],
+                    fontFamily: AppFonts.monospace,
+                    fontFamilyFallback: AppFonts.monospaceFallback,
                     fontSize: 11,
-                    color: Color(0xFFDC2626),
+                    color: AppColors.red600,
                   ),
                 ),
                 Text(
                   discountAmount,
                   style: const TextStyle(
-                    fontFamily: 'monospace',
-                    fontFamilyFallback: ['Menlo', 'Courier'],
+                    fontFamily: AppFonts.monospace,
+                    fontFamilyFallback: AppFonts.monospaceFallback,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFFDC2626),
+                    color: AppColors.red600,
                   ),
                 ),
               ],
@@ -435,31 +439,31 @@ class _FormattedReceiptView extends StatelessWidget {
 
         widgets.add(
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 2.5),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2_5),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
                   label,
                   style: TextStyle(
-                    fontFamily: 'monospace',
+                    fontFamily: AppFonts.monospace,
                     fontFamilyFallback: const ['Menlo', 'Courier'],
                     fontSize: 12,
                     fontWeight: isSubtotal ? FontWeight.w600 : FontWeight.w500,
-                    color: isDiscount ? const Color(0xFFDC2626) : AppColors.slate700,
+                    color: isDiscount ? AppColors.red600 : AppColors.slate700,
                   ),
                 ),
                 Text(
                   value,
                   style: TextStyle(
-                    fontFamily: 'monospace',
+                    fontFamily: AppFonts.monospace,
                     fontFamilyFallback: const ['Menlo', 'Courier'],
                     fontSize: 12,
                     fontWeight: isSubtotal ? FontWeight.w600 : FontWeight.w700,
                     color: isDiscount
-                        ? const Color(0xFFDC2626)
+                        ? AppColors.red600
                         : isDue
-                            ? const Color(0xFFDC2626)
+                            ? AppColors.red600
                             : AppColors.slate900,
                   ),
                 ),
@@ -474,13 +478,13 @@ class _FormattedReceiptView extends StatelessWidget {
       if (summarySeen) {
         widgets.add(
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3),
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s3),
             child: Text(
               line,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontFamily: 'monospace',
-                fontFamilyFallback: ['Menlo', 'Courier'],
+                fontFamily: AppFonts.monospace,
+                fontFamilyFallback: AppFonts.monospaceFallback,
                 fontSize: 11,
                 fontStyle: FontStyle.italic,
                 color: AppColors.slate600,
@@ -495,12 +499,12 @@ class _FormattedReceiptView extends StatelessWidget {
       inHeader = false;
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 2),
+          padding: const EdgeInsets.only(top: AppSpacing.s4, bottom: AppSpacing.s2),
           child: Text(
             line,
             style: const TextStyle(
-              fontFamily: 'monospace',
-              fontFamilyFallback: ['Menlo', 'Courier'],
+              fontFamily: AppFonts.monospace,
+              fontFamilyFallback: AppFonts.monospaceFallback,
               fontSize: 12,
               fontWeight: FontWeight.w700,
               color: AppColors.slate900,

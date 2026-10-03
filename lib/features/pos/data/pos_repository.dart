@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/api_endpoints.dart';
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/offline/offline_cache.dart';
@@ -34,7 +36,7 @@ class PosRepository {
 
   Future<PosConfig> config() => _orOffline(
         () async {
-          final data = ApiClient.data(await _api.get('pos/config'));
+          final data = ApiClient.data(await _api.get(ApiEndpoints.posConfig));
           await _cache.put('pos_config', data);
           return PosConfig.fromJson(data);
         },
@@ -54,14 +56,14 @@ class PosRepository {
     if (allowCredit != null) payload['allow_credit'] = allowCredit;
     if (autoPrint != null) payload['auto_print'] = autoPrint;
 
-    final data = ApiClient.data(await _api.patch('pos/settings', data: payload));
+    final data = ApiClient.data(await _api.patch(ApiEndpoints.posSettings, data: payload));
     await _cache.put('pos_config', data);
     return PosConfig.fromJson(data);
   }
 
   Future<List<Category>> categories() => _orOffline(
         () async {
-          final list = ApiClient.list(await _api.get('pos/categories'));
+          final list = ApiClient.list(await _api.get(ApiEndpoints.posCategories));
           await _cache.put('pos_categories', list);
           return list.map(Category.fromJson).toList();
         },
@@ -70,7 +72,7 @@ class PosRepository {
 
   Future<Paginated<Product>> products({String? search, int? categoryId, int page = 1}) => _orOffline(
         () async {
-          final body = await _api.get('pos/products', query: {'search': search, 'category_id': categoryId, 'page': page, 'per_page': 48});
+          final body = await _api.get(ApiEndpoints.posProducts, query: {'search': search, 'category_id': categoryId, 'page': page, 'per_page': 48});
           return Paginated.fromJson(body, Product.fromJson);
         },
         () async => (await _snapshot())?.search(term: search, categoryId: categoryId, page: page),
@@ -78,28 +80,28 @@ class PosRepository {
 
   /// Fresh price & stock for a restored cart. Products missing from the result were deleted or disabled.
   Future<List<Product>> productsByIds(Iterable<int> ids) => _orOffline(
-        () async => Paginated.fromJson(await _api.get('pos/products', query: {'ids': ids.join(',')}), Product.fromJson).items,
+        () async => Paginated.fromJson(await _api.get(ApiEndpoints.posProducts, query: {'ids': ids.join(',')}), Product.fromJson).items,
         () async => (await _snapshot())?.byIds(ids),
       );
 
   Future<Product> lookup(String code) => _orOffline(
-        () async => Product.fromJson(ApiClient.data(await _api.get('pos/products/lookup', query: {'code': code}))),
+        () async => Product.fromJson(ApiClient.data(await _api.get(ApiEndpoints.posProductsLookup, query: {'code': code}))),
         () async {
           final snapshot = await _snapshot();
           if (snapshot == null) {
             return null;
           }
-          return snapshot.lookup(code) ?? (throw ApiException(message: 'Kode $code tidak ditemukan.', statusCode: 404));
+          return snapshot.lookup(code) ?? (throw ApiException(message: PosStrings.codeNotFound(code), statusCode: 404));
         },
       );
 
   Future<List<CustomerOption>> customers(String search) async =>
-      ApiClient.list(await _api.get('pos/customers', query: {'search': search})).map(CustomerOption.fromJson).toList();
+      ApiClient.list(await _api.get(ApiEndpoints.posCustomers, query: {'search': search})).map(CustomerOption.fromJson).toList();
 
   Future<CustomerOption> createCustomer({required String name, String? phone}) async =>
-      CustomerOption.fromJson(ApiClient.data(await _api.post('pos/customers', data: {'name': name, 'phone': phone})));
+      CustomerOption.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posCustomers, data: {'name': name, 'phone': phone})));
 
-  Future<QrisPayment> qris(int amount) async => QrisPayment.fromJson(ApiClient.data(await _api.get('pos/qris', query: {'amount': amount})));
+  Future<QrisPayment> qris(int amount) async => QrisPayment.fromJson(ApiClient.data(await _api.get(ApiEndpoints.posQris, query: {'amount': amount})));
 
   static Map<String, dynamic> checkoutPayload({required Cart cart, required List<PaymentLine> payments, required int expectedTotal}) => {
         'client_uuid': cart.clientUuid,
@@ -113,17 +115,17 @@ class PosRepository {
       };
 
   /// Safe to repeat: the server returns the existing sale for a `client_uuid` it has already stored.
-  Future<SaleDetail> submitCheckout(Map<String, dynamic> payload) async => SaleDetail.fromJson(ApiClient.data(await _api.post('pos/checkout', data: payload)));
+  Future<SaleDetail> submitCheckout(Map<String, dynamic> payload) async => SaleDetail.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posCheckout, data: payload)));
 
   Future<SaleDetail> checkout({required Cart cart, required List<PaymentLine> payments, required int expectedTotal}) =>
       submitCheckout(checkoutPayload(cart: cart, payments: payments, expectedTotal: expectedTotal));
 
-  Future<List<HeldOrder>> heldOrders() async => ApiClient.list(await _api.get('pos/held-orders')).map(HeldOrder.fromJson).toList();
+  Future<List<HeldOrder>> heldOrders() async => ApiClient.list(await _api.get(ApiEndpoints.posHeldOrders)).map(HeldOrder.fromJson).toList();
 
   Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label}) async =>
-      HeldOrder.fromJson(ApiClient.data(await _api.post('pos/held-orders', data: {'label': label, 'cart': cart.toJson(total: total)})));
+      HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrders, data: {'label': label, 'cart': cart.toJson(total: total)})));
 
-  Future<HeldOrder> resumeHeldOrder(int id) async => HeldOrder.fromJson(ApiClient.data(await _api.post('pos/held-orders/$id/resume')));
+  Future<HeldOrder> resumeHeldOrder(int id) async => HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrderResume(id))));
 
-  Future<void> deleteHeldOrder(int id) => _api.delete('pos/held-orders/$id');
+  Future<void> deleteHeldOrder(int id) => _api.delete(ApiEndpoints.posHeldOrder(id));
 }

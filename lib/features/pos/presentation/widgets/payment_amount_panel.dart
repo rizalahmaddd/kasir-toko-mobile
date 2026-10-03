@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/utils/formatters.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class PaymentAmountPanel extends StatelessWidget {
   const PaymentAmountPanel({
@@ -20,10 +24,10 @@ class PaymentAmountPanel extends StatelessWidget {
     final isDark = theme.brightness == Brightness.dark;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s18, vertical: AppSpacing.s16),
       decoration: BoxDecoration(
         color: isDark ? AppColors.slate900 : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.r16),
         border: Border.all(
           color: isDark ? AppColors.slate800 : AppColors.slate200,
         ),
@@ -41,7 +45,7 @@ class PaymentAmountPanel extends StatelessWidget {
           Row(
             children: [
               Text(
-                remaining == null ? 'Total tagihan' : 'Sisa tagihan',
+                remaining == null ? PosStrings.totalBillLabel : PosStrings.remainingBillLabel,
                 style: TextStyle(
                   color: isDark ? AppColors.slate400 : AppColors.slate500,
                   fontSize: 13,
@@ -51,7 +55,7 @@ class PaymentAmountPanel extends StatelessWidget {
               const Spacer(),
               if (remaining != null)
                 Text(
-                  'dari ${rupiah(total)}',
+                  PosStrings.ofTotal(rupiah(total)),
                   style: TextStyle(
                     color: isDark ? AppColors.slate400 : AppColors.slate500,
                     fontSize: 12,
@@ -60,7 +64,7 @@ class PaymentAmountPanel extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSizes.s6),
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,

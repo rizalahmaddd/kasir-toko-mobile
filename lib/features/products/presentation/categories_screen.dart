@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/paging/paged.dart';
 import '../../../core/theme/app_theme.dart';
@@ -13,6 +14,9 @@ import '../../auth/auth_controller.dart';
 import '../data/product_models.dart';
 import '../data/products_repository.dart';
 import '../products_providers.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class CategoriesScreen extends ConsumerWidget {
   const CategoriesScreen({super.key});
@@ -23,24 +27,24 @@ class CategoriesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SearchableAppBar(
-        title: const Text('Kategori'),
-        hint: 'Cari kategori',
+        title: const Text(ProductStrings.labelCategory),
+        hint: ProductStrings.searchCategoryHint,
         initialSearch: ref.watch(categoriesSearchProvider),
         onSearchChanged: ref.read(categoriesSearchProvider.notifier).set,
       ),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
               onPressed: () => FormSheet.show<void>(context, const _CategorySheet()),
-              icon: const Icon(LucideIcons.plus),
-              label: const Text('Kategori'),
+              icon: const Icon(AppIcons.plus),
+              label: const Text(ProductStrings.labelCategory),
             )
           : null,
       body: PagedListView(
         value: ref.watch(categoriesProvider),
         onLoadMore: () => ref.read(categoriesProvider.notifier).loadMore(),
         onRefresh: () => ref.refresh(categoriesProvider.future),
-        padding: const EdgeInsets.fromLTRB(0, 4, 0, 96),
-        empty: const EmptyState(icon: LucideIcons.tags, title: 'Belum ada kategori'),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.s0, AppSpacing.s4, AppSpacing.s0, AppSpacing.s96),
+        empty: const EmptyState(icon: AppIcons.tags, title: ProductStrings.emptyCategoriesTitle),
         itemBuilder: (context, category) => _CategoryCard(
           category: category,
           canManage: canManage,
@@ -65,12 +69,12 @@ class _CategoryCard extends StatelessWidget {
     final muted = theme.colorScheme.onSurfaceVariant;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -84,22 +88,22 @@ class _CategoryCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
             child: Row(
               children: [
                 Container(
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F766E).withValues(alpha: 0.3) : const Color(0xFFCCFBF1),
-                    borderRadius: BorderRadius.circular(10),
+                    color: isDark ? AppColors.teal700.withValues(alpha: 0.3) : AppColors.teal100,
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
-                  child: const Icon(LucideIcons.tag, size: 18, color: Color(0xFF0D9488)),
+                  child: const Icon(AppIcons.tag, size: AppSizes.s18, color: AppColors.teal600),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.s12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,21 +119,21 @@ class _CategoryCard extends StatelessWidget {
                             ),
                           ),
                           if (!category.isActive) ...[
-                            const SizedBox(width: 6),
-                            const StatusBadge(label: 'Nonaktif'),
+                            const SizedBox(width: AppSizes.s6),
+                            const StatusBadge(label: ProductStrings.statusInactive),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: AppSizes.s3),
                       Text(
-                        '${category.productsCount ?? 0} produk · Urutan ${category.sortOrder}',
+                        ProductStrings.categoryStatsLabel(category.productsCount ?? 0, category.sortOrder),
                         style: TextStyle(color: muted, fontSize: 12),
                       ),
                     ],
                   ),
                 ),
                 if (canManage)
-                  const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.slate400),
+                  const Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
               ],
             ),
           ),
@@ -194,9 +198,9 @@ class _CategorySheetState extends ConsumerState<_CategorySheet> {
     final category = widget.category!;
     final ok = await confirmAction(
       context,
-      title: 'Hapus kategori?',
-      message: 'Kategori ${category.name} akan dihapus.',
-      confirmLabel: 'Hapus',
+      title: ProductStrings.categoryDeleteConfirmTitle,
+      message: ProductStrings.categoryDeleteMessage(category.name),
+      confirmLabel: ProductStrings.categoryDeleteConfirmAction,
       danger: true,
     );
     if (!ok) {
@@ -219,30 +223,30 @@ class _CategorySheetState extends ConsumerState<_CategorySheet> {
     final generalError = _error != null && _error!.fieldErrors.isEmpty ? _error!.message : null;
 
     return FormSheet(
-      title: widget.category == null ? 'Kategori baru' : 'Ubah kategori',
+      title: widget.category == null ? ProductStrings.categorySheetNew : ProductStrings.categorySheetEdit,
       children: [
         TextField(
           controller: _name,
           autofocus: widget.category == null,
           textCapitalization: TextCapitalization.words,
-          decoration: InputDecoration(labelText: 'Nama kategori', errorText: _error?.fieldError('name')),
+          decoration: InputDecoration(labelText: ProductStrings.fieldCategoryName, errorText: _error?.fieldError('name')),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSizes.s12),
         TextField(
           controller: _order,
           keyboardType: TextInputType.number,
           onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-          decoration: InputDecoration(labelText: 'Urutan tampil', helperText: 'Angka kecil tampil lebih dulu di kasir.', errorText: _error?.fieldError('sort_order')),
+          decoration: InputDecoration(labelText: ProductStrings.fieldSortOrder, helperText: ProductStrings.helperSortOrder, errorText: _error?.fieldError('sort_order')),
         ),
-        AppSwitchListTile(contentPadding: EdgeInsets.zero, title: const Text('Aktif'), value: _active, onChanged: (value) => setState(() => _active = value)),
+        AppSwitchListTile(contentPadding: EdgeInsets.zero, title: const Text(ProductStrings.statusActive), value: _active, onChanged: (value) => setState(() => _active = value)),
         if (generalError != null) Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),
-        const SizedBox(height: 8),
-        FilledButton(onPressed: _busy ? null : _save, child: const Text('Simpan')),
+        const SizedBox(height: AppSizes.s8),
+        FilledButton(onPressed: _busy ? null : _save, child: const Text(ProductStrings.labelSave)),
         if (widget.category != null)
           TextButton(
             onPressed: _busy ? null : _delete,
             style: TextButton.styleFrom(foregroundColor: StatusColors.of(context).danger),
-            child: const Text('Hapus kategori'),
+            child: const Text(ProductStrings.actionDeleteCategory),
           ),
       ],
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
@@ -10,8 +12,13 @@ import '../../../core/widgets/state_views.dart';
 import '../../data_changes.dart';
 import '../data/product_models.dart';
 import '../data/products_repository.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
-const _titles = {'stock_in': 'Stok masuk', 'stock_out': 'Stok keluar', 'opname': 'Stok opname'};
+const _titles = {
+  MovementTypes.stockIn: ProductStrings.adjustTitleStockIn,
+  MovementTypes.stockOut: ProductStrings.adjustTitleStockOut,
+  MovementTypes.opname: ProductStrings.adjustTitleOpname,
+};
 
 class StockAdjustSheet extends ConsumerStatefulWidget {
   const StockAdjustSheet({super.key, required this.product, required this.type});
@@ -34,7 +41,7 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
   bool _busy = false;
   ApiException? _error;
 
-  bool get _isOpname => widget.type == 'opname';
+  bool get _isOpname => widget.type == MovementTypes.opname;
 
   @override
   void dispose() {
@@ -47,7 +54,7 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
   Future<void> _save() async {
     final quantity = parseQuantity(_quantity.text);
     if (quantity == null) {
-      setState(() => _error = ApiException(message: 'Isi jumlah dengan angka.'));
+      setState(() => _error = ApiException(message: ProductStrings.validationQuantityNumber));
       return;
     }
 
@@ -61,13 +68,13 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
             productId: widget.product.id,
             type: widget.type,
             quantity: quantity,
-            unitCost: widget.type == 'stock_in' && _cost.text.isNotEmpty ? parseRupiah(_cost.text) : null,
+            unitCost: widget.type == MovementTypes.stockIn && _cost.text.isNotEmpty ? parseRupiah(_cost.text) : null,
             note: _note.text.trim().isEmpty ? null : _note.text.trim(),
           );
       ref.read(dataChangesProvider).after({DataChange.products});
       if (mounted) {
         Navigator.pop(context, true);
-        showMessage(context, '${_titles[widget.type]} ${widget.product.name} dicatat.');
+        showMessage(context, ProductStrings.stockAdjustRecordedMessage(_titles[widget.type]!, widget.product.name));
       }
     } on ApiException catch (error) {
       setState(() => _error = error);
@@ -85,15 +92,15 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
     final after = typed == null
         ? null
         : switch (widget.type) {
-            'stock_in' => product.stock + typed,
-            'stock_out' => product.stock - typed,
+            MovementTypes.stockIn => product.stock + typed,
+            MovementTypes.stockOut => product.stock - typed,
             _ => typed,
           };
     final generalError = _error != null && _error!.fieldErrors.isEmpty ? _error!.message : null;
 
     return FormSheet(
       title: _titles[widget.type]!,
-      subtitle: '${product.name} · stok sekarang ${quantity(product.stock)} ${product.unit}',
+      subtitle: ProductStrings.stockAdjustSubtitle(product.name, quantity(product.stock), product.unit),
       children: [
         TextField(
           controller: _quantity,
@@ -102,39 +109,39 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
           onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
           onChanged: (_) => setState(() {}),
           decoration: InputDecoration(
-            labelText: _isOpname ? 'Stok fisik hasil hitung' : 'Jumlah',
+            labelText: _isOpname ? ProductStrings.fieldPhysicalStock : ProductStrings.fieldQuantity,
             suffixText: product.unit,
             errorText: _error?.fieldError('quantity'),
           ),
         ),
         if (after != null) ...[
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSizes.s6),
           Text(
-            'Stok setelahnya: ${quantity(after)} ${product.unit}',
+            ProductStrings.stockAfterLabel(quantity(after), product.unit),
             style: TextStyle(color: after < 0 ? StatusColors.of(context).danger : Theme.of(context).colorScheme.onSurfaceVariant),
           ),
         ],
-        if (widget.type == 'stock_in') ...[
-          const SizedBox(height: 12),
-          MoneyField(controller: _cost, label: 'Harga beli per ${product.unit} (opsional)', errorText: _error?.fieldError('unit_cost')),
+        if (widget.type == MovementTypes.stockIn) ...[
+          const SizedBox(height: AppSizes.s12),
+          MoneyField(controller: _cost, label: ProductStrings.unitCostField(product.unit), errorText: _error?.fieldError('unit_cost')),
         ],
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSizes.s12),
         TextField(
           controller: _note,
           maxLength: 255,
           decoration: InputDecoration(
-            labelText: widget.type == 'stock_out' ? 'Alasan' : 'Catatan (opsional)',
+            labelText: widget.type == MovementTypes.stockOut ? ProductStrings.fieldReason : ProductStrings.fieldNoteOptional,
             hintText: switch (widget.type) {
-              'stock_in' => 'mis. kiriman supplier',
-              'stock_out' => 'mis. rusak, kedaluwarsa, dipakai sendiri',
-              _ => 'mis. hitung ulang akhir bulan',
+              MovementTypes.stockIn => ProductStrings.hintAdjustStockIn,
+              MovementTypes.stockOut => ProductStrings.hintAdjustStockOut,
+              _ => ProductStrings.hintAdjustOpname,
             },
             errorText: _error?.fieldError('note'),
           ),
         ),
         if (generalError != null) Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),
-        const SizedBox(height: 8),
-        FilledButton(onPressed: _busy ? null : _save, child: const Text('Simpan')),
+        const SizedBox(height: AppSizes.s8),
+        FilledButton(onPressed: _busy ? null : _save, child: const Text(ProductStrings.labelSave)),
       ],
     );
   }

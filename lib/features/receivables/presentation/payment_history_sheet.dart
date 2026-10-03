@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -10,6 +12,9 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../sales/data/sale_models.dart';
 import '../../sales/sales_controller.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class PaymentHistorySheet extends ConsumerWidget {
   const PaymentHistorySheet({
@@ -59,12 +64,12 @@ class PaymentHistorySheet extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               BottomSheetHeader(
-                title: 'Riwayat Pembayaran',
-                subtitle: '$number${customerName != null ? ' · $customerName' : ''}',
+                title: ReceivableStrings.paymentHistoryTitle,
+                subtitle: ReceivableStrings.paymentHistorySubtitle(number, customerName),
               ),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s4, AppSpacing.s20, AppSpacing.s24),
                   child: saleAsync.when(
                     loading: () => const SalesListSkeleton(
                       itemCount: 3,
@@ -85,12 +90,12 @@ class PaymentHistorySheet extends ConsumerWidget {
                         children: [
                           // Financial Summary Card
                           Container(
-                            padding: const EdgeInsets.all(14),
+                            padding: const EdgeInsets.all(AppSpacing.s14),
                             decoration: BoxDecoration(
-                              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                              borderRadius: BorderRadius.circular(14),
+                              color: isDark ? AppColors.slate900 : AppColors.slate50,
+                              borderRadius: BorderRadius.circular(AppRadius.r14),
                               border: Border.all(
-                                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                                color: isDark ? AppColors.slate700 : AppColors.slate200,
                               ),
                             ),
                             child: Column(
@@ -98,18 +103,18 @@ class PaymentHistorySheet extends ConsumerWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Total Tagihan', style: TextStyle(fontSize: 12.5, color: muted)),
+                                    Text(ReceivableStrings.totalBill, style: TextStyle(fontSize: 12.5, color: muted)),
                                     Text(
                                       rupiah(sale.total),
                                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: AppSizes.s6),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text('Sudah Dibayar', style: TextStyle(fontSize: 12.5, color: muted)),
+                                    Text(ReceivableStrings.alreadyPaid, style: TextStyle(fontSize: 12.5, color: muted)),
                                     Text(
                                       rupiah(sale.paidAmount),
                                       style: TextStyle(
@@ -121,14 +126,14 @@ class PaymentHistorySheet extends ConsumerWidget {
                                   ],
                                 ),
                                 const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8),
+                                  padding: EdgeInsets.symmetric(vertical: AppSpacing.s8),
                                   child: Divider(height: 1),
                                 ),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Sisa Kasbon',
+                                      ReceivableStrings.remainingCredit,
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w700,
@@ -136,7 +141,7 @@ class PaymentHistorySheet extends ConsumerWidget {
                                       ),
                                     ),
                                     Text(
-                                      sale.dueAmount > 0 ? rupiah(sale.dueAmount) : 'Lunas',
+                                      sale.dueAmount > 0 ? rupiah(sale.dueAmount) : ReceivableStrings.paidOff,
                                       style: AppTypography.money(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w800,
@@ -149,23 +154,23 @@ class PaymentHistorySheet extends ConsumerWidget {
                             ),
                           ),
 
-                          const SizedBox(height: 18),
-                          SectionTitle('Semua Transaksi Masuk (${payments.length})'),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: AppSizes.s18),
+                          SectionTitle(ReceivableStrings.allIncomingTransactions(payments.length)),
+                          const SizedBox(height: AppSizes.s6),
 
                           if (payments.isEmpty)
                             const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 24),
+                              padding: EdgeInsets.symmetric(vertical: AppSpacing.s24),
                               child: EmptyState(
-                                icon: LucideIcons.receiptText,
-                                title: 'Belum ada pembayaran',
-                                description: 'Belum ada catatan pembayaran yang tercatat pada kasbon ini.',
+                                icon: AppIcons.receiptText,
+                                title: ReceivableStrings.noPaymentsTitle,
+                                description: ReceivableStrings.noPaymentsDescription,
                               ),
                             )
                           else
                             for (final payment in payments) ...[
                               _PaymentTile(payment: payment),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: AppSizes.s8),
                             ],
                         ],
                       );
@@ -194,21 +199,21 @@ class _PaymentTile extends StatelessWidget {
     final muted = theme.colorScheme.onSurfaceVariant;
 
     final (icon, iconBg, iconColor) = switch (payment.method.toLowerCase()) {
-      'cash' => (LucideIcons.banknote, const Color(0xFF10B981).withValues(alpha: 0.12), const Color(0xFF059669)),
-      'qris' => (LucideIcons.qrCode, const Color(0xFF0D9488).withValues(alpha: 0.12), const Color(0xFF0D9488)),
-      'transfer' => (LucideIcons.arrowLeftRight, const Color(0xFF3B82F6).withValues(alpha: 0.12), const Color(0xFF2563EB)),
-      _ => (LucideIcons.creditCard, const Color(0xFF8B5CF6).withValues(alpha: 0.12), const Color(0xFF7C3AED)),
+      PaymentMethods.cash => (AppIcons.banknote, AppColors.emerald500.withValues(alpha: 0.12), AppColors.emerald600),
+      PaymentMethods.qris => (AppIcons.qrCode, AppColors.teal600.withValues(alpha: 0.12), AppColors.teal600),
+      PaymentMethods.transfer => (AppIcons.arrowLeftRight, AppColors.blue500.withValues(alpha: 0.12), AppColors.blue600),
+      _ => (AppIcons.creditCard, AppColors.violet500.withValues(alpha: 0.12), AppColors.violet600),
     };
 
-    final isInitial = payment.kind == 'sale';
+    final isInitial = payment.kind == PaymentKinds.sale;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.s12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
       ),
       child: Row(
@@ -216,14 +221,14 @@ class _PaymentTile extends StatelessWidget {
         children: [
           // Method icon badge
           Container(
-            padding: const EdgeInsets.all(9),
+            padding: const EdgeInsets.all(AppSpacing.s9),
             decoration: BoxDecoration(
               color: iconBg,
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.r10),
             ),
-            child: Icon(icon, size: 18, color: iconColor),
+            child: Icon(icon, size: AppSizes.s18, color: iconColor),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSizes.s12),
 
           // Detail info
           Expanded(
@@ -236,42 +241,42 @@ class _PaymentTile extends StatelessWidget {
                       payment.methodLabel,
                       style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSizes.s6),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
                       decoration: BoxDecoration(
                         color: isInitial
-                            ? (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9))
-                            : const Color(0xFF10B981).withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(4),
+                            ? (isDark ? AppColors.slate700 : AppColors.slate100)
+                            : AppColors.emerald500.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(AppRadius.r4),
                       ),
                       child: Text(
-                        isInitial ? 'Pembayaran Awal' : 'Pelunasan',
+                        isInitial ? ReceivableStrings.initialPayment : ReceivableStrings.settlement,
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w700,
-                          color: isInitial ? muted : const Color(0xFF059669),
+                          color: isInitial ? muted : AppColors.emerald600,
                         ),
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: AppSizes.s3),
                 Text(
                   dateTime(payment.paidAt),
                   style: TextStyle(fontSize: 11.5, color: muted),
                 ),
                 if (payment.reference != null && payment.reference!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSizes.s2),
                   Text(
-                    'Ref: ${payment.reference}',
+                    ReceivableStrings.referencePrefix('${payment.reference}'),
                     style: TextStyle(fontSize: 11, color: muted, fontStyle: FontStyle.italic),
                   ),
                 ],
                 if (payment.cashierName != null && payment.cashierName!.isNotEmpty) ...[
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSizes.s2),
                   Text(
-                    'Penerima: ${payment.cashierName}',
+                    ReceivableStrings.receivedBy('${payment.cashierName}'),
                     style: TextStyle(fontSize: 11, color: muted),
                   ),
                 ],

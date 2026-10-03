@@ -4,8 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
+
+import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/responsive.dart';
@@ -14,23 +18,34 @@ import '../../../core/widgets/state_views.dart';
 import '../../../router.dart';
 import '../../auth/auth_controller.dart';
 import '../onboarding.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 const _icons = {
-  'store': LucideIcons.store,
-  'shopping-basket': LucideIcons.shoppingBasket,
-  'coffee': LucideIcons.coffee,
-  'utensils-crossed': LucideIcons.utensilsCrossed,
-  'shirt': LucideIcons.shirt,
-  'hammer': LucideIcons.hammer,
-  'smartphone': LucideIcons.smartphone,
-  'pill': LucideIcons.pill,
-  'croissant': LucideIcons.croissant,
-  'package': LucideIcons.package,
+  'store': AppIcons.store,
+  'shopping-basket': AppIcons.shoppingBasket,
+  'coffee': AppIcons.coffee,
+  'utensils-crossed': AppIcons.utensilsCrossed,
+  'shirt': AppIcons.shirt,
+  'hammer': AppIcons.hammer,
+  'smartphone': AppIcons.smartphone,
+  'pill': AppIcons.pill,
+  'croissant': AppIcons.croissant,
+  'package': AppIcons.package,
 };
 
-const _paymentLabels = {'cash': 'Tunai', 'qris': 'QRIS', 'transfer': 'Transfer', 'card': 'Kartu'};
+const _paymentLabels = {
+  PaymentMethods.cash: OnboardingStrings.paymentLabelCash,
+  PaymentMethods.qris: OnboardingStrings.paymentLabelQris,
+  PaymentMethods.transfer: OnboardingStrings.paymentLabelTransfer,
+  PaymentMethods.card: OnboardingStrings.paymentLabelCard,
+};
 
-const _featureLabels = {'pos.receivables': 'Piutang (kasbon)', 'pos.customer-display': 'Layar pelanggan'};
+const _featureLabels = {
+  'pos.receivables': OnboardingStrings.featureLabelReceivables,
+  'pos.customer-display': OnboardingStrings.featureLabelCustomerDisplay,
+};
 
 /// Store-type picker shown to a new shop owner, and reachable from the menu to re-apply a preset
 /// while the shop has no sales yet.
@@ -47,7 +62,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   bool _includeSamples = true;
   bool _taxEnabled = false;
   double _taxRate = 11.0;
-  String _taxLabel = 'PPN';
+  String _taxLabel = OnboardingStrings.taxDefaultLabel;
   bool _allowCredit = true;
   bool _allowNegativeStock = false;
   bool _busy = false;
@@ -59,7 +74,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _includeSamples = preset.sampleProductCount > 0;
       _taxEnabled = preset.settings.taxEnabled;
       _taxRate = preset.settings.taxRate;
-      _taxLabel = preset.settings.taxLabel.isNotEmpty ? preset.settings.taxLabel : 'PPN';
+      _taxLabel = preset.settings.taxLabel.isNotEmpty ? preset.settings.taxLabel : OnboardingStrings.taxDefaultLabel;
       _allowCredit = preset.settings.allowCredit;
       _allowNegativeStock = preset.settings.allowNegativeStock;
     });
@@ -74,7 +89,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       }
       final user = ref.read(currentUserProvider);
       showMessage(context, message);
-      context.go(user == null ? '/login' : homeFor(user));
+      context.go(user == null ? AppRoutes.login : homeFor(user));
     } on Object catch (error) {
       if (mounted) {
         setState(() => _busy = false);
@@ -85,7 +100,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
 
   void _apply(StorePreset preset) {
     if (_selectedCategories.isEmpty) {
-      showMessage(context, 'Pilih minimal 1 kategori untuk toko Anda.', isError: true);
+      showMessage(context, OnboardingStrings.selectCategoryMin, isError: true);
       return;
     }
 
@@ -103,17 +118,17 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
             },
           );
       final parts = [
-        '${result.categoriesCreated} kategori',
-        if (_includeSamples && result.productsCreated > 0) '${result.productsCreated} produk contoh',
+        OnboardingStrings.categoriesCreated(result.categoriesCreated),
+        if (_includeSamples && result.productsCreated > 0) OnboardingStrings.sampleProductsCreated(result.productsCreated),
       ];
-      final skipped = result.productsSkipped > 0 ? ' ${result.productsSkipped} produk dilewati karena batas paket.' : '';
-      return 'Preset ${preset.label} diterapkan: ${parts.join(' dan ')} dibuat.$skipped';
+      final skipped = result.productsSkipped > 0 ? ' ${OnboardingStrings.productsSkipped(result.productsSkipped)}' : '';
+      return OnboardingStrings.presetApplied(preset.label, parts.join(OnboardingStrings.createdJoin), skipped);
     });
   }
 
   void _skip() => _run(() async {
         await ref.read(onboardingActionsProvider).skip();
-        return 'Toko siap dipakai. Tambahkan kategori dan produk kapan saja.';
+        return OnboardingStrings.skipMessage;
       });
 
   @override
@@ -133,18 +148,18 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
           automaticallyImplyLeading: false,
           leading: selected != null
               ? IconButton(
-                  icon: const Icon(LucideIcons.arrowLeft),
+                  icon: const Icon(AppIcons.arrowLeft),
                   onPressed: _busy ? null : () => setState(() => _selected = null),
                 )
               : firstRun
                   ? null
                   : const BackButton(),
-          title: Text(selected == null ? 'Pilih Jenis Toko' : selected.label),
+          title: Text(selected == null ? OnboardingStrings.titlePicker : selected.label),
           actions: [
             if (firstRun && selected == null)
               TextButton(
                 onPressed: _busy ? null : () => ref.read(authControllerProvider.notifier).logout(),
-                child: const Text('Keluar'),
+                child: const Text(OnboardingStrings.logout),
               ),
           ],
         ),
@@ -222,22 +237,18 @@ class _PresetPicker extends ConsumerWidget {
         child: CustomScrollView(
           slivers: [
             SliverPadding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s12, AppSpacing.s16, AppSpacing.s16),
               sliver: SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      firstRun
-                          ? 'Pilih jenis usaha Anda untuk memulai'
-                          : 'Ubah atau terapkan preset jenis toko baru',
+                      firstRun ? OnboardingStrings.pickerHeadingFirstRun : OnboardingStrings.pickerHeadingChange,
                       style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: AppSizes.s4),
                     Text(
-                      firstRun
-                          ? 'Kategori, produk contoh, dan pengaturan kasir akan disesuaikan dengan jenis toko Anda. Anda tetap bisa memilih kategori dan mengubah pengaturannya.'
-                          : 'Terapkan preset lain selama toko belum punya transaksi. Data yang sudah ada tidak akan dihapus.',
+                      firstRun ? OnboardingStrings.pickerSubtitleFirstRun : OnboardingStrings.pickerSubtitleChange,
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
@@ -245,7 +256,7 @@ class _PresetPicker extends ConsumerWidget {
               ),
             ),
             SliverPadding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
               sliver: SliverGrid.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: columns,
@@ -262,18 +273,18 @@ class _PresetPicker extends ConsumerWidget {
             ),
             if (firstRun)
               SliverPadding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(AppSpacing.s16),
                 sliver: SliverToBoxAdapter(
                   child: OutlinedButton(
                     style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     onPressed: busy ? null : onSkip,
                     child: busy
-                        ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Text('Lewati, mulai dari kosong'),
+                        ? const SizedBox.square(dimension: AppSizes.s16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Text(OnboardingStrings.skipButton),
                   ),
                 ),
               ),
-            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            const SliverToBoxAdapter(child: SizedBox(height: AppSizes.s24)),
           ],
         ),
       ),
@@ -298,7 +309,7 @@ class _PresetCard extends ConsumerWidget {
       clipBehavior: Clip.antiAlias,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.r14),
         side: BorderSide(
           color: current
               ? theme.colorScheme.primary
@@ -309,7 +320,7 @@ class _PresetCard extends ConsumerWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppSpacing.s14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -322,27 +333,27 @@ class _PresetCard extends ConsumerWidget {
                       color: current
                           ? theme.colorScheme.primary.withValues(alpha: 0.15)
                           : (isDark ? AppColors.slate800 : AppColors.slate100),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
                     ),
                     child: Icon(
-                      _icons[preset.icon] ?? LucideIcons.store,
-                      size: 22,
+                      _icons[preset.icon] ?? AppIcons.store,
+                      size: AppSizes.s22,
                       color: theme.colorScheme.primary,
                     ),
                   ),
                   const Spacer(),
                   if (current)
-                    const StatusBadge(label: 'Dipakai', tone: BadgeTone.info),
+                    const StatusBadge(label: OnboardingStrings.inUseBadge, tone: BadgeTone.info),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSizes.s12),
               Text(
                 preset.label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSizes.s4),
               Expanded(
                 child: Text(
                   preset.description,
@@ -463,7 +474,7 @@ class _PresetPreviewState extends State<_PresetPreview> {
       children: [
         Expanded(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s16),
             child: MaxWidth(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -472,7 +483,7 @@ class _PresetPreviewState extends State<_PresetPreview> {
                   Card(
                     margin: EdgeInsets.zero,
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(AppSpacing.s14),
                       child: Row(
                         children: [
                           Container(
@@ -480,17 +491,17 @@ class _PresetPreviewState extends State<_PresetPreview> {
                             height: 44,
                             decoration: BoxDecoration(
                               color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(AppRadius.r12),
                             ),
-                            child: Icon(_icons[preset.icon] ?? LucideIcons.store, size: 24, color: theme.colorScheme.primary),
+                            child: Icon(_icons[preset.icon] ?? AppIcons.store, size: AppSizes.s24, color: theme.colorScheme.primary),
                           ),
-                          const SizedBox(width: 12),
+                          const SizedBox(width: AppSizes.s12),
                           Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(preset.label, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
-                                const SizedBox(height: 2),
+                                const SizedBox(height: AppSizes.s2),
                                 Text(
                                   preset.description,
                                   style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
@@ -503,14 +514,14 @@ class _PresetPreviewState extends State<_PresetPreview> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSizes.s16),
 
                   // Section 1: Categories
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Kategori Produk (${selectedCategories.length}/${preset.categories.length})',
+                        OnboardingStrings.categoriesSection(selectedCategories.length, preset.categories.length),
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: theme.colorScheme.primary,
@@ -520,33 +531,33 @@ class _PresetPreviewState extends State<_PresetPreview> {
                         children: [
                           TextButton(
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s4),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: busy ? null : widget.onSelectAllCategories,
-                            child: const Text('Pilih Semua', style: TextStyle(fontSize: 12)),
+                            child: const Text(OnboardingStrings.selectAll, style: TextStyle(fontSize: 12)),
                           ),
                           const Text(' · ', style: TextStyle(color: Colors.grey)),
                           TextButton(
                             style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s4),
                               minimumSize: Size.zero,
                               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
                             onPressed: busy ? null : widget.onClearAllCategories,
-                            child: const Text('Batal Semua', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                            child: const Text(OnboardingStrings.clearAll, style: TextStyle(fontSize: 12, color: Colors.grey)),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSizes.s8),
 
                   Card(
                     margin: EdgeInsets.zero,
                     child: Padding(
-                      padding: const EdgeInsets.all(14),
+                      padding: const EdgeInsets.all(AppSpacing.s14),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -562,14 +573,14 @@ class _PresetPreviewState extends State<_PresetPreview> {
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: AppSizes.s10),
                           Row(
                             children: [
-                              Icon(LucideIcons.info, size: 14, color: theme.colorScheme.onSurfaceVariant),
-                              const SizedBox(width: 6),
+                              Icon(AppIcons.info, size: AppSizes.s14, color: theme.colorScheme.onSurfaceVariant),
+                              const SizedBox(width: AppSizes.s6),
                               Expanded(
                                 child: Text(
-                                  'Uncheck kategori yang tidak diinginkan. Hanya kategori yang dicentang yang akan dibuat.',
+                                  OnboardingStrings.categoriesHint,
                                   style: TextStyle(
                                     fontSize: 11,
                                     color: theme.colorScheme.onSurfaceVariant,
@@ -585,14 +596,14 @@ class _PresetPreviewState extends State<_PresetPreview> {
                               value: includeSamples,
                               onChanged: busy ? null : widget.onIncludeSamplesChanged,
                               secondary: Icon(
-                                LucideIcons.package,
+                                AppIcons.package,
                                 color: includeSamples ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                               ),
-                              title: const Text('Sertakan produk contoh', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                              title: const Text(OnboardingStrings.includeSamplesTitle, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
                               subtitle: Text(
                                 selectedCategories.length < preset.categories.length
-                                    ? 'Hanya produk contoh untuk ${selectedCategories.length} kategori yang dipilih.'
-                                    : '${preset.sampleProductCount} produk contoh dengan harga modal & jual awal.',
+                                    ? OnboardingStrings.includeSamplesSubtitlePartial(selectedCategories.length)
+                                    : OnboardingStrings.includeSamplesSubtitle(preset.sampleProductCount),
                                 style: const TextStyle(fontSize: 11.5),
                               ),
                             ),
@@ -602,38 +613,38 @@ class _PresetPreviewState extends State<_PresetPreview> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSizes.s16),
 
                   // Section 2: Customizable POS Settings
                   Row(
                     children: [
                       Text(
-                        'Pengaturan Kasir',
+                        OnboardingStrings.settingsSection,
                         style: theme.textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w700,
                           color: theme.colorScheme.primary,
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSizes.s8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(6),
+                          borderRadius: BorderRadius.circular(AppRadius.r6),
                         ),
                         child: Text(
-                          'Fleksibel',
+                          OnboardingStrings.settingsFlexibleBadge,
                           style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: theme.colorScheme.primary),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSizes.s8),
 
                   Card(
                     margin: EdgeInsets.zero,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
                       child: Column(
                         children: [
                           // Tax Switch
@@ -641,15 +652,15 @@ class _PresetPreviewState extends State<_PresetPreview> {
                             value: taxEnabled,
                             onChanged: busy ? null : widget.onTaxEnabledChanged,
                             secondary: Icon(
-                              LucideIcons.receipt,
+                              AppIcons.receipt,
                               color: taxEnabled ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                             ),
                             title: Row(
                               children: [
-                                const Text('Pajak', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                                const SizedBox(width: 6),
+                                const Text(OnboardingStrings.taxTitle, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                                const SizedBox(width: AppSizes.s6),
                                 Text(
-                                  taxEnabled ? '$taxLabel ${quantity(taxRate)}%' : 'Tidak ada',
+                                  taxEnabled ? OnboardingStrings.taxSummary(taxLabel, quantity(taxRate)) : OnboardingStrings.taxNone,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -658,15 +669,15 @@ class _PresetPreviewState extends State<_PresetPreview> {
                                 ),
                               ],
                             ),
-                            subtitle: const Text('Aktifkan pungutan pajak otomatis di struk kasir.', style: TextStyle(fontSize: 11.5)),
+                            subtitle: const Text(OnboardingStrings.taxSubtitle, style: TextStyle(fontSize: 11.5)),
                           ),
                           if (taxEnabled)
                             Padding(
-                              padding: const EdgeInsets.only(left: 44, bottom: 8),
+                              padding: const EdgeInsets.only(left: AppSpacing.s44, bottom: AppSpacing.s8),
                               child: Row(
                                 children: [
-                                  const Text('Tarif Pajak:', style: TextStyle(fontSize: 12)),
-                                  const SizedBox(width: 8),
+                                  const Text(OnboardingStrings.taxRateLabel, style: TextStyle(fontSize: 12)),
+                                  const SizedBox(width: AppSizes.s8),
                                   SizedBox(
                                     width: 72,
                                     height: 34,
@@ -676,10 +687,10 @@ class _PresetPreviewState extends State<_PresetPreview> {
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                                       decoration: InputDecoration(
-                                        contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s8),
                                         suffixText: '%',
                                         isDense: true,
-                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadius.r8)),
                                       ),
                                       onSubmitted: (val) {
                                         final parsed = double.tryParse(val.replaceAll(',', '.'));
@@ -699,11 +710,11 @@ class _PresetPreviewState extends State<_PresetPreview> {
                             value: allowCredit,
                             onChanged: busy ? null : widget.onAllowCreditChanged,
                             secondary: Icon(
-                              LucideIcons.handCoins,
+                              AppIcons.handCoins,
                               color: allowCredit ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                             ),
-                            title: const Text('Bolehkan kasbon (piutang)', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                            subtitle: const Text('Izinkan metode bayar kasbon/tempo untuk pelanggan.', style: TextStyle(fontSize: 11.5)),
+                            title: const Text(OnboardingStrings.creditTitle, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                            subtitle: const Text(OnboardingStrings.creditSubtitle, style: TextStyle(fontSize: 11.5)),
                           ),
                           const Divider(height: 12),
 
@@ -712,22 +723,22 @@ class _PresetPreviewState extends State<_PresetPreview> {
                             value: allowNegativeStock,
                             onChanged: busy ? null : widget.onAllowNegativeStockChanged,
                             secondary: Icon(
-                              LucideIcons.packageMinus,
+                              AppIcons.packageMinus,
                               color: allowNegativeStock ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                             ),
-                            title: const Text('Jual saat stok habis / minus', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
-                            subtitle: const Text('Bolehkan transaksi saat stok sistem 0 atau minus.', style: TextStyle(fontSize: 11.5)),
+                            title: const Text(OnboardingStrings.negativeStockTitle, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+                            subtitle: const Text(OnboardingStrings.negativeStockSubtitle, style: TextStyle(fontSize: 11.5)),
                           ),
                           const Divider(height: 12),
 
                           // Summary of other settings
                           Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
                             child: Column(
                               children: [
-                                InfoRow('Metode bayar', settings.paymentMethods.map((m) => _paymentLabels[m] ?? m).join(', ')),
-                                InfoRow('Uang cepat', settings.quickCash.map(thousands).join(' · ')),
-                                InfoRow('Footer struk', settings.receiptFooter.isEmpty ? '-' : settings.receiptFooter),
+                                InfoRow(OnboardingStrings.paymentMethodLabel, settings.paymentMethods.map((m) => _paymentLabels[m] ?? m).join(', ')),
+                                InfoRow(OnboardingStrings.quickCashLabel, settings.quickCash.map(thousands).join(' · ')),
+                                InfoRow(OnboardingStrings.receiptFooterLabel, settings.receiptFooter.isEmpty ? '-' : settings.receiptFooter),
                               ],
                             ),
                           ),
@@ -736,34 +747,34 @@ class _PresetPreviewState extends State<_PresetPreview> {
                     ),
                   ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSizes.s16),
 
                   // Section 3: Disabled Features (if any)
                   if (preset.disabledFeatures.isNotEmpty) ...[
                     Text(
-                      'Modul yang Dimatikan',
+                      OnboardingStrings.disabledModulesTitle,
                       style: theme.textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w700,
                         color: theme.colorScheme.primary,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    const SizedBox(height: AppSizes.s6),
                     Text(
                       preset.disabledFeatures.map((f) => _featureLabels[f] ?? f).join(', '),
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
                   ],
 
                   if (!firstRun) ...[
                     Text(
-                      'Catatan: Menerapkan preset akan memperbarui pengaturan kasir toko Anda.',
+                      OnboardingStrings.applyNote,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
                   ],
                 ],
               ),
@@ -773,7 +784,7 @@ class _PresetPreviewState extends State<_PresetPreview> {
 
         // Bottom Action Button
         Container(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s12, AppSpacing.s16, AppSpacing.s16),
           decoration: BoxDecoration(
             color: isDark ? AppColors.slate900 : Colors.white,
             border: Border(
@@ -787,10 +798,10 @@ class _PresetPreviewState extends State<_PresetPreview> {
               style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
               onPressed: busy || selectedCategories.isEmpty ? null : widget.onApply,
               icon: busy
-                  ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Icon(LucideIcons.check, size: 18),
+                  ? const SizedBox.square(dimension: AppSizes.s16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(AppIcons.check, size: AppSizes.s18),
               label: const Text(
-                'Terapkan',
+                OnboardingStrings.applyButton,
                 style: TextStyle(fontWeight: FontWeight.bold),
               ),
             ),
@@ -821,17 +832,17 @@ class _CategoryChip extends StatelessWidget {
       color: isSelected
           ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.2 : 0.12)
           : (isDark ? AppColors.slate800.withValues(alpha: 0.6) : AppColors.slate100),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(AppRadius.r10),
       child: InkWell(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(AppRadius.r10),
         onTap: () {
           unawaited(HapticFeedback.selectionClick());
           onTap?.call();
         },
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s7),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.r10),
             border: Border.all(
               color: isSelected
                   ? theme.colorScheme.primary.withValues(alpha: 0.6)
@@ -843,11 +854,11 @@ class _CategoryChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                isSelected ? LucideIcons.check : LucideIcons.plus,
-                size: 14,
+                isSelected ? AppIcons.check : AppIcons.plus,
+                size: AppSizes.s14,
                 color: isSelected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: AppSizes.s6),
               Text(
                 category,
                 style: TextStyle(

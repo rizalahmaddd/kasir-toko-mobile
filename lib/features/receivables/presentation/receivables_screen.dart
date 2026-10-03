@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/paging/paged.dart';
 import '../../../core/theme/app_theme.dart';
@@ -14,6 +16,9 @@ import '../../sales/data/sale_models.dart';
 import '../receivables.dart';
 import 'payment_history_sheet.dart';
 import 'receivable_payment_sheet.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class ReceivablesScreen extends ConsumerWidget {
   const ReceivablesScreen({super.key});
@@ -26,8 +31,8 @@ class ReceivablesScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SearchableAppBar(
-        title: const Text('Piutang (kasbon)'),
-        hint: 'No. transaksi, nama, atau HP pelanggan',
+        title: const Text(ReceivableStrings.receivablesTitle),
+        hint: ReceivableStrings.receivablesSearchHint,
         initialSearch: ref.watch(receivablesSearchProvider),
         onSearchChanged: ref.read(receivablesSearchProvider.notifier).set,
       ),
@@ -36,24 +41,24 @@ class ReceivablesScreen extends ConsumerWidget {
         onLoadMore: () => ref.read(receivablesProvider.notifier).loadMore(),
         onRefresh: () => ref.refresh(receivablesProvider.future),
         header: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
           child: IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: StatTile(label: 'Total belum lunas', value: rupiah(asInt(meta['total_due'])), color: colors.warning, icon: LucideIcons.handCoins),
+                  child: StatTile(label: ReceivableStrings.totalOutstanding, value: rupiah(asInt(meta['total_due'])), color: colors.warning, icon: AppIcons.handCoins),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 Expanded(
-                  child: StatTile(label: 'Pelanggan', value: '${asInt(meta['customer_count'])}', icon: LucideIcons.users),
+                  child: StatTile(label: ReceivableStrings.customerLabel, value: '${asInt(meta['customer_count'])}', icon: AppIcons.users),
                 ),
               ],
             ),
           ),
         ),
-        empty: const EmptyState(icon: LucideIcons.handCoins, title: 'Tidak ada kasbon', description: 'Semua kasbon sudah lunas.'),
-        padding: const EdgeInsets.only(bottom: 96),
+        empty: const EmptyState(icon: AppIcons.handCoins, title: ReceivableStrings.noReceivablesTitle, description: ReceivableStrings.noReceivablesDescription),
+        padding: const EdgeInsets.only(bottom: AppSpacing.s96),
         itemBuilder: (context, sale) => _ReceivableCard(sale: sale),
       ),
     );
@@ -74,12 +79,12 @@ class _ReceivableCard extends StatelessWidget {
     final age = DateTime.now().difference(sale.soldAt).inDays;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s5),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r14),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -93,35 +98,35 @@ class _ReceivableCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => context.push('/sale/${sale.id}'),
+          borderRadius: BorderRadius.circular(AppRadius.r14),
+          onTap: () => context.push(AppRoutes.saleDetail(sale.id)),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppSpacing.s14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(AppSpacing.s8),
                       decoration: BoxDecoration(
                         color: colors.warning.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadius.r8),
                       ),
-                      child: Icon(LucideIcons.user, size: 16, color: colors.warning),
+                      child: Icon(AppIcons.user, size: AppSizes.s16, color: colors.warning),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: AppSizes.s10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            sale.customer?.name ?? 'Tanpa Nama',
+                            sale.customer?.name ?? ReceivableStrings.unnamedCustomer,
                             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: AppSizes.s2),
                           Row(
                             children: [
                               Text(
@@ -132,7 +137,7 @@ class _ReceivableCard extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
-                              Text(' · ', style: TextStyle(color: muted, fontSize: 12)),
+                              Text(ReceivableStrings.metaSeparator, style: TextStyle(color: muted, fontSize: 12)),
                               Text(
                                 dateOnly(sale.soldAt),
                                 style: TextStyle(fontSize: 12, color: muted),
@@ -143,15 +148,15 @@ class _ReceivableCard extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s3),
                       decoration: BoxDecoration(
                         color: age > 14
                             ? colors.danger.withValues(alpha: 0.1)
-                            : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
-                        borderRadius: BorderRadius.circular(6),
+                            : (isDark ? AppColors.slate700 : AppColors.slate100),
+                        borderRadius: BorderRadius.circular(AppRadius.r6),
                       ),
                       child: Text(
-                        age == 0 ? 'Hari ini' : '$age hari',
+                        age == 0 ? ReceivableStrings.today : ReceivableStrings.daysAgo(age),
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
@@ -161,12 +166,12 @@ class _ReceivableCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSizes.s12),
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.all(AppSpacing.s10),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(10),
+                    color: isDark ? AppColors.slate900 : AppColors.slate50,
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
                   child: Row(
                     children: [
@@ -174,8 +179,8 @@ class _ReceivableCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Sisa Kasbon', style: TextStyle(fontSize: 11, color: muted)),
-                            const SizedBox(height: 2),
+                            Text(ReceivableStrings.remainingCredit, style: TextStyle(fontSize: 11, color: muted)),
+                            const SizedBox(height: AppSizes.s2),
                             Text(
                               rupiah(sale.dueAmount),
                               style: AppTypography.money(
@@ -191,21 +196,21 @@ class _ReceivableCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           Text(
-                            'Total ${rupiah(sale.total)}',
+                            ReceivableStrings.totalAmount(rupiah(sale.total)),
                             style: TextStyle(fontSize: 11, color: muted),
                           ),
-                          const SizedBox(height: 2),
+                          const SizedBox(height: AppSizes.s2),
                           Text(
-                            'Dibayar ${rupiah(sale.paidAmount)}',
+                            ReceivableStrings.paidAmount(rupiah(sale.paidAmount)),
                             style: TextStyle(fontSize: 11, color: muted),
                           ),
                         ],
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: AppSizes.s8),
                       IconButton(
                         visualDensity: VisualDensity.compact,
-                        tooltip: 'Riwayat pembayaran',
-                        icon: const Icon(LucideIcons.history, size: 16),
+                        tooltip: ReceivableStrings.paymentHistoryTooltip,
+                        icon: const Icon(AppIcons.history, size: AppSizes.s16),
                         onPressed: () => PaymentHistorySheet.show(
                           context,
                           saleId: sale.id,
@@ -213,13 +218,13 @@ class _ReceivableCard extends StatelessWidget {
                           customerName: sale.customer?.name,
                         ),
                       ),
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSizes.s4),
                       SizedBox(
                         height: 32,
                         child: FilledButton.tonal(
                           style: FilledButton.styleFrom(
                             minimumSize: const Size(0, 32),
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14),
                             visualDensity: VisualDensity.compact,
                           ),
                           onPressed: () => ReceivablePaymentSheet.show(
@@ -232,9 +237,9 @@ class _ReceivableCard extends StatelessWidget {
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(LucideIcons.handCoins, size: 14),
-                              SizedBox(width: 6),
-                              Text('Bayar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                              Icon(AppIcons.handCoins, size: AppSizes.s14),
+                              SizedBox(width: AppSizes.s6),
+                              Text(ReceivableStrings.payButton, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                             ],
                           ),
                         ),

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -17,8 +19,11 @@ import '../data/product_models.dart';
 import '../data/products_repository.dart';
 import '../products_providers.dart';
 import 'product_widgets.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
-const _units = ['pcs', 'btl', 'bks', 'kg', 'gr', 'ltr', 'dus', 'pak', 'sachet', 'kaleng', 'karung', 'lusin'];
+const _units = ProductStrings.unitOptions;
 
 /// Loads the product first when editing, so the form always starts from server values.
 class ProductFormScreen extends ConsumerWidget {
@@ -37,14 +42,14 @@ class ProductFormScreen extends ConsumerWidget {
     return product.when(
       data: (product) => _ProductForm(product: product),
       error: (error, _) => Scaffold(
-        appBar: AppBar(title: const Text('Ubah Produk')),
+        appBar: AppBar(title: const Text(ProductStrings.titleEditProduct)),
         body: ErrorState(
           error: error,
           onRetry: () => ref.invalidate(productDetailProvider(productId!)),
         ),
       ),
       loading: () => Scaffold(
-        appBar: AppBar(title: const Text('Memuat Produk...')),
+        appBar: AppBar(title: const Text(ProductStrings.titleLoadingProduct)),
         body: const DefaultListSkeleton(itemCount: 6),
       ),
     );
@@ -113,7 +118,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
 
     final sellingPrice = parseRupiah(_price.text);
     if (sellingPrice <= 0) {
-      showMessage(context, 'Harga jual produk wajib diisi.');
+      showMessage(context, ProductStrings.validationSellingPriceRequired);
       return;
     }
 
@@ -140,9 +145,9 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       final saved = await ref.read(productsRepositoryProvider).saveProduct(input, id: _p?.id);
       ref.read(dataChangesProvider).after({DataChange.products});
       if (mounted) {
-        showMessage(context, _isNew ? '${saved.name} berhasil ditambahkan.' : 'Perubahan berhasil disimpan.');
+        showMessage(context, _isNew ? ProductStrings.productAddedMessage(saved.name) : ProductStrings.messageProductUpdated);
         if (_isNew) {
-          context.pushReplacement('/product/${saved.id}');
+          context.pushReplacement(AppRoutes.productDetail(saved.id));
         } else {
           context.pop();
         }
@@ -167,7 +172,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isNew ? 'Tambah Produk Baru' : 'Ubah Produk'),
+        title: Text(_isNew ? ProductStrings.titleNewProduct : ProductStrings.titleEditProduct),
         centerTitle: false,
       ),
       body: GestureDetector(
@@ -176,7 +181,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s12, AppSpacing.s16, AppSpacing.s24),
             children: [
               MaxWidth(
                 child: Column(
@@ -188,27 +193,27 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                     else
                       _buildNewProductBanner(context, isDark),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
 
                     // Card 1: Informasi Produk
                     _FormSectionCard(
-                      title: 'Informasi Produk',
-                      subtitle: 'Nama barang, kategori, dan satuan dasar',
-                      icon: LucideIcons.package,
+                      title: ProductStrings.sectionProductInfo,
+                      subtitle: ProductStrings.sectionProductInfoSubtitle,
+                      icon: AppIcons.package,
                       iconColor: theme.colorScheme.primary,
                       children: [
                         TextFormField(
                           controller: _name,
                           textCapitalization: TextCapitalization.words,
                           decoration: InputDecoration(
-                            labelText: 'Nama Produk *',
-                            hintText: 'Misal: Kopi Susu Gula Aren, Kaos Polos',
-                            prefixIcon: const Icon(LucideIcons.tag, size: 18),
+                            labelText: ProductStrings.fieldProductName,
+                            hintText: ProductStrings.hintProductName,
+                            prefixIcon: const Icon(AppIcons.tag, size: AppSizes.s18),
                             errorText: _error?.fieldError('name'),
                             suffixIcon: _name.text.isNotEmpty
                                 ? IconButton(
-                                    tooltip: 'Hapus teks',
-                                    icon: const Icon(LucideIcons.x, size: 16),
+                                    tooltip: ProductStrings.tooltipClearText,
+                                    icon: const Icon(AppIcons.x, size: AppSizes.s16),
                                     onPressed: () {
                                       _name.clear();
                                       setState(() {});
@@ -216,35 +221,35 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                                   )
                                 : null,
                           ),
-                          validator: (value) => (value ?? '').trim().isEmpty ? 'Nama produk wajib diisi.' : null,
+                          validator: (value) => (value ?? '').trim().isEmpty ? ProductStrings.validationProductNameRequired : null,
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppSizes.s14),
                         DropdownButtonFormField<int?>(
                           initialValue: categories.any((c) => c.id == _categoryId) ? _categoryId : null,
                           isExpanded: true,
                           decoration: InputDecoration(
-                            labelText: 'Kategori',
-                            prefixIcon: const Icon(LucideIcons.folder, size: 18),
+                            labelText: ProductStrings.labelCategory,
+                            prefixIcon: const Icon(AppIcons.folder, size: AppSizes.s18),
                             errorText: _error?.fieldError('category_id'),
                           ),
                           items: [
-                            const DropdownMenuItem(value: null, child: Text('Tanpa kategori (Umum)')),
+                            const DropdownMenuItem(value: null, child: Text(ProductStrings.categoryNoCategory)),
                             for (final category in categories) DropdownMenuItem(value: category.id, child: Text(category.name)),
                           ],
                           onChanged: (value) => setState(() => _categoryId = value),
                         ),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppSizes.s14),
                         TextFormField(
                           controller: _unit,
                           decoration: InputDecoration(
-                            labelText: 'Satuan Dasar *',
-                            hintText: 'Misal: pcs, porsi, kg, btl',
-                            prefixIcon: const Icon(LucideIcons.scale, size: 18),
+                            labelText: ProductStrings.fieldBaseUnit,
+                            hintText: ProductStrings.hintBaseUnit,
+                            prefixIcon: const Icon(AppIcons.scale, size: AppSizes.s18),
                             errorText: _error?.fieldError('unit'),
                           ),
-                          validator: (value) => (value ?? '').trim().isEmpty ? 'Satuan wajib diisi.' : null,
+                          validator: (value) => (value ?? '').trim().isEmpty ? ProductStrings.validationUnitRequired : null,
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: AppSizes.s10),
                         Wrap(
                           spacing: 6,
                           runSpacing: 6,
@@ -267,13 +272,13 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
 
                     // Card 2: SKU & Barcode
                     _FormSectionCard(
-                      title: 'Identifikasi & Barcode',
-                      subtitle: 'Kode unik barang dan scan barcode cepat',
-                      icon: LucideIcons.scanLine,
+                      title: ProductStrings.sectionBarcode,
+                      subtitle: ProductStrings.sectionBarcodeSubtitle,
+                      icon: AppIcons.scanLine,
                       iconColor: AppColors.sky500,
                       children: [
                         Row(
@@ -284,32 +289,32 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                                 controller: _sku,
                                 textCapitalization: TextCapitalization.characters,
                                 decoration: InputDecoration(
-                                  labelText: 'Kode SKU',
-                                  hintText: 'Otomatis',
-                                  prefixIcon: const Icon(LucideIcons.hash, size: 18),
+                                  labelText: ProductStrings.fieldSku,
+                                  hintText: ProductStrings.hintSku,
+                                  prefixIcon: const Icon(AppIcons.hash, size: AppSizes.s18),
                                   errorText: _error?.fieldError('sku'),
-                                  helperText: 'Kosongkan = otomatis dibuat',
+                                  helperText: ProductStrings.helperSku,
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: AppSizes.s12),
                             Expanded(
                               child: TextFormField(
                                 controller: _barcode,
                                 decoration: InputDecoration(
-                                  labelText: 'Barcode',
-                                  hintText: 'Scan / ketik kode',
-                                  prefixIcon: const Icon(LucideIcons.barcode, size: 18),
+                                  labelText: ProductStrings.labelBarcode,
+                                  hintText: ProductStrings.hintBarcode,
+                                  prefixIcon: const Icon(AppIcons.barcode, size: AppSizes.s18),
                                   errorText: _error?.fieldError('barcode'),
                                   suffixIcon: IconButton(
-                                    tooltip: 'Scan barcode kamera',
+                                    tooltip: ProductStrings.tooltipScanBarcodeCamera,
                                     icon: Container(
-                                      padding: const EdgeInsets.all(6),
+                                      padding: const EdgeInsets.all(AppSpacing.s6),
                                       decoration: BoxDecoration(
                                         color: theme.colorScheme.primaryContainer,
-                                        borderRadius: BorderRadius.circular(8),
+                                        borderRadius: BorderRadius.circular(AppRadius.r8),
                                       ),
-                                      child: Icon(LucideIcons.scanBarcode, size: 16, color: theme.colorScheme.primary),
+                                      child: Icon(AppIcons.scanBarcode, size: AppSizes.s16, color: theme.colorScheme.primary),
                                     ),
                                     onPressed: () async {
                                       final code = await CameraScannerScreen.open(context);
@@ -327,13 +332,13 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
 
                     // Card 3: Penetapan Harga & Kalkulator Margin
                     _FormSectionCard(
-                      title: 'Harga & Margin Keuntungan',
-                      subtitle: 'Atur harga jual dan pantau perkiraan laba kotor',
-                      icon: LucideIcons.badgePercent,
+                      title: ProductStrings.sectionPriceMargin,
+                      subtitle: ProductStrings.sectionPriceMarginSubtitle,
+                      icon: AppIcons.badgePercent,
                       iconColor: AppColors.emerald500,
                       children: [
                         Row(
@@ -342,45 +347,45 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                             Expanded(
                               child: MoneyField(
                                 controller: _price,
-                                label: 'Harga Jual *',
+                                label: ProductStrings.fieldSellingPriceRequired,
                                 errorText: _error?.fieldError('price'),
                                 onChanged: (_) => setState(() {}),
                               ),
                             ),
-                            const SizedBox(width: 12),
+                            const SizedBox(width: AppSizes.s12),
                             Expanded(
                               child: MoneyField(
                                 controller: _cost,
-                                label: 'Harga Modal (HPP)',
+                                label: ProductStrings.labelCostPrice,
                                 errorText: _error?.fieldError('cost_price'),
                                 onChanged: (_) => setState(() {}),
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSizes.s12),
                         _buildMarginCalculator(context, isDark),
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
 
                     // Card 4: Manajemen Stok
                     _FormSectionCard(
-                      title: 'Manajemen Stok & Inventaris',
-                      subtitle: 'Pantau ketersediaan fisik barang di kasir',
-                      icon: LucideIcons.boxes,
+                      title: ProductStrings.sectionStockManage,
+                      subtitle: ProductStrings.sectionStockManageSubtitle,
+                      icon: AppIcons.boxes,
                       iconColor: AppColors.amber500,
                       children: [
                         AppSwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Lacak Stok Barang', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                          subtitle: const Text('Matikan untuk jasa atau produk yang tidak perlu dihitung stoknya.', style: TextStyle(fontSize: 12)),
+                          title: const Text(ProductStrings.switchTrackStock, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          subtitle: const Text(ProductStrings.switchTrackStockSubtitle, style: TextStyle(fontSize: 12)),
                           value: _trackStock,
                           onChanged: (value) => setState(() => _trackStock = value),
                         ),
                         if (_trackStock) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSizes.s12),
                           if (_isNew) ...[
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,26 +396,26 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     onTapOutside: (_) => unfocus?.call(),
                                     decoration: InputDecoration(
-                                      labelText: 'Stok Awal',
-                                      hintText: '0',
-                                      prefixIcon: const Icon(LucideIcons.box, size: 18),
+                                      labelText: ProductStrings.fieldInitialStock,
+                                      hintText: ProductStrings.hintZero,
+                                      prefixIcon: const Icon(AppIcons.box, size: AppSizes.s18),
                                       errorText: _error?.fieldError('stock'),
-                                      helperText: 'Jumlah fisik awal',
+                                      helperText: ProductStrings.helperInitialStock,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 12),
+                                const SizedBox(width: AppSizes.s12),
                                 Expanded(
                                   child: TextFormField(
                                     controller: _minStock,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
                                     onTapOutside: (_) => unfocus?.call(),
                                     decoration: InputDecoration(
-                                      labelText: 'Batas Minimum',
-                                      hintText: '0',
-                                      prefixIcon: const Icon(LucideIcons.alertCircle, size: 18),
+                                      labelText: ProductStrings.fieldMinimumLimit,
+                                      hintText: ProductStrings.hintZero,
+                                      prefixIcon: const Icon(AppIcons.alertCircle, size: AppSizes.s18),
                                       errorText: _error?.fieldError('min_stock'),
-                                      helperText: 'Peringatan stok menipis',
+                                      helperText: ProductStrings.helperMinStock,
                                     ),
                                   ),
                                 ),
@@ -418,16 +423,16 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                             ),
                           ] else if (_p != null) ...[
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(AppSpacing.s12),
                               decoration: BoxDecoration(
                                 color: (isDark ? AppColors.slate800 : AppColors.slate100).withValues(alpha: 0.6),
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(AppRadius.r12),
                                 border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate200),
                               ),
                               child: Row(
                                 children: [
                                   Container(
-                                    padding: const EdgeInsets.all(8),
+                                    padding: const EdgeInsets.all(AppSpacing.s8),
                                     decoration: BoxDecoration(
                                       color: (_p.isOutOfStock
                                               ? status.danger
@@ -438,8 +443,8 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                                       shape: BoxShape.circle,
                                     ),
                                     child: Icon(
-                                      LucideIcons.box,
-                                      size: 18,
+                                      AppIcons.box,
+                                      size: AppSizes.s18,
                                       color: _p.isOutOfStock
                                           ? status.danger
                                           : _p.isLowStock
@@ -447,57 +452,57 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                                               : AppColors.emerald500,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
+                                  const SizedBox(width: AppSizes.s12),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('Stok Saat Ini', style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant)),
-                                        const SizedBox(height: 2),
+                                        Text(ProductStrings.labelCurrentStock, style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant)),
+                                        const SizedBox(height: AppSizes.s2),
                                         Text(
-                                          '${editableQuantity(_p.stock)} ${_p.unit}',
+                                          ProductStrings.stockQuantity(editableQuantity(_p.stock), _p.unit),
                                           style: AppTypography.quantity(fontSize: 16, fontWeight: FontWeight.w700),
                                         ),
                                       ],
                                     ),
                                   ),
                                   if (_p.isOutOfStock)
-                                    const StatusBadge(label: 'Habis', tone: BadgeTone.danger)
+                                    const StatusBadge(label: ProductStrings.statusOutOfStock, tone: BadgeTone.danger)
                                   else if (_p.isLowStock)
-                                    const StatusBadge(label: 'Menipis', tone: BadgeTone.warning)
+                                    const StatusBadge(label: ProductStrings.statusLowStock, tone: BadgeTone.warning)
                                   else
-                                    const StatusBadge(label: 'Tersedia', tone: BadgeTone.success),
+                                    const StatusBadge(label: ProductStrings.statusAvailable, tone: BadgeTone.success),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 12),
+                            const SizedBox(height: AppSizes.s12),
                             TextFormField(
                               controller: _minStock,
                               keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               onTapOutside: (_) => unfocus?.call(),
                               decoration: InputDecoration(
-                                labelText: 'Batas Minimum Stok',
-                                hintText: '0',
-                                prefixIcon: const Icon(LucideIcons.alertCircle, size: 18),
+                                labelText: ProductStrings.fieldMinimumStockEdit,
+                                hintText: ProductStrings.hintZero,
+                                prefixIcon: const Icon(AppIcons.alertCircle, size: AppSizes.s18),
                                 errorText: _error?.fieldError('min_stock'),
-                                helperText: 'Peringatan otomatis saat stok di bawah batas ini',
+                                helperText: ProductStrings.helperMinStockEdit,
                               ),
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: AppSizes.s8),
                             Container(
-                              padding: const EdgeInsets.all(10),
+                              padding: const EdgeInsets.all(AppSpacing.s10),
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.primaryContainer.withValues(alpha: 0.25),
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius: BorderRadius.circular(AppRadius.r10),
                               ),
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(LucideIcons.info, size: 14, color: theme.colorScheme.primary),
-                                  const SizedBox(width: 8),
+                                  Icon(AppIcons.info, size: AppSizes.s14, color: theme.colorScheme.primary),
+                                  const SizedBox(width: AppSizes.s8),
                                   Expanded(
                                     child: Text(
-                                      'Untuk menjaga keakuratan audit mutasi, stok fisik diubah melalui fitur Stok Masuk / Keluar atau Opname di halaman produk.',
+                                      ProductStrings.infoStockAuditNotice,
                                       style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                                     ),
                                   ),
@@ -509,26 +514,26 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
 
                     // Card 5: Status Penjualan
                     _FormSectionCard(
-                      title: 'Status & Ketersediaan',
-                      subtitle: 'Pengaturan apakah produk ini aktif tampil di kasir',
-                      icon: LucideIcons.store,
+                      title: ProductStrings.sectionStatusAvailability,
+                      subtitle: ProductStrings.sectionStatusAvailabilitySubtitle,
+                      icon: AppIcons.store,
                       iconColor: _isActive ? AppColors.emerald500 : theme.colorScheme.onSurfaceVariant,
                       trailing: StatusBadge(
-                        label: _isActive ? 'Aktif' : 'Nonaktif',
+                        label: _isActive ? ProductStrings.statusActive : ProductStrings.statusInactive,
                         tone: _isActive ? BadgeTone.success : BadgeTone.muted,
                       ),
                       children: [
                         AppSwitchListTile(
                           contentPadding: EdgeInsets.zero,
-                          title: const Text('Aktif Dijual di Kasir', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
+                          title: const Text(ProductStrings.switchActiveForSale, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
                           subtitle: Text(
                             _isActive
-                                ? 'Produk muncul di katalog POS dan dapat langsung ditransaksikan kasir.'
-                                : 'Produk disembunyikan dari katalog kasir sementara waktu.',
+                                ? ProductStrings.switchActiveForSaleSubtitleOn
+                                : ProductStrings.switchActiveForSaleSubtitleOff,
                             style: const TextStyle(fontSize: 12),
                           ),
                           value: _isActive,
@@ -538,18 +543,18 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                     ),
 
                     if (generalError != null) ...[
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSizes.s16),
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(AppSpacing.s12),
                         decoration: BoxDecoration(
                           color: status.danger.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.r12),
                           border: Border.all(color: status.danger.withValues(alpha: 0.3)),
                         ),
                         child: Row(
                           children: [
-                            Icon(LucideIcons.alertOctagon, size: 18, color: status.danger),
-                            const SizedBox(width: 10),
+                            Icon(AppIcons.alertOctagon, size: AppSizes.s18, color: status.danger),
+                            const SizedBox(width: AppSizes.s10),
                             Expanded(
                               child: Text(
                                 generalError,
@@ -569,10 +574,10 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       ),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
+          color: isDark ? AppColors.slate800 : Colors.white,
           border: Border(
             top: BorderSide(
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              color: isDark ? AppColors.slate700 : AppColors.slate200,
             ),
           ),
           boxShadow: [
@@ -586,7 +591,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s10, AppSpacing.s16, AppSpacing.s10),
             child: Center(
               heightFactor: 1,
               child: ConstrainedBox(
@@ -596,14 +601,14 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                   height: 48,
                   child: FilledButton.icon(
                     style: FilledButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r12)),
                     ),
                     onPressed: _busy ? null : _save,
                     icon: _busy
-                        ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                        : const Icon(LucideIcons.check, size: 20),
+                        ? const SizedBox.square(dimension: AppSizes.s20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        : const Icon(AppIcons.check, size: AppSizes.s20),
                     label: Text(
-                      _isNew ? 'Simpan Produk Baru' : 'Simpan Perubahan',
+                      _isNew ? ProductStrings.actionSaveNewProduct : ProductStrings.actionSaveChanges,
                       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                   ),
@@ -622,18 +627,18 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
     if (p == null) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(AppSpacing.s12),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
       ),
       child: Row(
         children: [
           ProductThumb(url: p.imageUrl, name: p.name, size: 52),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSizes.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -644,16 +649,16 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSizes.s2),
                 Text(
-                  p.sku.isNotEmpty ? 'SKU: ${p.sku}' : 'ID: #${p.id}',
+                  p.sku.isNotEmpty ? ProductStrings.productSkuLabel(p.sku) : ProductStrings.productIdLabel(p.id),
                   style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
             ),
           ),
           StatusBadge(
-            label: _isActive ? 'Aktif' : 'Nonaktif',
+            label: _isActive ? ProductStrings.statusActive : ProductStrings.statusInactive,
             tone: _isActive ? BadgeTone.success : BadgeTone.muted,
           ),
         ],
@@ -665,42 +670,42 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.s14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isDark
-              ? [const Color(0xFF064E3B).withValues(alpha: 0.35), const Color(0xFF0F172A)]
-              : [const Color(0xFFECFDF5), Colors.white],
+              ? [AppColors.emerald900.withValues(alpha: 0.35), AppColors.slate900]
+              : [AppColors.emerald50, Colors.white],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.r16),
         border: Border.all(
-          color: isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0),
+          color: isDark ? AppColors.emerald800 : AppColors.emerald200,
         ),
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(AppSpacing.s10),
             decoration: BoxDecoration(
               color: AppColors.emerald500.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: const Icon(LucideIcons.sparkles, size: 20, color: AppColors.emerald500),
+            child: const Icon(AppIcons.sparkles, size: AppSizes.s20, color: AppColors.emerald500),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSizes.s12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Tambah Produk Baru',
+                  ProductStrings.titleNewProduct,
                   style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(height: AppSizes.s2),
                 Text(
-                  'Lengkapi informasi produk, harga jual, dan stok untuk memulai transaksi kasir.',
+                  ProductStrings.newProductBannerBody,
                   style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                 ),
               ],
@@ -723,19 +728,19 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
 
     if (costPrice == 0) {
       return Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(AppSpacing.s12),
         decoration: BoxDecoration(
           color: (isDark ? AppColors.slate800 : AppColors.slate100).withValues(alpha: 0.6),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate200),
         ),
         child: Row(
           children: [
-            Icon(LucideIcons.info, size: 16, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(width: 8),
+            Icon(AppIcons.info, size: AppSizes.s16, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: AppSizes.s8),
             Expanded(
               child: Text(
-                'Masukkan harga modal (HPP) untuk melihat estimasi keuntungan dan margin persentase otomatis.',
+                ProductStrings.marginCostHint,
                 style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
               ),
             ),
@@ -751,17 +756,17 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
 
     final accentColor = isProfit ? AppColors.emerald500 : status.danger;
     final bgColor = isProfit
-        ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.3) : const Color(0xFFECFDF5))
-        : (isDark ? const Color(0xFF7F1D1D).withValues(alpha: 0.3) : const Color(0xFFFEF2F2));
+        ? (isDark ? AppColors.emerald900.withValues(alpha: 0.3) : AppColors.emerald50)
+        : (isDark ? AppColors.red900.withValues(alpha: 0.3) : AppColors.red50);
     final borderColor = isProfit
-        ? (isDark ? const Color(0xFF065F46) : const Color(0xFFA7F3D0))
-        : (isDark ? const Color(0xFF991B1B) : const Color(0xFFFECDD3));
+        ? (isDark ? AppColors.emerald800 : AppColors.emerald200)
+        : (isDark ? AppColors.red800 : AppColors.rose100);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(AppSpacing.s14),
       decoration: BoxDecoration(
         color: bgColor,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(color: borderColor),
       ),
       child: Column(
@@ -773,13 +778,13 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
               Row(
                 children: [
                   Icon(
-                    isProfit ? LucideIcons.trendingUp : LucideIcons.alertTriangle,
-                    size: 16,
+                    isProfit ? AppIcons.trendingUp : AppIcons.alertTriangle,
+                    size: AppSizes.s16,
                     color: accentColor,
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppSizes.s6),
                   Text(
-                    isProfit ? 'Estimasi Keuntungan Bersih' : 'Peringatan: Potensi Rugi',
+                    isProfit ? ProductStrings.marginProfitTitle : ProductStrings.marginLossTitle,
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
@@ -789,13 +794,13 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s3),
                 decoration: BoxDecoration(
                   color: accentColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(AppRadius.r6),
                 ),
                 child: Text(
-                  'Margin ${marginPercent.toStringAsFixed(1)}%',
+                  ProductStrings.marginPercentLabel(marginPercent.toStringAsFixed(1)),
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w800,
@@ -805,7 +810,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
               ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSizes.s10),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.end,
@@ -814,15 +819,15 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Laba per ${_unit.text.trim().isEmpty ? "satuan" : _unit.text.trim()}',
+                    ProductStrings.profitPerUnitLabel(_unit.text.trim().isEmpty ? ProductStrings.unitFallback : _unit.text.trim()),
                     style: TextStyle(
                       fontSize: 11,
                       color: isDark ? AppColors.slate400 : AppColors.slate600,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  const SizedBox(height: AppSizes.s2),
                   Text(
-                    '${profit >= 0 ? '+' : '-'}${rupiah(profit.abs())}',
+                    ProductStrings.signedAmount(profit >= 0 ? '+' : '-', rupiah(profit.abs())),
                     style: AppTypography.money(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -836,15 +841,15 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
-                      'Markup Modal',
+                      ProductStrings.marginMarkupTitle,
                       style: TextStyle(
                         fontSize: 11,
                         color: isDark ? AppColors.slate400 : AppColors.slate600,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSizes.s2),
                     Text(
-                      '+${markupPercent.toStringAsFixed(1)}%',
+                      ProductStrings.markupPercentLabel(markupPercent.toStringAsFixed(1)),
                       style: TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -885,30 +890,30 @@ class _FormSectionCard extends StatelessWidget {
     final color = iconColor ?? theme.colorScheme.primary;
 
     return Material(
-      color: isDark ? const Color(0xFF1E293B) : Colors.white,
+      color: isDark ? AppColors.slate800 : Colors.white,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(AppRadius.r16),
         side: BorderSide(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
       ),
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.s16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppSpacing.s8),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.r10),
                 ),
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: AppSizes.s18, color: color),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSizes.s12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -921,7 +926,7 @@ class _FormSectionCard extends StatelessWidget {
                       ),
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppSizes.s2),
                       Text(
                         subtitle!,
                         style: TextStyle(
@@ -936,7 +941,7 @@ class _FormSectionCard extends StatelessWidget {
               ?trailing,
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSizes.s16),
           ...children,
         ],
       ),

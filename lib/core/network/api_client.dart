@@ -2,8 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../config/server_config.dart';
+import '../constants/api_endpoints.dart';
 import '../offline/offline_cache.dart';
 import 'api_exception.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
 /// In-memory copy of the Bearer token; the persisted copy lives in secure storage.
 final authTokenProvider = NotifierProvider<AuthTokenNotifier, String?>(AuthTokenNotifier.new);
@@ -41,8 +43,8 @@ final dioProvider = Provider<Dio>((ref) {
   final dio = Dio(
     BaseOptions(
       baseUrl: '$serverUrl/api/v1/',
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 30),
+      connectTimeout: AppDurations.seconds10,
+      receiveTimeout: AppDurations.seconds30,
       headers: {'Accept': 'application/json'},
     ),
   );
@@ -129,7 +131,9 @@ class ApiClient {
 
   // pos/* already works offline from the catalog snapshot and its own cache (a stale copy of
   // pos/shift would hide a shift opened since); a QRIS code or login state must never be replayed.
-  static bool _keepsCopy(String path) => path == 'pos/customers' || (!path.startsWith('pos/') && !path.startsWith('auth/') && path != 'search');
+  static bool _keepsCopy(String path) =>
+      path == ApiEndpoints.posCustomers ||
+      (!path.startsWith(ApiEndpoints.posPrefix) && !path.startsWith(ApiEndpoints.authPrefix) && path != ApiEndpoints.search);
 
   static String _cacheKey(String path, Map<String, dynamic>? query) {
     final params = (query?.entries.toList() ?? [])..sort((a, b) => a.key.compareTo(b.key));

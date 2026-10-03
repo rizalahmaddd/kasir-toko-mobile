@@ -5,6 +5,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_pos_mobile/core/constants/api_endpoints.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/storage/app_storage.dart';
@@ -155,12 +157,12 @@ class PrinterException implements Exception {
 final receiptProfileProvider = FutureProvider<ReceiptProfile>((ref) async {
   final prefs = ref.read(sharedPreferencesProvider);
   try {
-    final data = ApiClient.data(await ref.watch(apiClientProvider).get('meta'));
+    final data = ApiClient.data(await ref.watch(apiClientProvider).get(ApiEndpoints.meta));
     final profile = ReceiptProfile.fromMeta(data);
     await prefs.setString(ReceiptProfile.cacheKey, jsonEncode(profile.toJson()));
     return profile;
   } on Object {
-    return ReceiptProfile.cached(prefs) ?? ReceiptProfile(storeName: prefs.getString('store_name') ?? 'Toko');
+    return ReceiptProfile.cached(prefs) ?? ReceiptProfile(storeName: prefs.getString(StorageKeys.storeName) ?? PrintingStrings.defaultStoreName);
   }
 });
 
@@ -173,10 +175,10 @@ class PrinterService {
 
   Future<List<BluetoothInfo>> pairedDevices() async {
     if (!await PrintBluetoothThermal.isPermissionBluetoothGranted) {
-      throw const PrinterException('Izin Bluetooth belum diberikan. Izinkan di pengaturan HP lalu coba lagi.');
+      throw const PrinterException(PrintingStrings.permissionNotGranted);
     }
     if (!await PrintBluetoothThermal.bluetoothEnabled) {
-      throw const PrinterException('Bluetooth mati. Nyalakan Bluetooth lalu coba lagi.');
+      throw const PrinterException(PrintingStrings.bluetoothOff);
     }
 
     return PrintBluetoothThermal.pairedBluetooths;
@@ -215,22 +217,22 @@ class PrinterService {
   Future<void> printLines(List<PrintLine> lines, {int? copies}) async {
     final settings = _ref.read(printerSettingsProvider);
     if (!settings.isConfigured) {
-      throw const PrinterException('Printer belum dipilih. Atur di Menu → Printer struk.');
+      throw const PrinterException(PrintingStrings.printerNotSelected);
     }
     if (!await PrintBluetoothThermal.isPermissionBluetoothGranted) {
-      throw const PrinterException('Izin Bluetooth belum diberikan.');
+      throw const PrinterException(PrintingStrings.permissionNotGrantedShort);
     }
     if (!await PrintBluetoothThermal.bluetoothEnabled) {
-      throw const PrinterException('Bluetooth mati. Nyalakan Bluetooth lalu coba lagi.');
+      throw const PrinterException(PrintingStrings.bluetoothOff);
     }
     if (!await PrintBluetoothThermal.connectionStatus && !await PrintBluetoothThermal.connect(macPrinterAddress: settings.address!)) {
-      throw PrinterException('Tidak bisa terhubung ke ${settings.name ?? 'printer'}. Pastikan printer menyala dan dekat.');
+      throw PrinterException(PrintingStrings.cannotConnectToPrinter(settings.name ?? 'printer'));
     }
 
     final bytes = await escPosBytes(lines, settings.paperWidth, feedLines: settings.feedLines, cut: settings.cut);
     for (var copy = 0; copy < (copies ?? settings.copies); copy++) {
       if (!await PrintBluetoothThermal.writeBytes(bytes)) {
-        throw const PrinterException('Gagal mengirim data ke printer. Coba lagi.');
+        throw const PrinterException(PrintingStrings.sendToPrinterFailed);
       }
     }
   }

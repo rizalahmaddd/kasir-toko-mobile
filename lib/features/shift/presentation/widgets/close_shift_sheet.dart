@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -7,6 +8,7 @@ import '../../../../core/widgets/common.dart';
 import '../../../../core/widgets/money_field.dart';
 import '../../../../core/widgets/state_views.dart';
 import '../../data/shift_models.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 typedef CloseShift = Future<Shift> Function({required int countedCash, String? note});
 
@@ -40,7 +42,7 @@ class _CloseShiftSheetState extends State<CloseShiftSheet> {
 
   Future<void> _close() async {
     if (_countedValue == null) {
-      setState(() => _error = 'Hitung dan isi uang fisik di laci.');
+      setState(() => _error = ShiftStrings.fillPhysicalCashError);
       return;
     }
 
@@ -57,8 +59,8 @@ class _CloseShiftSheetState extends State<CloseShiftSheet> {
         showMessage(
           context,
           difference == 0
-              ? 'Shift ${closed.number} ditutup. Uang laci pas.'
-              : 'Shift ${closed.number} ditutup dengan selisih ${_signed(difference)}.',
+              ? ShiftStrings.shiftClosedExact(closed.number)
+              : ShiftStrings.shiftClosedWithDifference(closed.number, _signed(difference)),
         );
       }
     } on ApiException catch (error) {
@@ -76,30 +78,30 @@ class _CloseShiftSheetState extends State<CloseShiftSheet> {
     final difference = _countedValue == null ? null : _countedValue! - _expected;
 
     return FormSheet(
-      title: 'Tutup shift ${widget.shift.number}',
-      subtitle: 'Seharusnya ada ${rupiah(_expected)} di laci.',
+      title: ShiftStrings.closeShiftTitle(widget.shift.number),
+      subtitle: ShiftStrings.expectedCashInDrawer(rupiah(_expected)),
       children: [
         MoneyField(
           controller: _counted,
-          label: 'Uang fisik yang dihitung',
+          label: ShiftStrings.physicalCashCountedLabel,
           autofocus: true,
           errorText: _error,
           onChanged: (value) => setState(() => _countedValue = _counted.text.isEmpty ? null : value),
         ),
         if (difference != null) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSizes.s8),
           Text(
-            difference == 0 ? 'Pas, tidak ada selisih.' : 'Selisih ${_signed(difference)}',
+            difference == 0 ? ShiftStrings.noDifferenceLabel : ShiftStrings.differenceAmountLabel(_signed(difference)),
             style: TextStyle(fontWeight: FontWeight.w600, color: difference == 0 ? colors.success : colors.warning),
           ),
         ],
-        const SizedBox(height: 12),
-        TextField(controller: _note, maxLength: 255, decoration: const InputDecoration(labelText: 'Catatan (opsional)')),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSizes.s12),
+        TextField(controller: _note, maxLength: 255, decoration: const InputDecoration(labelText: ShiftStrings.noteOptionalLabel)),
+        const SizedBox(height: AppSizes.s8),
         FilledButton(
           style: FilledButton.styleFrom(backgroundColor: colors.danger),
           onPressed: _busy ? null : _close,
-          child: const Text('Tutup Shift'),
+          child: const Text(ShiftStrings.closeShiftButton),
         ),
       ],
     );

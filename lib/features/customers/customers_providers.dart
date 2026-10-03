@@ -7,6 +7,7 @@ import '../../core/paging/paged.dart';
 import '../sales/data/sale_models.dart';
 import '../sales/data/sales_repository.dart';
 import 'data/customers_repository.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
 typedef CustomersQuery = ({String search, bool? isActive});
 
@@ -43,7 +44,7 @@ class CustomerSalesNotifier extends CachedFamilyNotifier<SalesPage, int> {
 
   DateTimeRange get _range {
     final today = DateUtils.dateOnly(DateTime.now());
-    return DateTimeRange(start: today.subtract(const Duration(days: 365)), end: today);
+    return DateTimeRange(start: today.subtract(AppDurations.days365), end: today);
   }
 
   @override

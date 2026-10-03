@@ -4,6 +4,8 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_pos_mobile/core/constants/api_endpoints.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
@@ -16,6 +18,7 @@ import '../pos/data/pos_repository.dart';
 import '../sales/data/sales_repository.dart';
 import '../sales/sales_controller.dart';
 import 'catalog_snapshot.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
 enum QueuedStatus { pending, failed }
 
@@ -45,7 +48,7 @@ class QueuedSale {
         createdAt: DateTime.parse(json['created_at'] as String),
         customerName: json['customer_name'] as String?,
         preview: asMap(json['preview']),
-        status: json['status'] == 'failed' ? QueuedStatus.failed : QueuedStatus.pending,
+        status: json['status'] == QueuedStatusValues.failed ? QueuedStatus.failed : QueuedStatus.pending,
         error: json['error'] as String?,
       );
 
@@ -121,7 +124,7 @@ final myQueueProvider = Provider<List<QueuedSale>>((ref) {
 });
 
 class OfflineQueue extends Notifier<List<QueuedSale>> {
-  static const _key = 'offline_sales_queue';
+  static const _key = StorageKeys.offlineSalesQueue;
 
   @override
   List<QueuedSale> build() {
@@ -207,7 +210,7 @@ final offlineSyncerProvider = Provider<void>((ref) {
       return;
     }
     try {
-      await ref.read(apiClientProvider).get('auth/me');
+      await ref.read(apiClientProvider).get(ApiEndpoints.authMe);
     } on ApiException {
       // Still unreachable; serverReachableProvider stays false.
     }
@@ -225,12 +228,12 @@ final offlineSyncerProvider = Provider<void>((ref) {
   DateTime? warmedAt;
   Future<void> warmUp() async {
     final user = ref.read(currentUserProvider);
-    if (user == null || (warmedAt != null && DateTime.now().difference(warmedAt!) < const Duration(minutes: 30))) {
+    if (user == null || (warmedAt != null && DateTime.now().difference(warmedAt!) < AppDurations.minutes30)) {
       return;
     }
     warmedAt = DateTime.now();
     try {
-      await ref.read(apiClientProvider).get('dashboard');
+      await ref.read(apiClientProvider).get(ApiEndpoints.dashboard);
       if (user.canViewSales) {
         await fetchSales(ref.read(salesRepositoryProvider), SalesFilter.today(), 1);
       }
@@ -244,7 +247,7 @@ final offlineSyncerProvider = Provider<void>((ref) {
       return;
     }
     final snapshot = await ref.read(catalogSnapshotProvider.future);
-    if (snapshot == null || DateTime.now().difference(snapshot.updatedAt) > const Duration(minutes: 30)) {
+    if (snapshot == null || DateTime.now().difference(snapshot.updatedAt) > AppDurations.minutes30) {
       try {
         await ref.read(catalogSnapshotProvider.notifier).download();
       } on ApiException {
@@ -261,9 +264,9 @@ final offlineSyncerProvider = Provider<void>((ref) {
       unawaited(warmUp());
     },
   );
-  final timer = Timer.periodic(const Duration(minutes: 1), (_) => trigger());
-  final pingTimer = Timer.periodic(const Duration(seconds: 30), (_) => checkServer());
-  final catalogTimer = Timer.periodic(const Duration(minutes: 15), (_) {
+  final timer = Timer.periodic(AppDurations.minutes1, (_) => trigger());
+  final pingTimer = Timer.periodic(AppDurations.seconds30, (_) => checkServer());
+  final catalogTimer = Timer.periodic(AppDurations.minutes15, (_) {
     refreshCatalog();
     warmUp();
   });
@@ -278,7 +281,7 @@ final offlineSyncerProvider = Provider<void>((ref) {
     if (previous == false) {
       trigger();
       // A blip of a few seconds didn't leave anything stale worth a reload of every screen.
-      final wasOffline = offlineSince != null && DateTime.now().difference(offlineSince!) > const Duration(seconds: 15);
+      final wasOffline = offlineSince != null && DateTime.now().difference(offlineSince!) > AppDurations.seconds15;
       if (wasOffline) {
         ref.read(dataChangesProvider).after(DataChange.values.toSet());
       }

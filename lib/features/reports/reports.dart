@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../core/constants/api_endpoints.dart';
+import '../../core/constants/date_formats.dart';
 import '../../core/network/api_client.dart';
 import '../../core/offline/cached_notifier.dart';
 import '../../core/paging/paged.dart';
 import '../../core/utils/json.dart';
 
-final _apiDate = DateFormat('yyyy-MM-dd');
+final _apiDate = DateFormat(AppDateFormat.api);
 
 typedef ProductLine = ({String name, String unit, String category, double qty, int revenue, int profit, double margin});
 
@@ -114,10 +116,10 @@ class ReportsRepository {
   Map<String, dynamic> _range(DateTimeRange range) => {'from': _apiDate.format(range.start), 'to': _apiDate.format(range.end)};
 
   Future<SalesSummaryReport> summary(DateTimeRange range) async =>
-      SalesSummaryReport(ApiClient.data(await _api.get('reports/sales/summary', query: _range(range))));
+      SalesSummaryReport(ApiClient.data(await _api.get(ApiEndpoints.reportsSalesSummary, query: _range(range))));
 
   Future<SalesSummaryReport?> getCachedSummary(DateTimeRange range) async {
-    final copy = await _api.offlineCopy('reports/sales/summary', query: _range(range));
+    final copy = await _api.offlineCopy(ApiEndpoints.reportsSalesSummary, query: _range(range));
     if (copy == null) return null;
     try {
       return SalesSummaryReport(ApiClient.data(copy));
@@ -126,10 +128,10 @@ class ReportsRepository {
     }
   }
 
-  Future<DailyReport> daily(DateTimeRange range) async => DailyReport(ApiClient.data(await _api.get('reports/sales/daily', query: _range(range))));
+  Future<DailyReport> daily(DateTimeRange range) async => DailyReport(ApiClient.data(await _api.get(ApiEndpoints.reportsSalesDaily, query: _range(range))));
 
   Future<DailyReport?> getCachedDaily(DateTimeRange range) async {
-    final copy = await _api.offlineCopy('reports/sales/daily', query: _range(range));
+    final copy = await _api.offlineCopy(ApiEndpoints.reportsSalesDaily, query: _range(range));
     if (copy == null) return null;
     try {
       return DailyReport(ApiClient.data(copy));
@@ -139,11 +141,11 @@ class ReportsRepository {
   }
 
   Future<ProductReport> products(DateTimeRange range, {required String sort, String? search}) async => ProductReport(
-        ApiClient.data(await _api.get('reports/sales/products', query: {..._range(range), 'sort': sort, 'direction': 'desc', 'search': search})),
+        ApiClient.data(await _api.get(ApiEndpoints.reportsSalesProducts, query: {..._range(range), 'sort': sort, 'direction': 'desc', 'search': search})),
       );
 
   Future<ProductReport?> getCachedProducts(DateTimeRange range, {required String sort, String? search}) async {
-    final copy = await _api.offlineCopy('reports/sales/products', query: {..._range(range), 'sort': sort, 'direction': 'desc', 'search': search});
+    final copy = await _api.offlineCopy(ApiEndpoints.reportsSalesProducts, query: {..._range(range), 'sort': sort, 'direction': 'desc', 'search': search});
     if (copy == null) return null;
     try {
       return ProductReport(ApiClient.data(copy));
@@ -153,7 +155,7 @@ class ReportsRepository {
   }
 
   Future<Paginated<Activity>> activity({String? search, String? logName, int page = 1}) async => Paginated.fromJson(
-        await _api.get('reports/activity-log', query: {'search': search, 'log_name': logName, 'page': page, 'per_page': 30}),
+        await _api.get(ApiEndpoints.reportsActivityLog, query: {'search': search, 'log_name': logName, 'page': page, 'per_page': 30}),
         Activity.new,
       );
 }

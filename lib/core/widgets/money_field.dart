@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../constants/app_strings.dart';
 import '../utils/formatters.dart';
 
 /// Rupiah input that shows thousand separators while typing ("150.000").
@@ -33,7 +34,7 @@ class MoneyField extends StatelessWidget {
       onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       inputFormatters: [FilteringTextInputFormatter.digitsOnly, ThousandsFormatter()],
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(labelText: label, prefixText: 'Rp ', errorText: errorText),
+      decoration: InputDecoration(labelText: label, prefixText: CoreStrings.currencyPrefix, errorText: errorText),
       onChanged: onChanged == null ? null : (value) => onChanged!(parseRupiah(value)),
       onSubmitted: onSubmitted == null ? null : (value) => onSubmitted!(parseRupiah(value)),
     );

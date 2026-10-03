@@ -3,22 +3,27 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/utils/json.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 const _statRoutes = {
-  'customers_active': '/customers',
-  'low_stock': '/stock',
-  'receivables_unpaid': '/receivables',
+  'customers_active': AppRoutes.customers,
+  'low_stock': AppRoutes.stock,
+  'receivables_unpaid': AppRoutes.receivables,
 };
 
 const _statIcons = {
-  'customers_active': LucideIcons.users,
-  'low_stock': LucideIcons.triangleAlert,
-  'receivables_unpaid': LucideIcons.handCoins,
+  'customers_active': AppIcons.users,
+  'low_stock': AppIcons.triangleAlert,
+  'receivables_unpaid': AppIcons.handCoins,
 };
 
 class DashboardStatsGrid extends StatelessWidget {
@@ -114,12 +119,12 @@ class DashboardStatsGrid extends StatelessWidget {
 
   String? _captionFor(String key, int count) {
     if (key == 'receivables_unpaid' && receivables != null) {
-      return 'Total ${rupiah(asInt(receivables!['total_due']))}';
+      return DashboardStrings.statCaptionReceivables(rupiah(asInt(receivables!['total_due'])));
     }
     if (key == 'low_stock' && count > 0) {
-      return 'Perlu restock segera';
+      return DashboardStrings.statCaptionLowStock;
     }
-    return 'Lihat daftar detail';
+    return DashboardStrings.statCaptionDefault;
   }
 
   Color? _colorFor(String key, int count, bool isDark) {
@@ -171,7 +176,7 @@ class _GridStatCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(13),
+          padding: const EdgeInsets.all(AppSpacing.s13),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -180,14 +185,14 @@ class _GridStatCard extends StatelessWidget {
                 children: [
                   if (icon != null) ...[
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(AppSpacing.s6),
                       decoration: BoxDecoration(
                         color: accent.withValues(alpha: isDark ? 0.2 : 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadius.r8),
                       ),
-                      child: Icon(icon, size: 16, color: accent),
+                      child: Icon(icon, size: AppSizes.s16, color: accent),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSizes.s8),
                   ],
                   Expanded(
                     child: Text(
@@ -221,7 +226,7 @@ class _GridStatCard extends StatelessWidget {
                     ),
                   ),
                   if (caption != null) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSizes.s2),
                     Text(
                       caption!,
                       maxLines: 1,
@@ -272,19 +277,19 @@ class _WideStatCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s13),
           child: Row(
             children: [
               if (icon != null) ...[
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(AppSpacing.s8),
                   decoration: BoxDecoration(
                     color: accent.withValues(alpha: isDark ? 0.2 : 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
-                  child: Icon(icon, size: 18, color: accent),
+                  child: Icon(icon, size: AppSizes.s18, color: accent),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.s12),
               ],
               Expanded(
                 child: Column(
@@ -301,7 +306,7 @@ class _WideStatCard extends StatelessWidget {
                       ),
                     ),
                     if (caption != null) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppSizes.s2),
                       Text(
                         caption!,
                         maxLines: 1,
@@ -316,7 +321,7 @@ class _WideStatCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: AppSizes.s12),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -329,10 +334,10 @@ class _WideStatCard extends StatelessWidget {
                       letterSpacing: -0.3,
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppSizes.s6),
                   Icon(
-                    LucideIcons.chevronRight,
-                    size: 16,
+                    AppIcons.chevronRight,
+                    size: AppSizes.s16,
                     color: isDark ? AppColors.slate500 : AppColors.slate400,
                   ),
                 ],

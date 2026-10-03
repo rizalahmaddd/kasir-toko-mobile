@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/app_cached_image.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/product_models.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class ProductThumb extends StatelessWidget {
   const ProductThumb({
@@ -29,7 +33,7 @@ class ProductThumb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.r8),
       ),
       alignment: Alignment.center,
       child: name != null && name!.trim().isNotEmpty
@@ -42,7 +46,7 @@ class ProductThumb extends StatelessWidget {
               ),
             )
           : Icon(
-              LucideIcons.package,
+              AppIcons.package,
               size: size * 0.45,
               color: theme.colorScheme.onSurfaceVariant,
             ),
@@ -69,16 +73,16 @@ class StockLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!product.trackStock) {
-      return const StatusBadge(label: 'Tanpa stok');
+      return const StatusBadge(label: ProductStrings.statusNoStock);
     }
     if (product.isOutOfStock) {
-      return const StatusBadge(label: 'Habis', tone: BadgeTone.danger);
+      return const StatusBadge(label: ProductStrings.statusOutOfStock, tone: BadgeTone.danger);
     }
 
     final colors = StatusColors.of(context);
 
     return Text(
-      '${quantity(product.stock)} ${product.unit}',
+      ProductStrings.stockQuantity(quantity(product.stock), product.unit),
       style: AppTypography.quantity(
         fontSize: 12,
         fontWeight: FontWeight.w600,
@@ -102,12 +106,12 @@ class ProductTile extends StatelessWidget {
     final muted = theme.colorScheme.onSurfaceVariant;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -121,14 +125,14 @@ class ProductTile extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.all(AppSpacing.s12),
             child: Row(
               children: [
                 ProductThumb(url: product.imageUrl, name: product.name, size: 48),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.s12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -144,20 +148,20 @@ class ProductTile extends StatelessWidget {
                             ),
                           ),
                           if (!product.isActive) ...[
-                            const SizedBox(width: 6),
-                            const StatusBadge(label: 'Nonaktif'),
+                            const SizedBox(width: AppSizes.s6),
+                            const StatusBadge(label: ProductStrings.statusInactive),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSizes.s4),
                       Row(
                         children: [
                           if (product.category != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(4),
+                                color: isDark ? AppColors.slate700 : AppColors.slate100,
+                                borderRadius: BorderRadius.circular(AppRadius.r4),
                               ),
                               child: Text(
                                 product.category!.name,
@@ -168,7 +172,7 @@ class ProductTile extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: AppSizes.s6),
                           ],
                           if (product.sku.isNotEmpty)
                             Flexible(
@@ -184,7 +188,7 @@ class ProductTile extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSizes.s10),
                 Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -192,9 +196,9 @@ class ProductTile extends StatelessWidget {
                     if (showPrice)
                       Text(
                         rupiah(product.price),
-                        style: AppTypography.money(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF059669)),
+                        style: AppTypography.money(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.emerald600),
                       ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: AppSizes.s3),
                     StockLabel(product: product),
                   ],
                 ),

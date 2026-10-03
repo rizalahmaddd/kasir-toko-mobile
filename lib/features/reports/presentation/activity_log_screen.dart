@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../../core/paging/paged.dart';
 import '../../../core/utils/formatters.dart';
@@ -9,14 +11,18 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
 import '../reports.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_colors.dart';
 
-const _logNames = {'audit': 'Perubahan data', 'auth': 'Login', 'settings': 'Pengaturan', 'roles': 'Peran', 'export': 'Ekspor'};
+const _logNames = {ActivityLogNames.audit: ReportStrings.logAudit, ActivityLogNames.auth: ReportStrings.logAuth, ActivityLogNames.settings: ReportStrings.logSettings, ActivityLogNames.roles: ReportStrings.logRoles, ActivityLogNames.export: ReportStrings.logExport};
 
 const _icons = {
-  'auth': LucideIcons.logIn,
-  'settings': LucideIcons.settings,
-  'roles': LucideIcons.shieldCheck,
-  'export': LucideIcons.download,
+  ActivityLogNames.auth: AppIcons.logIn,
+  ActivityLogNames.settings: AppIcons.settings,
+  ActivityLogNames.roles: AppIcons.shieldCheck,
+  ActivityLogNames.export: AppIcons.download,
 };
 
 class ActivityLogScreen extends ConsumerWidget {
@@ -29,23 +35,23 @@ class ActivityLogScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SearchableAppBar(
-        title: const Text('Log aktivitas'),
-        hint: 'Cari aktivitas',
+        title: const Text(ReportStrings.activityLogTitle),
+        hint: ReportStrings.activitySearchHint,
         initialSearch: query.search,
         onSearchChanged: (term) => notifier.set((search: term, logName: query.logName)),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
             child: Row(
               children: [
                 FilterDropdownPill<String>(
-                  label: 'Kategori Log',
-                  icon: LucideIcons.listFilter,
+                  label: ReportStrings.logCategoryLabel,
+                  icon: AppIcons.listFilter,
                   value: query.logName,
                   items: [
-                    (null, 'Semua Aktivitas'),
+                    (null, ReportStrings.allActivities),
                     for (final e in _logNames.entries) (e.key, e.value),
                   ],
                   onChanged: (logName) => notifier.set((search: query.search, logName: logName)),
@@ -53,14 +59,14 @@ class ActivityLogScreen extends ConsumerWidget {
               ],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSizes.s2),
           Expanded(
             child: PagedListView(
               value: ref.watch(activityProvider),
               onLoadMore: () => ref.read(activityProvider.notifier).loadMore(),
               onRefresh: () => ref.refresh(activityProvider.future),
-              padding: const EdgeInsets.fromLTRB(0, 4, 0, 32),
-              empty: const EmptyState(icon: LucideIcons.scrollText, title: 'Belum ada aktivitas'),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s0, AppSpacing.s4, AppSpacing.s0, AppSpacing.s32),
+              empty: const EmptyState(icon: AppIcons.scrollText, title: ReportStrings.noActivityTitle),
               itemBuilder: (context, activity) => _ActivityCard(
                 activity: activity,
                 onTap: () => FormSheet.show<void>(context, _ActivitySheet(activity: activity)),
@@ -86,22 +92,22 @@ class _ActivityCard extends StatelessWidget {
     final muted = theme.colorScheme.onSurfaceVariant;
 
     final color = switch (activity.logName) {
-      'auth' => const Color(0xFF3B82F6),
-      'roles' => const Color(0xFF8B5CF6),
-      'audit' => const Color(0xFF10B981),
-      'export' => const Color(0xFFF59E0B),
-      _ => const Color(0xFF64748B),
+      ActivityLogNames.auth => AppColors.blue500,
+      ActivityLogNames.roles => AppColors.violet500,
+      ActivityLogNames.audit => AppColors.emerald500,
+      ActivityLogNames.export => AppColors.amber500,
+      _ => AppColors.slate500,
     };
 
-    final icon = _icons[activity.logName] ?? LucideIcons.filePen;
+    final icon = _icons[activity.logName] ?? AppIcons.filePen;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -115,10 +121,10 @@ class _ActivityCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -127,11 +133,11 @@ class _ActivityCard extends StatelessWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
-                  child: Icon(icon, size: 18, color: color),
+                  child: Icon(icon, size: AppSizes.s18, color: color),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.s12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,10 +146,10 @@ class _ActivityCard extends StatelessWidget {
                         children: [
                           if (activity.event != null) ...[
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
                               decoration: BoxDecoration(
                                 color: color.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(5),
+                                borderRadius: BorderRadius.circular(AppRadius.r5),
                               ),
                               child: Text(
                                 activity.event!,
@@ -154,7 +160,7 @@ class _ActivityCard extends StatelessWidget {
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 6),
+                            const SizedBox(width: AppSizes.s6),
                           ],
                           Expanded(
                             child: Text(
@@ -164,7 +170,7 @@ class _ActivityCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSizes.s4),
                       Text(
                         activity.description,
                         maxLines: 2,
@@ -172,11 +178,11 @@ class _ActivityCard extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5),
                       ),
                       if (activity.causer != null) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: AppSizes.s3),
                         Row(
                           children: [
-                            Icon(LucideIcons.user, size: 11, color: muted),
-                            const SizedBox(width: 4),
+                            Icon(AppIcons.user, size: AppSizes.s11, color: muted),
+                            const SizedBox(width: AppSizes.s4),
                             Text(
                               activity.causer!,
                               style: TextStyle(fontSize: 11.5, color: muted, fontWeight: FontWeight.w500),
@@ -187,10 +193,10 @@ class _ActivityCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Icon(LucideIcons.chevronRight, size: 16, color: Color(0xFF94A3B8)),
+                  padding: EdgeInsets.only(top: AppSpacing.s8),
+                  child: Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
                 ),
               ],
             ),
@@ -215,24 +221,24 @@ class _ActivitySheet extends StatelessWidget {
     final keys = {...after.keys, ...before.keys}.toList();
 
     return FormSheet(
-      title: activity.event ?? 'Aktivitas',
+      title: activity.event ?? ReportStrings.activityTitle,
       subtitle: activity.description,
       children: [
-        InfoRow('Waktu', dateTime(activity.createdAt)),
-        InfoRow('Oleh', activity.causer ?? 'Sistem'),
-        if (activity.subject != null) InfoRow('Data', activity.subject!),
-        if (activity.ipAddress != null) InfoRow('Alamat IP', activity.ipAddress!),
-        if (activity.reason != null) InfoRow('Alasan', activity.reason!),
+        InfoRow(ReportStrings.timeLabel, dateTime(activity.createdAt)),
+        InfoRow(ReportStrings.byLabel, activity.causer ?? ReportStrings.systemActor),
+        if (activity.subject != null) InfoRow(ReportStrings.dataLabel, activity.subject!),
+        if (activity.ipAddress != null) InfoRow(ReportStrings.ipAddressLabel, activity.ipAddress!),
+        if (activity.reason != null) InfoRow(ReportStrings.reasonLabel, activity.reason!),
         if (keys.isNotEmpty) ...[
-          const SectionTitle('Perubahan'),
+          const SectionTitle(ReportStrings.changesLabel),
           for (final key in keys)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(key, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
-                  Text(before.containsKey(key) ? '${_format(before[key])} → ${_format(after[key])}' : _format(after[key])),
+                  Text(before.containsKey(key) ? ReportStrings.changeFromTo(_format(before[key]), _format(after[key])) : _format(after[key])),
                 ],
               ),
             ),

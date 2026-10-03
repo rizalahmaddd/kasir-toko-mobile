@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/common.dart';
@@ -10,6 +11,8 @@ import '../../../../core/widgets/money_field.dart';
 import '../../cart_controller.dart';
 import '../../data/pos_models.dart';
 import '../../pos_providers.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class CartLineEditSheet extends ConsumerStatefulWidget {
   const CartLineEditSheet({super.key, required this.item, required this.canDiscount});
@@ -45,14 +48,14 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
   void _save() {
     final qty = parseQuantity(_quantity.text);
     if (qty == null || qty <= 0) {
-      setState(() => _error = 'Jumlah harus lebih dari 0.');
+      setState(() => _error = PosStrings.errQuantityPositive);
       return;
     }
 
     final config = ref.read(posConfigProvider).value;
     final item = widget.item;
     if (item.trackStock && !(config?.allowNegativeStock ?? false) && qty > item.stock) {
-      setState(() => _error = 'Stok tersisa ${quantity(item.stock)} ${item.unit}.');
+      setState(() => _error = PosStrings.stockRemainingWithUnit(quantity(item.stock), item.unit));
       return;
     }
 
@@ -75,10 +78,10 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
         children: [
           BottomSheetHeader(
             title: widget.item.name,
-            subtitle: '${rupiah(widget.item.price)} / ${widget.item.unit}',
+            subtitle: PosStrings.pricePerUnit(rupiah(widget.item.price), widget.item.unit),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s0, AppSpacing.s20, AppSpacing.s20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -88,31 +91,37 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
             autofocus: true,
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))],
-            decoration: InputDecoration(labelText: 'Jumlah', suffixText: widget.item.unit, errorText: _error),
+            decoration: InputDecoration(labelText: PosStrings.quantityFieldLabel, suffixText: widget.item.unit, errorText: _error),
           ),
           if (widget.canDiscount) ...[
-            const SizedBox(height: 12),
-            MoneyField(controller: _discount, label: 'Diskon barang ini'),
+            const SizedBox(height: AppSizes.s12),
+            MoneyField(controller: _discount, label: PosStrings.itemDiscountLabel),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.s12),
           TextField(
             controller: _note,
             maxLength: 150,
-            decoration: const InputDecoration(labelText: 'Catatan (opsional)', hintText: 'mis. tanpa es'),
+            decoration: const InputDecoration(labelText: PosStrings.noteFieldLabel, hintText: PosStrings.noteFieldHint),
           ),
           Row(
             children: [
-              TextButton.icon(
-                style: TextButton.styleFrom(foregroundColor: StatusColors.of(context).danger),
-                onPressed: () {
-                  ref.read(cartProvider.notifier).remove(widget.item.productId);
-                  Navigator.pop(context);
-                },
-                icon: const Icon(LucideIcons.trash2, size: 18),
-                label: const Text('Hapus Barang'),
+              Expanded(
+                child: TextButton.icon(
+                  style: TextButton.styleFrom(
+                    foregroundColor: StatusColors.of(context).danger,
+                    alignment: Alignment.centerLeft,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8),
+                  ),
+                  onPressed: () {
+                    ref.read(cartProvider.notifier).remove(widget.item.productId);
+                    Navigator.pop(context);
+                  },
+                  icon: const Icon(AppIcons.trash2, size: AppSizes.s18),
+                  label: const Text(PosStrings.deleteItemButton, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ),
               ),
-              const Spacer(),
-              FilledButton(onPressed: _save, child: const Text('Simpan')),
+              const SizedBox(width: AppSizes.s8),
+              FilledButton(onPressed: _save, child: const Text(PosStrings.save)),
             ],
           ),
         ],

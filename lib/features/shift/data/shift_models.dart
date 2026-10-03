@@ -1,3 +1,5 @@
+import 'package:web_pos_mobile/core/constants/status_values.dart';
+
 int _int(dynamic value) => value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 
 class CashMovement {
@@ -19,7 +21,7 @@ class CashMovement {
   final String reason;
   final DateTime createdAt;
 
-  bool get isIn => type == 'in';
+  bool get isIn => type == CashMovementTypes.cashIn;
 }
 
 class ShiftSummary {

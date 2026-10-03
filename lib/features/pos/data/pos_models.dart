@@ -1,3 +1,7 @@
+import 'package:web_pos_mobile/core/constants/status_values.dart';
+
+import '../../../core/constants/app_strings.dart';
+
 int _int(dynamic value) => value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 
 double _double(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
@@ -11,7 +15,7 @@ class PaymentMethodOption {
   final String value;
   final String label;
 
-  bool get isCash => value == 'cash';
+  bool get isCash => value == PaymentMethods.cash;
 }
 
 class PosConfig {
@@ -32,7 +36,7 @@ class PosConfig {
 
   factory PosConfig.fromJson(Map<String, dynamic> json) => PosConfig(
         taxRate: _double(json['tax_rate']),
-        taxLabel: json['tax_label'] as String? ?? 'Pajak',
+        taxLabel: json['tax_label'] as String? ?? PosStrings.defaultTaxLabel,
         allowNegativeStock: json['allow_negative_stock'] as bool? ?? false,
         allowCredit: json['allow_credit'] as bool? ?? false,
         canDiscount: json['can_discount'] as bool? ?? false,
@@ -92,7 +96,7 @@ class Product {
         name: json['name'] as String,
         sku: json['sku'] as String?,
         barcode: json['barcode'] as String?,
-        unit: json['unit'] as String? ?? 'pcs',
+        unit: json['unit'] as String? ?? PosStrings.defaultUnit,
         price: _int(json['price']),
         trackStock: json['track_stock'] as bool? ?? false,
         stock: _double(json['stock']),
@@ -148,6 +152,7 @@ class CartItem {
     this.note,
     required this.trackStock,
     required this.stock,
+    this.imageUrl,
   });
 
   factory CartItem.fromProduct(Product product, {double quantity = 1}) => CartItem(
@@ -159,6 +164,7 @@ class CartItem {
         quantity: quantity,
         trackStock: product.trackStock,
         stock: product.stock,
+        imageUrl: product.imageUrl,
       );
 
   /// Same keys as the web cashier's cart so held orders resume on either device.
@@ -166,13 +172,14 @@ class CartItem {
         productId: _int(json['product_id']),
         name: json['name'] as String? ?? '',
         sku: json['sku'] as String?,
-        unit: json['unit'] as String? ?? 'pcs',
+        unit: json['unit'] as String? ?? PosStrings.defaultUnit,
         price: _int(json['price']),
         quantity: _double(json['quantity']),
         discount: _int(json['discount']),
         note: json['note'] as String?,
         trackStock: json['track'] as bool? ?? false,
         stock: _double(json['stock']),
+        imageUrl: json['image_url'] as String?,
       );
 
   final int productId;
@@ -185,6 +192,7 @@ class CartItem {
   final String? note;
   final bool trackStock;
   final double stock;
+  final String? imageUrl;
 
   int get gross => (price * quantity).round();
 
@@ -194,7 +202,16 @@ class CartItem {
 
   bool get exceedsStock => trackStock && quantity > stock;
 
-  CartItem copyWith({int? price, double? quantity, int? discount, String? note, bool clearNote = false, double? stock}) => CartItem(
+  CartItem copyWith({
+    int? price,
+    double? quantity,
+    int? discount,
+    String? note,
+    bool clearNote = false,
+    double? stock,
+    String? imageUrl,
+  }) =>
+      CartItem(
         productId: productId,
         name: name,
         sku: sku,
@@ -205,6 +222,7 @@ class CartItem {
         note: clearNote ? null : note ?? this.note,
         trackStock: trackStock,
         stock: stock ?? this.stock,
+        imageUrl: imageUrl ?? this.imageUrl,
       );
 
   Map<String, dynamic> toJson() => {
@@ -218,6 +236,7 @@ class CartItem {
         'note': note,
         'track': trackStock,
         'stock': stock,
+        if (imageUrl != null) 'image_url': imageUrl,
       };
 
   Map<String, dynamic> toCheckoutJson() => {
@@ -274,8 +293,8 @@ class Cart {
       items: (json['items'] as List? ?? const []).cast<Map<String, dynamic>>().map(CartItem.fromJson).toList(),
       customer: customer?['id'] == null ? null : CustomerOption(id: _int(customer!['id']), name: customer['name'] as String? ?? ''),
       discountType: switch (json['discountType']) {
-        'percent' => DiscountType.percent,
-        'amount' => DiscountType.amount,
+        DiscountTypes.percent => DiscountType.percent,
+        DiscountTypes.amount => DiscountType.amount,
         _ => null,
       },
       discountValue: _double(json['discountValue']),

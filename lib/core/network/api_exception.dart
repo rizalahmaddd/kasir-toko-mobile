@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 class ApiException implements Exception {
   ApiException({
@@ -19,9 +20,7 @@ class ApiException implements Exception {
           error.type == DioExceptionType.sendTimeout;
 
       return ApiException(
-        message: timedOut
-            ? 'Server tidak merespons. Periksa koneksi lalu coba lagi.'
-            : 'Tidak bisa terhubung ke server. Periksa koneksi dan alamat server.',
+        message: timedOut ? CoreStrings.errorNoServerResponse : CoreStrings.errorServerUnreachable,
         isNetworkError: true,
       );
     }
@@ -48,7 +47,7 @@ class ApiException implements Exception {
   }
 
   factory ApiException.notCached() => ApiException(
-        message: 'Sedang offline dan data ini belum pernah dibuka di perangkat ini. Coba lagi setelah terhubung ke server.',
+        message: CoreStrings.errorOfflineNotCached,
         isNetworkError: true,
       );
 
@@ -66,11 +65,11 @@ class ApiException implements Exception {
   String? fieldError(String field) => fieldErrors[field]?.first;
 
   static String _fallbackMessage(int? status) => switch (status) {
-        402 => 'Masa aktif toko sudah berakhir. Hubungi admin layanan.',
-        403 => 'Akun Anda tidak punya izin untuk aksi ini.',
-        404 => 'Data tidak ditemukan.',
-        429 => 'Terlalu banyak permintaan. Tunggu sebentar lalu coba lagi.',
-        _ => 'Terjadi kesalahan di server ($status).',
+        402 => CoreStrings.errorSubscriptionExpired,
+        403 => CoreStrings.errorForbidden,
+        404 => CoreStrings.errorNotFound,
+        429 => CoreStrings.errorTooManyRequests,
+        _ => CoreStrings.errorServerStatus(status),
       };
 
   @override

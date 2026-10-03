@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/theme/app_typography.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/payment_badge.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/sale_models.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_colors.dart';
 
 class SaleTile extends StatelessWidget {
   const SaleTile({
@@ -26,12 +32,12 @@ class SaleTile extends StatelessWidget {
     final isToday = DateUtils.isSameDay(sale.soldAt, DateTime.now());
 
     return Container(
-      margin: margin ?? const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: margin ?? const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r14),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -45,10 +51,10 @@ class SaleTile extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => context.push('/sale/${sale.id}'),
+          borderRadius: BorderRadius.circular(AppRadius.r14),
+          onTap: () => context.push(AppRoutes.saleDetail(sale.id)),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -56,28 +62,28 @@ class SaleTile extends StatelessWidget {
                 Row(
                   children: [
                     Icon(
-                      LucideIcons.receipt,
-                      size: 13,
+                      AppIcons.receipt,
+                      size: AppSizes.s13,
                       color: muted,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSizes.s6),
                     Text(
                       sale.number,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF475569),
+                        color: isDark ? AppColors.slate300 : AppColors.slate600,
                       ),
                     ),
                     const Spacer(),
                     Icon(
-                      LucideIcons.clock,
-                      size: 12,
+                      AppIcons.clock,
+                      size: AppSizes.s12,
                       color: muted,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSizes.s4),
                     Text(
-                      isToday ? timeOnly(sale.soldAt) : '${dateOnly(sale.soldAt)} · ${timeOnly(sale.soldAt)}',
+                      isToday ? timeOnly(sale.soldAt) : SalesStrings.soldAtStamp(dateOnly(sale.soldAt), timeOnly(sale.soldAt)),
                       style: TextStyle(
                         fontSize: 11.5,
                         color: muted,
@@ -88,11 +94,11 @@ class SaleTile extends StatelessWidget {
                 ),
 
                 Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 9),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s9),
                   child: Divider(
                     height: 1,
                     thickness: 0.8,
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                    color: isDark ? AppColors.slate700 : AppColors.slate100,
                   ),
                 ),
 
@@ -105,23 +111,23 @@ class SaleTile extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            sale.customer?.name ?? 'Pelanggan Umum',
+                            sale.customer?.name ?? SalesStrings.generalCustomer,
                             style: TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.white : const Color(0xFF0F172A),
+                              color: isDark ? Colors.white : AppColors.slate900,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: AppSizes.s6),
                           Wrap(
                             spacing: 6,
                             runSpacing: 4,
                             crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
                               Text(
-                                '${sale.itemsCount} barang',
+                                SalesStrings.goodsCount(sale.itemsCount),
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: muted,
@@ -135,7 +141,7 @@ class SaleTile extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: AppSizes.s12),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -147,27 +153,27 @@ class SaleTile extends StatelessWidget {
                             color: sale.isVoided
                                 ? muted
                                 : sale.dueAmount > 0
-                                    ? const Color(0xFFD97706)
-                                    : const Color(0xFF059669),
+                                    ? AppColors.amber600
+                                    : AppColors.emerald600,
                             decoration: sale.isVoided ? TextDecoration.lineThrough : null,
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSizes.s4),
                         if (sale.isVoided)
-                          const StatusBadge(label: 'Dibatalkan', tone: BadgeTone.danger)
+                          const StatusBadge(label: SalesStrings.statusVoided, tone: BadgeTone.danger)
                         else if (sale.dueAmount > 0) ...[
-                          const StatusBadge(label: 'Kasbon', tone: BadgeTone.warning),
-                          const SizedBox(height: 2),
+                          const StatusBadge(label: SalesStrings.statusCredit, tone: BadgeTone.warning),
+                          const SizedBox(height: AppSizes.s2),
                           Text(
-                            'Sisa ${rupiah(sale.dueAmount)}',
+                            SalesStrings.remainingAmount(rupiah(sale.dueAmount)),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFD97706),
+                              color: AppColors.amber600,
                             ),
                           ),
                         ] else
-                          const StatusBadge(label: 'Selesai', tone: BadgeTone.success),
+                          const StatusBadge(label: SalesStrings.statusCompleted, tone: BadgeTone.success),
                       ],
                     ),
                   ],

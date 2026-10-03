@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/paging/paged.dart';
 import '../../../core/theme/app_theme.dart';
@@ -11,6 +13,9 @@ import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../customers_providers.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class CustomersScreen extends ConsumerWidget {
   const CustomersScreen({super.key});
@@ -23,46 +28,46 @@ class CustomersScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: SearchableAppBar(
-        title: const Text('Pelanggan'),
-        hint: 'Cari nama, kode, atau nomor HP',
+        title: const Text(CustomerStrings.screenTitle),
+        hint: CustomerStrings.searchHint,
         initialSearch: query.search,
         onSearchChanged: (term) => notifier.set((search: term, isActive: query.isActive)),
       ),
       floatingActionButton: canManage
           ? FloatingActionButton.extended(
-              onPressed: () => context.push('/customer/new'),
-              icon: const Icon(LucideIcons.userPlus),
-              label: const Text('Pelanggan'),
+              onPressed: () => context.push(AppRoutes.customerNew),
+              icon: const Icon(AppIcons.userPlus),
+              label: const Text(CustomerStrings.screenTitle),
             )
           : null,
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
             child: Row(
               children: [
                 FilterDropdownPill<bool>(
-                  label: 'Status',
-                  icon: LucideIcons.userCheck,
+                  label: CustomerStrings.statusFilterLabel,
+                  icon: AppIcons.userCheck,
                   value: query.isActive,
                   items: const [
-                    (null, 'Semua Pelanggan'),
-                    (true, 'Pelanggan Aktif'),
-                    (false, 'Pelanggan Nonaktif'),
+                    (null, CustomerStrings.allCustomers),
+                    (true, CustomerStrings.activeCustomers),
+                    (false, CustomerStrings.inactiveCustomers),
                   ],
                   onChanged: (value) => notifier.set((search: query.search, isActive: value)),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSizes.s2),
           Expanded(
             child: PagedListView(
               value: ref.watch(customersProvider),
               onLoadMore: () => ref.read(customersProvider.notifier).loadMore(),
               onRefresh: () => ref.refresh(customersProvider.future),
-              padding: const EdgeInsets.only(bottom: 96),
-              empty: const EmptyState(icon: LucideIcons.users, title: 'Pelanggan tidak ditemukan'),
+              padding: const EdgeInsets.only(bottom: AppSpacing.s96),
+              empty: const EmptyState(icon: AppIcons.users, title: CustomerStrings.noCustomersFound),
               itemBuilder: (context, customer) => _CustomerCard(customer: customer),
             ),
           ),
@@ -85,12 +90,12 @@ class _CustomerCard extends StatelessWidget {
     final initial = customer.name.isEmpty ? '?' : customer.name[0].toUpperCase();
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -104,18 +109,18 @@ class _CustomerCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push('/customer/${customer.id}'),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
+          onTap: () => context.push(AppRoutes.customerDetail(customer.id)),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
             child: Row(
               children: [
                 Container(
                   width: 44,
                   height: 44,
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.4) : const Color(0xFFDBEAFE),
-                    borderRadius: BorderRadius.circular(10),
+                    color: isDark ? AppColors.blue900.withValues(alpha: 0.4) : AppColors.blue100,
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
                   alignment: Alignment.center,
                   child: Text(
@@ -123,11 +128,11 @@ class _CustomerCard extends StatelessWidget {
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF2563EB),
+                      color: AppColors.blue600,
                     ),
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.s12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -143,12 +148,12 @@ class _CustomerCard extends StatelessWidget {
                             ),
                           ),
                           if (!customer.isActive) ...[
-                            const SizedBox(width: 6),
-                            const StatusBadge(label: 'Nonaktif', tone: BadgeTone.muted),
+                            const SizedBox(width: AppSizes.s6),
+                            const StatusBadge(label: CustomerStrings.inactive, tone: BadgeTone.muted),
                           ],
                         ],
                       ),
-                      const SizedBox(height: 3),
+                      const SizedBox(height: AppSizes.s3),
                       Wrap(
                         spacing: 6,
                         crossAxisAlignment: WrapCrossAlignment.center,
@@ -164,10 +169,10 @@ class _CustomerCard extends StatelessWidget {
                           if (customer.type != null) ...[
                             Text('·', style: TextStyle(color: muted, fontSize: 12)),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s5, vertical: AppSpacing.s1),
                               decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(4),
+                                color: isDark ? AppColors.slate700 : AppColors.slate100,
+                                borderRadius: BorderRadius.circular(AppRadius.r4),
                               ),
                               child: Text(
                                 customer.type!,
@@ -180,8 +185,8 @@ class _CustomerCard extends StatelessWidget {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(LucideIcons.phone, size: 11, color: muted),
-                                const SizedBox(width: 3),
+                                Icon(AppIcons.phone, size: AppSizes.s11, color: muted),
+                                const SizedBox(width: AppSizes.s3),
                                 Text(customer.phone!, style: TextStyle(fontSize: 12, color: muted)),
                               ],
                             ),
@@ -191,7 +196,7 @@ class _CustomerCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.slate400),
+                const Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
               ],
             ),
           ),

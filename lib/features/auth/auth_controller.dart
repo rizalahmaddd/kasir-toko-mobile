@@ -3,13 +3,22 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
+
+import '../../core/constants/app_strings.dart';
 import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/offline/offline_cache.dart';
 import '../../core/storage/app_storage.dart';
-import '../pos/cart_controller.dart';
+import '../data_changes.dart';
+import 'data/auth_config.dart';
 import 'data/auth_repository.dart';
 import 'data/current_user.dart';
+
+final authConfigProvider = FutureProvider.autoDispose<AuthConfig>((ref) async {
+  return ref.watch(authRepositoryProvider).getAuthConfig();
+});
 
 final authControllerProvider = AsyncNotifierProvider<AuthController, CurrentUser?>(AuthController.new);
 
@@ -37,6 +46,8 @@ class AuthController extends AsyncNotifier<CurrentUser?> {
     } on ApiException catch (error) {
       if (error.isUnauthenticated) {
         await _forget();
+        await _clearTenantStorage();
+        ref.read(dataChangesProvider).resetAllSessionData();
         return null;
       }
       rethrow;
@@ -85,8 +96,10 @@ class AuthController extends AsyncNotifier<CurrentUser?> {
     } on ApiException {
       // Same as logout(): the local session ends regardless.
     }
+    await _clearTenantStorage();
     ref.read(authTokenProvider.notifier).set(null);
     state = const AsyncData(null);
+    ref.read(dataChangesProvider).resetAllSessionData();
   }
 
   Future<void> logout() async {
@@ -95,8 +108,80 @@ class AuthController extends AsyncNotifier<CurrentUser?> {
     } on ApiException {
       // The token is dropped locally either way; a failed revoke only leaves it on the server.
     }
+    await _clearTenantStorage();
     ref.read(authTokenProvider.notifier).set(null);
     state = const AsyncData(null);
+    ref.read(dataChangesProvider).resetAllSessionData();
+  }
+
+  Future<void> signInWithGoogle({String? shopName}) async {
+    final config = await ref.read(authConfigProvider.future);
+    final googleSignIn = GoogleSignIn(
+      serverClientId: config.googleClientId,
+      scopes: const ['email', 'profile'],
+    );
+
+    final account = await googleSignIn.signIn();
+    if (account == null) {
+      return; // Canceled by user
+    }
+
+    final auth = await account.authentication;
+    final idToken = auth.idToken;
+    if (idToken == null || idToken.isEmpty) {
+      throw ApiException(message: AuthStrings.googleAuthTokenFailed);
+    }
+
+    final result = await _repository.loginWithGoogle(
+      idToken: idToken,
+      shopName: shopName,
+      deviceName: _deviceName(),
+    );
+    await _start(result.token, result.user);
+  }
+
+  Future<void> signInWithApple({String? shopName}) async {
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+      );
+
+      final identityToken = credential.identityToken;
+      if (identityToken == null || identityToken.isEmpty) {
+        throw ApiException(message: AuthStrings.appleAuthTokenFailed);
+      }
+
+      String? fullName;
+      if (credential.givenName != null || credential.familyName != null) {
+        fullName = [credential.givenName, credential.familyName]
+            .where((s) => s != null && s.isNotEmpty)
+            .join(' ');
+      }
+
+      final result = await _repository.loginWithApple(
+        identityToken: identityToken,
+        name: fullName,
+        shopName: shopName,
+        deviceName: _deviceName(),
+      );
+      await _start(result.token, result.user);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code == AuthorizationErrorCode.canceled) {
+        return; // Canceled by user
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    await _repository.deleteAccount();
+    await _clearTenantStorage();
+    ref.read(authTokenProvider.notifier).set(null);
+    state = const AsyncData(null);
+    ref.read(dataChangesProvider).resetAllSessionData();
   }
 
   /// Token revoked or expired on the server.
@@ -105,7 +190,9 @@ class AuthController extends AsyncNotifier<CurrentUser?> {
       return;
     }
     await _forget();
+    await _clearTenantStorage();
     state = const AsyncData(null);
+    ref.read(dataChangesProvider).resetAllSessionData();
   }
 
   /// The server answered 402: show the blocked screen until the shop is reactivated.
@@ -147,16 +234,31 @@ class AuthController extends AsyncNotifier<CurrentUser?> {
   Future<void> _start(String token, CurrentUser user) async {
     final prefs = ref.read(sharedPreferencesProvider);
     final tenantId = user.tenant?.id;
+    final lastTenant = prefs.getInt(StorageKeys.lastTenant);
 
-    if (tenantId != null && prefs.getInt(StorageKeys.lastTenant) != tenantId) {
-      await prefs.remove(StorageKeys.cart);
-      await ref.read(offlineCacheProvider).clear();
+    if (lastTenant != null && lastTenant != tenantId) {
+      await _clearTenantStorage();
+    }
+
+    if (tenantId != null) {
       await prefs.setInt(StorageKeys.lastTenant, tenantId);
-      ref.invalidate(cartProvider);
     }
 
     ref.read(authTokenProvider.notifier).set(token);
     state = AsyncData(user);
+
+    // Reset all in-memory providers across all features so no stale data from any
+    // prior session/tenant is retained.
+    ref.read(dataChangesProvider).resetAllSessionData();
+  }
+
+  Future<void> _clearTenantStorage() async {
+    final prefs = ref.read(sharedPreferencesProvider);
+    await prefs.remove(StorageKeys.cart);
+    await prefs.remove(StorageKeys.receiptProfile);
+    await prefs.remove(StorageKeys.storeName);
+    await prefs.remove(StorageKeys.lastTenant);
+    await OfflineCache.clearStorage(prefs);
   }
 
   Future<void> _forget() async {

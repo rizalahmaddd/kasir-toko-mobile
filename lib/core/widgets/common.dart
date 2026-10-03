@@ -1,9 +1,14 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../theme/app_theme.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
 class SearchField extends StatefulWidget {
   const SearchField({
@@ -16,7 +21,7 @@ class SearchField extends StatefulWidget {
     this.focusNode,
     this.autofocus = false,
     this.dense = false,
-    this.debounceDuration = const Duration(milliseconds: 350),
+    this.debounceDuration = AppDurations.milliseconds350,
     this.trailing,
     this.leading,
   });
@@ -180,12 +185,12 @@ class _SearchFieldState extends State<SearchField> {
           enabledBorder: InputBorder.none,
           focusedBorder: InputBorder.none,
           contentPadding: EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: widget.dense ? 9 : 11,
+            horizontal: AppSpacing.s10,
+            vertical: widget.dense ? AppSpacing.s9 : AppSpacing.s11,
           ),
           prefixIcon: widget.leading ??
               Icon(
-                LucideIcons.search,
+                AppIcons.search,
                 size: widget.dense ? 16 : 18,
                 color: isFocused ? primary : muted,
               ),
@@ -200,8 +205,8 @@ class _SearchFieldState extends State<SearchField> {
                 IconButton(
                   splashRadius: 18,
                   visualDensity: VisualDensity.compact,
-                  tooltip: 'Hapus pencarian',
-                  icon: Icon(LucideIcons.x, size: 16, color: muted),
+                  tooltip: CoreStrings.tooltipClearSearch,
+                  icon: Icon(AppIcons.x, size: AppSizes.s16, color: muted),
                   onPressed: () {
                     _effectiveController.clear();
                     _changed('');
@@ -302,12 +307,12 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
         titleSpacing: 0,
         centerTitle: false,
         leading: IconButton(
-          icon: const Icon(LucideIcons.arrowLeft, size: 20),
-          tooltip: 'Kembali',
+          icon: const Icon(AppIcons.arrowLeft, size: AppSizes.s20),
+          tooltip: CoreStrings.tooltipBack,
           onPressed: _closeSearch,
         ),
         title: Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.only(right: AppSpacing.s16),
           child: SearchField(
             controller: _controller,
             hint: widget.hint,
@@ -328,8 +333,8 @@ class _SearchableAppBarState extends State<SearchableAppBar> {
       title: widget.title,
       actions: [
         IconButton(
-          icon: const Icon(LucideIcons.search, size: 20),
-          tooltip: 'Cari',
+          icon: const Icon(AppIcons.search, size: AppSizes.s20),
+          tooltip: CoreStrings.tooltipSearch,
           onPressed: () => setState(() => _isSearching = true),
         ),
         ...widget.actions,
@@ -351,7 +356,7 @@ class BottomSheetHeader extends StatelessWidget {
     this.actions,
     this.showDragHandle = true,
     this.showCloseButton = true,
-    this.padding = const EdgeInsets.fromLTRB(20, 10, 16, 12),
+    this.padding = const EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s10, AppSpacing.s16, AppSpacing.s12),
   });
 
   final String title;
@@ -372,18 +377,18 @@ class BottomSheetHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (showDragHandle) ...[
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSizes.s8),
           Center(
             child: Container(
               width: 36,
               height: 4,
               decoration: BoxDecoration(
                 color: isDark ? AppColors.slate700 : AppColors.slate300,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: BorderRadius.circular(AppRadius.r2),
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: AppSizes.s6),
         ],
         Padding(
           padding: padding,
@@ -403,7 +408,7 @@ class BottomSheetHeader extends StatelessWidget {
                       ),
                     ),
                     if (subtitle != null && subtitle!.isNotEmpty) ...[
-                      const SizedBox(height: 2),
+                      const SizedBox(height: AppSizes.s2),
                       Text(
                         subtitle!,
                         style: TextStyle(
@@ -417,7 +422,7 @@ class BottomSheetHeader extends StatelessWidget {
               ),
               ...?actions,
               if (showCloseButton) ...[
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 Material(
                   color: isDark ? AppColors.slate800 : AppColors.slate100,
                   shape: const CircleBorder(),
@@ -425,10 +430,10 @@ class BottomSheetHeader extends StatelessWidget {
                   child: InkWell(
                     onTap: onClose ?? () => Navigator.pop(context),
                     child: Padding(
-                      padding: const EdgeInsets.all(7),
+                      padding: const EdgeInsets.all(AppSpacing.s7),
                       child: Icon(
-                        LucideIcons.x,
-                        size: 18,
+                        AppIcons.x,
+                        size: AppSizes.s18,
                         color: isDark ? AppColors.slate300 : AppColors.slate600,
                       ),
                     ),
@@ -458,11 +463,11 @@ class ChoiceChips<T> extends StatelessWidget {
       height: 44,
       child: ListView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
         children: [
           for (final (value, label) in options)
             Padding(
-              padding: const EdgeInsets.only(right: 6),
+              padding: const EdgeInsets.only(right: AppSpacing.s6),
               child: ChoiceChip(label: Text(label), selected: selected == value, showCheckmark: false, onSelected: (_) => onSelected(value)),
             ),
         ],
@@ -498,12 +503,12 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s4),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(child: Text(label, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))),
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSizes.s12),
           Flexible(
             child: Text(
               value,
@@ -526,7 +531,7 @@ class SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 16, 4, 8),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.s4, AppSpacing.s16, AppSpacing.s4, AppSpacing.s8),
       child: Row(
         children: [
           Expanded(child: Text(title, style: Theme.of(context).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600))),
@@ -558,7 +563,7 @@ class StatTile extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppSpacing.s14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -567,14 +572,14 @@ class StatTile extends StatelessWidget {
                 children: [
                   if (icon != null) ...[
                     Container(
-                      padding: const EdgeInsets.all(6),
+                      padding: const EdgeInsets.all(AppSpacing.s6),
                       decoration: BoxDecoration(
                         color: accent.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(AppRadius.r8),
                       ),
-                      child: Icon(icon, size: 16, color: accent),
+                      child: Icon(icon, size: AppSizes.s16, color: accent),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSizes.s8),
                   ],
                   Expanded(
                     child: Text(
@@ -586,7 +591,7 @@ class StatTile extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: AppSizes.s10),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -601,7 +606,7 @@ class StatTile extends StatelessWidget {
                 ),
               ),
               if (caption != null) ...[
-                const SizedBox(height: 3),
+                const SizedBox(height: AppSizes.s3),
                 Text(
                   caption!,
                   maxLines: 1,
@@ -643,7 +648,7 @@ class FormSheet extends StatelessWidget {
               BottomSheetHeader(title: title, subtitle: subtitle),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s4, AppSpacing.s20, AppSpacing.s20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -672,7 +677,7 @@ Future<bool> confirmAction(
       title: Text(title),
       content: Text(message),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+        TextButton(onPressed: () => Navigator.pop(context, false), child: const Text(CoreStrings.actionCancel)),
         FilledButton(
           style: danger ? FilledButton.styleFrom(backgroundColor: StatusColors.of(context).danger) : null,
           onPressed: () => Navigator.pop(context, true),

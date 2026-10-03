@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/utils/json.dart';
 
@@ -67,17 +68,17 @@ class CustomersRepository {
 
   Future<Paginated<Customer>> list({String? search, bool? isActive, int page = 1}) async {
     final body = await _api.get(
-      'master-data/customers',
+      ApiEndpoints.customers,
       query: {'search': search, 'is_active': isActive == null ? null : (isActive ? 1 : 0), 'page': page, 'per_page': 30},
     );
 
     return Paginated.fromJson(body, Customer.fromJson);
   }
 
-  Future<Customer> show(int id) async => Customer.fromJson(ApiClient.data(await _api.get('master-data/customers/$id')));
+  Future<Customer> show(int id) async => Customer.fromJson(ApiClient.data(await _api.get(ApiEndpoints.customer(id))));
 
   Future<Customer?> getCached(int id) async {
-    final copy = await _api.offlineCopy('master-data/customers/$id');
+    final copy = await _api.offlineCopy(ApiEndpoints.customer(id));
     if (copy == null) {
       return null;
     }
@@ -90,17 +91,17 @@ class CustomersRepository {
 
   Future<Customer> save(Customer customer, {int? id}) async {
     final body = id == null
-        ? await _api.post('master-data/customers', data: customer.toJson())
-        : await _api.put('master-data/customers/$id', data: customer.toJson());
+        ? await _api.post(ApiEndpoints.customers, data: customer.toJson())
+        : await _api.put(ApiEndpoints.customer(id), data: customer.toJson());
 
     if (id != null) {
-      await _api.updateCached('master-data/customers/$id', body);
+      await _api.updateCached(ApiEndpoints.customer(id), body);
     }
     return Customer.fromJson(ApiClient.data(body));
   }
 
   Future<void> delete(int id) async {
-    await _api.delete('master-data/customers/$id');
-    await _api.removeCached('master-data/customers/$id');
+    await _api.delete(ApiEndpoints.customer(id));
+    await _api.removeCached(ApiEndpoints.customer(id));
   }
 }

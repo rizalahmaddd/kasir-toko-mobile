@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/widgets/app_skeleton.dart';
@@ -11,6 +13,10 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../products/products_providers.dart';
 import '../notifications.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_colors.dart';
 
 typedef SearchItem = ({String label, String? sub, List<String> flags, ({String type, int id})? target});
 
@@ -73,9 +79,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     if (group.toLowerCase().contains('produk')) {
       final query = ref.read(productsQueryProvider);
       ref.read(productsQueryProvider.notifier).set((search: label, categoryId: null, status: null, sort: query.sort));
-      context.go('/products');
+      context.go(AppRoutes.products);
     } else {
-      showMessage(context, 'Data ini hanya bisa dibuka di aplikasi web.');
+      showMessage(context, NotificationStrings.openInWebOnly);
     }
   }
 
@@ -85,10 +91,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppBar(
         titleSpacing: 0,
         title: Padding(
-          padding: const EdgeInsets.only(right: 16),
+          padding: const EdgeInsets.only(right: AppSpacing.s16),
           child: SearchField(
             controller: _controller,
-            hint: 'Cari produk, transaksi, pelanggan…',
+            hint: NotificationStrings.searchHint,
             autofocus: true,
             onChanged: (val) => _search(val.trim()),
             onSubmitted: (val) => _search(val.trim()),
@@ -102,21 +108,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             : null,
       ),
       body: _error != null
-          ? EmptyState(icon: LucideIcons.circleAlert, title: 'Pencarian gagal', description: _error)
+          ? EmptyState(icon: AppIcons.circleAlert, title: NotificationStrings.searchFailedTitle, description: _error)
           : _loading && _results.isEmpty
               ? const DefaultListSkeleton(itemCount: 6)
               : _results.isEmpty
                   ? EmptyState(
-                      icon: LucideIcons.search,
-                      title: _controller.text.trim().length < 2 ? 'Ketik minimal 2 huruf' : 'Tidak ada hasil',
-                      description: 'Cari produk berdasarkan nama, kode, nomor nota, atau nama pelanggan.',
+                      icon: AppIcons.search,
+                      title: _controller.text.trim().length < 2 ? NotificationStrings.searchMinCharsTitle : NotificationStrings.searchNoResultsTitle,
+                      description: NotificationStrings.searchEmptyDescription,
                     )
                   : ListView(
-                  padding: const EdgeInsets.only(bottom: 32),
+                  padding: const EdgeInsets.only(bottom: AppSpacing.s32),
                   children: [
                     for (final group in _results) ...[
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 6),
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s12, AppSpacing.s16, AppSpacing.s6),
                         child: SectionTitle(group.group),
                       ),
                       for (final item in group.items)
@@ -151,19 +157,19 @@ class _SearchResultCard extends StatelessWidget {
     final lower = groupName.toLowerCase();
 
     final (color, icon) = switch (lower) {
-      final g when g.contains('produk') => (const Color(0xFF0D9488), LucideIcons.package),
-      final g when g.contains('pelanggan') => (const Color(0xFF3B82F6), LucideIcons.user),
-      final g when g.contains('transaksi') => (const Color(0xFF10B981), LucideIcons.receipt),
-      _ => (const Color(0xFF64748B), LucideIcons.search),
+      final g when g.contains('produk') => (AppColors.teal600, AppIcons.package),
+      final g when g.contains('pelanggan') => (AppColors.blue500, AppIcons.user),
+      final g when g.contains('transaksi') => (AppColors.emerald500, AppIcons.receipt),
+      _ => (AppColors.slate500, AppIcons.search),
     };
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -177,10 +183,10 @@ class _SearchResultCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
             child: Row(
               children: [
                 Container(
@@ -188,11 +194,11 @@ class _SearchResultCard extends StatelessWidget {
                   height: 38,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
-                  child: Icon(icon, size: 18, color: color),
+                  child: Icon(icon, size: AppSizes.s18, color: color),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.s12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -204,7 +210,7 @@ class _SearchResultCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                       if (item.sub != null || item.flags.isNotEmpty) ...[
-                        const SizedBox(height: 3),
+                        const SizedBox(height: AppSizes.s3),
                         Wrap(
                           spacing: 6,
                           crossAxisAlignment: WrapCrossAlignment.center,
@@ -213,10 +219,10 @@ class _SearchResultCard extends StatelessWidget {
                               Text(item.sub!, style: TextStyle(fontSize: 12, color: muted)),
                             for (final flag in item.flags)
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s5, vertical: AppSpacing.s1),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: isDark ? AppColors.slate700 : AppColors.slate100,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
                                 ),
                                 child: Text(flag, style: TextStyle(fontSize: 10.5, color: muted, fontWeight: FontWeight.w600)),
                               ),
@@ -226,7 +232,7 @@ class _SearchResultCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const Icon(LucideIcons.chevronRight, size: 16, color: Color(0xFF94A3B8)),
+                const Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
               ],
             ),
           ),

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:web_pos_mobile/core/constants/api_endpoints.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/offline/cached_notifier.dart';
@@ -49,10 +52,10 @@ class NotificationsRepository {
 
   final ApiClient _api;
 
-  Future<List<AppNotification>> list() async => ApiClient.list(await _api.get('notifications')).map(AppNotification.new).toList();
+  Future<List<AppNotification>> list() async => ApiClient.list(await _api.get(ApiEndpoints.notifications)).map(AppNotification.new).toList();
 
   Future<List<AppNotification>?> getCachedList() async {
-    final copy = await _api.offlineCopy('notifications');
+    final copy = await _api.offlineCopy(ApiEndpoints.notifications);
     if (copy == null) return null;
     try {
       return ApiClient.list(copy).map(AppNotification.new).toList();
@@ -61,13 +64,13 @@ class NotificationsRepository {
     }
   }
 
-  Future<int> unreadCount() async => asInt(ApiClient.data(await _api.get('notifications/unread-count'))['unread_count']);
+  Future<int> unreadCount() async => asInt(ApiClient.data(await _api.get(ApiEndpoints.notificationsUnreadCount))['unread_count']);
 
-  Future<void> markRead(String id) => _api.post('notifications/$id/read');
+  Future<void> markRead(String id) => _api.post(ApiEndpoints.notificationRead(id));
 
-  Future<void> markAllRead() => _api.post('notifications/read-all');
+  Future<void> markAllRead() => _api.post(ApiEndpoints.notificationsReadAll);
 
-  Future<List<SearchGroup>> search(String term) async => ApiClient.list(await _api.get('search', query: {'q': term})).map(SearchGroup.new).toList();
+  Future<List<SearchGroup>> search(String term) async => ApiClient.list(await _api.get(ApiEndpoints.search, query: {'q': term})).map(SearchGroup.new).toList();
 }
 
 final notificationsProvider = AsyncNotifierProvider.autoDispose<NotificationsNotifier, List<AppNotification>>(NotificationsNotifier.new);
@@ -85,9 +88,9 @@ final unreadCountProvider = FutureProvider<int>((ref) => ref.watch(notifications
 /// Opens the record an API `target` points to; returns false when the app has no screen for it.
 bool openTarget(BuildContext context, ({String type, int id})? target) {
   final path = switch (target?.type) {
-    'sale' => '/sale/${target!.id}',
-    'customer' => '/customer/${target!.id}',
-    'shift' => '/shift/${target!.id}',
+    NotificationTargets.sale => AppRoutes.saleDetail(target!.id),
+    NotificationTargets.customer => AppRoutes.customerDetail(target!.id),
+    NotificationTargets.shift => AppRoutes.shiftDetail(target!.id),
     _ => null,
   };
   if (path != null) {

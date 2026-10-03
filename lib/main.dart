@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/constants/app_routes.dart';
+import 'core/constants/app_strings.dart';
+import 'core/constants/date_formats.dart';
 import 'core/network/api_client.dart';
 import 'core/offline/offline_cache.dart';
 import 'core/storage/app_storage.dart';
@@ -14,7 +18,11 @@ import 'router.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('id_ID');
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+  await initializeDateFormatting(AppDateFormat.locale);
   final prefs = await SharedPreferences.getInstance();
 
   runApp(
@@ -37,7 +45,7 @@ class KasirApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'Kasir Toko',
+      title: AppStrings.appTitle,
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
@@ -46,8 +54,8 @@ class KasirApp extends ConsumerWidget {
       builder: (context, child) => OfflineBannerFrame(
         onTap: () {
           final router = ref.read(routerProvider);
-          if (router.routerDelegate.currentConfiguration.uri.path != '/offline') {
-            router.push('/offline');
+          if (router.routerDelegate.currentConfiguration.uri.path != AppRoutes.offline) {
+            router.push(AppRoutes.offline);
           }
         },
         child: child!,

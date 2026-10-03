@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../theme/app_theme.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
 /// Highly optimized shimmer effect for skeleton loading widgets.
 ///
@@ -14,7 +18,7 @@ class AppShimmer extends StatefulWidget {
     required this.child,
     this.baseColor,
     this.highlightColor,
-    this.duration = const Duration(milliseconds: 1400),
+    this.duration = AppDurations.milliseconds1400,
   });
 
   final Widget child;
@@ -175,7 +179,7 @@ class SkeletonText extends StatelessWidget {
       children: List.generate(lines, (index) {
         final isLast = index == lines - 1;
         return Padding(
-          padding: EdgeInsets.only(bottom: isLast ? 0 : spacing),
+          padding: EdgeInsets.only(bottom: isLast ? AppSpacing.s0 : spacing),
           child: FractionallySizedBox(
             widthFactor: isLast ? lastLineWidthFactor : 1.0,
             alignment: Alignment.centerLeft,
@@ -195,11 +199,13 @@ class DefaultListSkeleton extends StatelessWidget {
   const DefaultListSkeleton({
     super.key,
     this.itemCount = 6,
-    this.padding = const EdgeInsets.all(16),
+    this.padding = const EdgeInsets.all(AppSpacing.s16),
+    this.shrinkWrap = false,
   });
 
   final int itemCount;
   final EdgeInsetsGeometry padding;
+  final bool shrinkWrap;
 
   @override
   Widget build(BuildContext context) {
@@ -208,14 +214,15 @@ class DefaultListSkeleton extends StatelessWidget {
     return AppShimmer(
       child: ListView.separated(
         padding: padding,
+        shrinkWrap: shrinkWrap,
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemCount,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: AppSizes.s10),
         itemBuilder: (_, _) => Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(AppSpacing.s14),
           decoration: BoxDecoration(
             color: isDark ? AppColors.slate900 : Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.r14),
             border: Border.all(
               color: isDark ? AppColors.slate800 : AppColors.slate200,
             ),
@@ -223,13 +230,13 @@ class DefaultListSkeleton extends StatelessWidget {
           child: const Row(
             children: [
               SkeletonBox(width: 48, height: 48, borderRadius: 10),
-              SizedBox(width: 14),
+              SizedBox(width: AppSizes.s14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SkeletonBox(width: 140, height: 14, borderRadius: 4),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSizes.s8),
                     SkeletonBox(width: 90, height: 11, borderRadius: 4),
                   ],
                 ),
@@ -243,13 +250,33 @@ class DefaultListSkeleton extends StatelessWidget {
   }
 }
 
-/// Skeleton for POS Catalog panel (matches PosCategoryChips + PosProductCard Grid).
+/// Skeleton for POS Catalog panel (matches PosCategoryChips + PosProductCard Grid / PosProductListTile).
 class PosCatalogSkeleton extends StatelessWidget {
-  const PosCatalogSkeleton({super.key});
+  const PosCatalogSkeleton({
+    super.key,
+    this.isList = false,
+    this.gridDelegate,
+    this.cardHeight = 226,
+    this.photoHeight = 114,
+    this.itemCount = 6,
+  });
+
+  final bool isList;
+  final SliverGridDelegate? gridDelegate;
+  final double cardHeight;
+  final double photoHeight;
+  final int itemCount;
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final delegate = gridDelegate ??
+        const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 200,
+          mainAxisExtent: 226,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        );
 
     return AppShimmer(
       child: Column(
@@ -261,9 +288,9 @@ class PosCatalogSkeleton extends StatelessWidget {
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.symmetric(horizontal: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12),
               itemCount: 5,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              separatorBuilder: (_, _) => const SizedBox(width: AppSizes.s8),
               itemBuilder: (_, index) => SkeletonBox(
                 width: index == 0 ? 80 : 96,
                 height: 38,
@@ -271,51 +298,91 @@ class PosCatalogSkeleton extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          // Product Cards Grid skeleton
+          const SizedBox(height: AppSizes.s8),
+          // Product Cards / List Tiles Grid skeleton
           Expanded(
             child: GridView.builder(
               physics: const NeverScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 16),
-              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                maxCrossAxisExtent: 200,
-                mainAxisExtent: 226,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: 6,
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s12, AppSpacing.s4, AppSpacing.s12, AppSpacing.s16),
+              gridDelegate: delegate,
+              itemCount: itemCount,
               itemBuilder: (context, _) {
+                if (isList) {
+                  return Container(
+                    height: 68,
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s8),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColors.slate900 : Colors.white,
+                      borderRadius: BorderRadius.circular(AppRadius.r12),
+                      border: Border.all(
+                        color: isDark ? AppColors.slate800 : AppColors.slate200,
+                      ),
+                    ),
+                    child: const Row(
+                      children: [
+                        SkeletonBox(width: 44, height: 44, borderRadius: 8),
+                        SizedBox(width: AppSizes.s10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SkeletonBox(width: 130, height: 13, borderRadius: 4),
+                              SizedBox(height: AppSizes.s6),
+                              SkeletonBox(width: 70, height: 10, borderRadius: 3),
+                            ],
+                          ),
+                        ),
+                        SizedBox(width: AppSizes.s8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SkeletonBox(width: 65, height: 14, borderRadius: 4),
+                            SizedBox(height: AppSizes.s6),
+                            SkeletonBox(width: 24, height: 24, borderRadius: 12),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }
+
                 return Container(
                   decoration: BoxDecoration(
                     color: isDark ? AppColors.slate900 : Colors.white,
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadius.r14),
                     border: Border.all(
                       color: isDark ? AppColors.slate800 : AppColors.slate200,
                     ),
                   ),
-                  child: const Column(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Photo container matching real card height (114px)
+                      // Photo container matching real card photo height
                       SkeletonBox(
-                        height: 114,
+                        height: photoHeight,
                         width: double.infinity,
                         borderRadius: 13,
                       ),
                       Padding(
-                        padding: EdgeInsets.fromLTRB(10, 8, 10, 8),
+                        padding: const EdgeInsets.fromLTRB(AppSpacing.s10, AppSpacing.s8, AppSpacing.s10, AppSpacing.s8),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SkeletonBox(width: 110, height: 13, borderRadius: 4),
-                            SizedBox(height: 6),
-                            SkeletonBox(width: 65, height: 10, borderRadius: 3),
-                            SizedBox(height: 12),
+                            const SkeletonBox(width: 110, height: 13, borderRadius: 4),
+                            const SizedBox(height: AppSizes.s6),
+                            const SkeletonBox(width: 65, height: 10, borderRadius: 3),
+                            const SizedBox(height: AppSizes.s10),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                SkeletonBox(width: 60, height: 14, borderRadius: 4),
-                                SkeletonBox(width: 24, height: 24, borderRadius: 6),
+                                const SkeletonBox(width: 60, height: 14, borderRadius: 4),
+                                SkeletonBox(
+                                  width: photoHeight > 140 ? 30 : 24,
+                                  height: photoHeight > 140 ? 30 : 24,
+                                  borderRadius: 12,
+                                ),
                               ],
                             ),
                           ],
@@ -348,36 +415,36 @@ class ProductListSkeleton extends StatelessWidget {
 
     return AppShimmer(
       child: ListView.separated(
-        padding: const EdgeInsets.only(bottom: 96),
+        padding: const EdgeInsets.only(bottom: AppSpacing.s96),
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemCount,
-        separatorBuilder: (_, _) => const SizedBox(height: 2),
+        separatorBuilder: (_, _) => const SizedBox(height: AppSizes.s2),
         itemBuilder: (_, _) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.s12),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                color: isDark ? AppColors.slate800 : Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.r14),
                 border: Border.all(
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  color: isDark ? AppColors.slate700 : AppColors.slate200,
                 ),
               ),
               child: const Row(
                 children: [
                   SkeletonBox(width: 48, height: 48, borderRadius: 8),
-                  SizedBox(width: 12),
+                  SizedBox(width: AppSizes.s12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         SkeletonBox(width: 140, height: 14, borderRadius: 4),
-                        SizedBox(height: 6),
+                        SizedBox(height: AppSizes.s6),
                         Row(
                           children: [
                             SkeletonBox(width: 60, height: 10, borderRadius: 3),
-                            SizedBox(width: 8),
+                            SizedBox(width: AppSizes.s8),
                             SkeletonBox(width: 45, height: 14, borderRadius: 4),
                           ],
                         ),
@@ -410,18 +477,18 @@ class ShiftsListSkeleton extends StatelessWidget {
 
     return AppShimmer(
       child: ListView.separated(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s4, AppSpacing.s16, AppSpacing.s24),
         physics: const NeverScrollableScrollPhysics(),
         itemCount: itemCount,
-        separatorBuilder: (_, _) => const SizedBox(height: 10),
+        separatorBuilder: (_, _) => const SizedBox(height: AppSizes.s10),
         itemBuilder: (_, _) {
           return Container(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppSpacing.s14),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(14),
+              color: isDark ? AppColors.slate800 : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.r14),
               border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                color: isDark ? AppColors.slate700 : AppColors.slate200,
               ),
             ),
             child: const Column(
@@ -434,14 +501,14 @@ class ShiftsListSkeleton extends StatelessWidget {
                     Row(
                       children: [
                         SkeletonCircle(size: 20),
-                        SizedBox(width: 8),
+                        SizedBox(width: AppSizes.s8),
                         SkeletonBox(width: 90, height: 13, borderRadius: 4),
                       ],
                     ),
                     SkeletonBox(width: 75, height: 20, borderRadius: 10),
                   ],
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: AppSizes.s12),
                 // Middle row: amounts
                 Row(
                   children: [
@@ -450,7 +517,7 @@ class ShiftsListSkeleton extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SkeletonBox(width: 55, height: 10, borderRadius: 3),
-                          SizedBox(height: 5),
+                          SizedBox(height: AppSizes.s5),
                           SkeletonBox(width: 95, height: 15, borderRadius: 4),
                         ],
                       ),
@@ -460,14 +527,14 @@ class ShiftsListSkeleton extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SkeletonBox(width: 55, height: 10, borderRadius: 3),
-                          SizedBox(height: 5),
+                          SizedBox(height: AppSizes.s5),
                           SkeletonBox(width: 95, height: 15, borderRadius: 4),
                         ],
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: AppSizes.s12),
                 // Bottom row: time and duration
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -510,19 +577,19 @@ class SalesListSkeleton extends StatelessWidget {
       child: ListView(
         shrinkWrap: shrinkWrap,
         physics: physics ?? (shrinkWrap ? const NeverScrollableScrollPhysics() : const NeverScrollableScrollPhysics()),
-        padding: padding ?? const EdgeInsets.only(bottom: 24),
+        padding: padding ?? const EdgeInsets.only(bottom: AppSpacing.s24),
         children: [
           // Summary card skeleton
           if (showSummary)
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s6, AppSpacing.s16, AppSpacing.s8),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s12),
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: isDark ? AppColors.slate800 : Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.r12),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    color: isDark ? AppColors.slate700 : AppColors.slate200,
                   ),
                 ),
                 child: const Row(
@@ -532,12 +599,12 @@ class SalesListSkeleton extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SkeletonBox(width: 85, height: 11, borderRadius: 3),
-                          SizedBox(height: 6),
+                          SizedBox(height: AppSizes.s6),
                           SkeletonBox(width: 140, height: 18, borderRadius: 4),
                         ],
                       ),
                     ),
-                    SizedBox(width: 16),
+                    SizedBox(width: AppSizes.s16),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -552,15 +619,15 @@ class SalesListSkeleton extends StatelessWidget {
           ...List.generate(itemCount, (_) {
             return Container(
               margin: EdgeInsets.symmetric(
-                horizontal: showSummary ? 16 : 0,
-                vertical: 4,
+                horizontal: showSummary ? AppSpacing.s16 : AppSpacing.s0,
+                vertical: AppSpacing.s4,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                color: isDark ? AppColors.slate800 : Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.r14),
                 border: Border.all(
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                  color: isDark ? AppColors.slate700 : AppColors.slate200,
                 ),
               ),
               child: const Column(
@@ -573,7 +640,7 @@ class SalesListSkeleton extends StatelessWidget {
                       SkeletonBox(width: 60, height: 11, borderRadius: 3),
                     ],
                   ),
-                  SizedBox(height: 10),
+                  SizedBox(height: AppSizes.s10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -581,7 +648,7 @@ class SalesListSkeleton extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           SkeletonBox(width: 120, height: 16, borderRadius: 4),
-                          SizedBox(height: 4),
+                          SizedBox(height: AppSizes.s4),
                           SkeletonBox(width: 75, height: 11, borderRadius: 3),
                         ],
                       ),
@@ -608,49 +675,49 @@ class DashboardSkeleton extends StatelessWidget {
 
     return AppShimmer(
       child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s12),
         physics: const NeverScrollableScrollPhysics(),
         children: [
           // Shift & Sync banner skeleton
           Container(
             height: 52,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              color: isDark ? AppColors.slate800 : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.r12),
               border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                color: isDark ? AppColors.slate700 : AppColors.slate200,
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.s12),
           // Today Sales Hero skeleton
           Container(
             height: 120,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: isDark ? AppColors.slate800 : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.r16),
               border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                color: isDark ? AppColors.slate700 : AppColors.slate200,
               ),
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppSizes.s14),
           // Quick actions bar skeleton
           Row(
             children: List.generate(4, (_) {
               return Expanded(
                 child: Container(
                   height: 46,
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
+                  margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s3),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    color: isDark ? AppColors.slate800 : Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
                 ),
               );
             }),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: AppSizes.s14),
           // Stats 2x2 grid skeleton
           GridView.count(
             crossAxisCount: 2,
@@ -662,10 +729,10 @@ class DashboardSkeleton extends StatelessWidget {
             children: List.generate(4, (_) {
               return Container(
                 decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  color: isDark ? AppColors.slate800 : Colors.white,
+                  borderRadius: BorderRadius.circular(AppRadius.r12),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                    color: isDark ? AppColors.slate700 : AppColors.slate200,
                   ),
                 ),
               );
@@ -687,26 +754,26 @@ class ProductDetailSkeleton extends StatelessWidget {
 
     return AppShimmer(
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.s16),
         physics: const NeverScrollableScrollPhysics(),
         children: [
           // Header with 88px photo
           const Row(
             children: [
               SkeletonBox(width: 88, height: 88, borderRadius: 12),
-              SizedBox(width: 16),
+              SizedBox(width: AppSizes.s16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     SkeletonBox(width: 160, height: 18, borderRadius: 4),
-                    SizedBox(height: 8),
+                    SizedBox(height: AppSizes.s8),
                     SkeletonBox(width: 90, height: 12, borderRadius: 3),
-                    SizedBox(height: 12),
+                    SizedBox(height: AppSizes.s12),
                     Row(
                       children: [
                         SkeletonBox(width: 60, height: 20, borderRadius: 10),
-                        SizedBox(width: 8),
+                        SizedBox(width: AppSizes.s8),
                         SkeletonBox(width: 70, height: 20, borderRadius: 10),
                       ],
                     ),
@@ -715,27 +782,27 @@ class ProductDetailSkeleton extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSizes.s16),
           // Specs Card
           Container(
             height: 140,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: isDark ? AppColors.slate800 : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.r16),
               border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                color: isDark ? AppColors.slate700 : AppColors.slate200,
               ),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSizes.s16),
           // Stock Card
           Container(
             height: 100,
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              color: isDark ? AppColors.slate800 : Colors.white,
+              borderRadius: BorderRadius.circular(AppRadius.r16),
               border: Border.all(
-                color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                color: isDark ? AppColors.slate700 : AppColors.slate200,
               ),
             ),
           ),

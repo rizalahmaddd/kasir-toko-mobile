@@ -17,4 +17,13 @@ abstract final class StorageKeys {
   static const cart = 'pos_cart';
   static const lastTenant = 'last_tenant_id';
   static const themeMode = 'theme_mode';
+
+  static const storeName = 'store_name';
+  static const receiptProfile = 'receipt_profile';
+  static const catalog = 'catalog';
+  static const offlineSalesQueue = 'offline_sales_queue';
+  static const offlineCachePrefix = 'offline_cache_';
+  static const catalogDensity = 'pos_catalog_density';
+  static const posKeepScreenOn = 'pos_keep_screen_on';
+  static const posQrFullBrightness = 'pos_qr_full_brightness';
 }

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/network/api_client.dart';
 import '../../core/offline/cached_notifier.dart';
 import '../../core/paging/paged.dart';
@@ -9,7 +11,7 @@ import 'data/products_repository.dart';
 typedef ProductsQuery = ({String search, int? categoryId, String? status, String sort});
 
 final productsQueryProvider = NotifierProvider<QueryNotifier<ProductsQuery>, ProductsQuery>(
-  () => QueryNotifier((search: '', categoryId: null, status: null, sort: 'name')),
+        () => QueryNotifier((search: '', categoryId: null, status: null, sort: ProductSortKeys.name)),
 );
 
 final productsProvider = AsyncNotifierProvider<ProductsNotifier, PagedState<ProductRecord>>(ProductsNotifier.new);
@@ -100,10 +102,10 @@ class MovementsNotifier extends PagedNotifier<StockMovement> {
 }
 
 const stockMovementTypes = {
-  'sale': 'Penjualan',
-  'sale_void': 'Batal jual',
-  'stock_in': 'Stok masuk',
-  'stock_out': 'Stok keluar',
-  'opname': 'Opname',
-  'initial': 'Stok awal',
+  MovementTypes.sale: ProductStrings.movementTypeSale,
+  MovementTypes.saleVoid: ProductStrings.movementTypeSaleVoid,
+  MovementTypes.stockIn: ProductStrings.adjustTitleStockIn,
+  MovementTypes.stockOut: ProductStrings.adjustTitleStockOut,
+  MovementTypes.opname: ProductStrings.movementTypeOpname,
+  MovementTypes.initial: ProductStrings.movementTypeInitial,
 };

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
+import '../../../core/utils/display_service.dart';
 import '../../../core/utils/responsive.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
@@ -10,40 +12,101 @@ import '../../auth/data/current_user.dart';
 import '../../offline/offline_queue.dart';
 
 import '../../pos/cart_controller.dart';
+import '../../pos/pos_providers.dart';
 
 typedef ShellTab = ({int branch, IconData icon, String label});
 
 /// Branch order must match the StatefulShellRoute in router.dart.
 List<ShellTab> visibleTabs(CurrentUser? user) => [
-      (branch: 0, icon: LucideIcons.layoutDashboard, label: 'Beranda'),
-      if (user?.canSell ?? false) (branch: 1, icon: LucideIcons.shoppingCart, label: 'Kasir'),
-      if (user?.canViewSales ?? false) (branch: 2, icon: LucideIcons.receiptText, label: 'Transaksi'),
-      if (user?.canViewProducts ?? false) (branch: 3, icon: LucideIcons.package, label: 'Produk'),
-      (branch: 4, icon: LucideIcons.layoutGrid, label: 'Menu'),
+      (branch: 0, icon: AppIcons.layoutDashboard, label: HomeStrings.tabBeranda),
+      if (user?.canSell ?? false) (branch: 1, icon: AppIcons.shoppingCart, label: HomeStrings.tabKasir),
+      if (user?.canViewSales ?? false) (branch: 2, icon: AppIcons.receiptText, label: HomeStrings.tabTransaksi),
+      if (user?.canViewProducts ?? false) (branch: 3, icon: AppIcons.package, label: HomeStrings.tabProduk),
+      (branch: 4, icon: AppIcons.layoutGrid, label: HomeStrings.tabMenu),
     ];
 
-class HomeShell extends ConsumerWidget {
+class HomeShell extends ConsumerStatefulWidget {
   const HomeShell({super.key, required this.shell});
 
   final StatefulNavigationShell shell;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeShell> createState() => _HomeShellState();
+}
+
+class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserver {
+  DisplayService? _displayService;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _displayService = ref.read(displayServiceProvider);
+    _syncWakelock();
+  }
+
+  @override
+  void didUpdateWidget(covariant HomeShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.shell.currentIndex != widget.shell.currentIndex) {
+      _syncWakelock();
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _syncWakelock();
+    } else if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      _displayService?.allowScreenSleep();
+    }
+  }
+
+  void _syncWakelock() {
+    // Branch 1 is AppRoutes.pos (Kasir).
+    final isCashierTab = widget.shell.currentIndex == 1;
+    final keepScreenOn = ref.read(posDisplaySettingsProvider).keepScreenOn;
+    if (isCashierTab && keepScreenOn) {
+      _displayService?.keepScreenOn();
+    } else {
+      _displayService?.allowScreenSleep();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _displayService?.allowScreenSleep();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     ref.watch(offlineSyncerProvider);
+    ref.listen<PosDisplaySettings>(posDisplaySettingsProvider, (prev, next) {
+      if (prev?.keepScreenOn != next.keepScreenOn) {
+        _syncWakelock();
+      }
+    });
     final tabs = visibleTabs(ref.watch(currentUserProvider));
     final cart = ref.watch(cartProvider);
-    final selected = tabs.indexWhere((tab) => tab.branch == shell.currentIndex).clamp(0, tabs.length - 1);
+    final selected = tabs.indexWhere((tab) => tab.branch == widget.shell.currentIndex).clamp(0, tabs.length - 1);
 
     void go(int index) {
       final branch = tabs[index].branch;
-      shell.goBranch(branch, initialLocation: branch == shell.currentIndex);
+      widget.shell.goBranch(branch, initialLocation: branch == widget.shell.currentIndex);
     }
 
     Widget tabIcon(ShellTab tab) {
       final icon = Icon(tab.icon);
       if (tab.branch == 1 && cart.itemCount > 0) {
         return Badge(
-          label: Text(cart.itemCount > 99 ? '99+' : cart.itemCount.toInt().toString()),
+          label: Text(cart.itemCount > 99 ? HomeStrings.tabBadgeOverflow : cart.itemCount.toInt().toString()),
           child: icon,
         );
       }
@@ -68,7 +131,7 @@ class HomeShell extends ConsumerWidget {
                 ],
               ),
               const VerticalDivider(width: 1),
-              Expanded(child: shell),
+              Expanded(child: widget.shell),
             ],
           ),
         ),
@@ -76,7 +139,7 @@ class HomeShell extends ConsumerWidget {
     }
 
     return Scaffold(
-      body: shell,
+      body: widget.shell,
       bottomNavigationBar: NavigationBar(
         selectedIndex: selected,
         onDestinationSelected: go,

@@ -8,7 +8,10 @@ import 'customers/customers_providers.dart';
 import 'dashboard/dashboard.dart';
 import 'notifications/notifications.dart';
 import 'offline/catalog_snapshot.dart';
+import 'offline/offline_queue.dart';
+import 'pos/cart_controller.dart';
 import 'pos/pos_providers.dart';
+import 'printing/printer.dart';
 import 'products/products_providers.dart';
 import 'receivables/receivables.dart';
 import 'reports/reports.dart';
@@ -106,4 +109,79 @@ class DataChanges {
       // Offline: the periodic refresh in the syncer picks it up later.
     }
   }
+
+  /// Completely resets all in-memory feature providers and active queries/filters.
+  /// Called on logout or switching accounts/tenants so no data from a previous
+  /// session leaks into another session.
+  void resetAllSessionData() {
+    final providers = <ProviderOrFamily>{
+      // POS & Catalog
+      catalogProvider,
+      catalogQueryProvider,
+      cartProvider,
+      heldOrderPreviewsProvider,
+      posConfigProvider,
+      posCategoriesProvider,
+
+      // Products & Stock
+      productsProvider,
+      productsQueryProvider,
+      productDetailProvider,
+      allCategoriesProvider,
+      categoriesProvider,
+      categoriesSearchProvider,
+      stockProvider,
+      stockQueryProvider,
+      stockSummaryProvider,
+      movementsProvider,
+
+      // Sales
+      salesProvider,
+      salesFilterProvider,
+      saleDetailProvider,
+      receiptProvider,
+
+      // Shifts
+      currentShiftProvider,
+      shiftsProvider,
+      shiftsStatusProvider,
+      shiftDetailProvider,
+      shiftSalesProvider,
+
+      // Customers & Receivables
+      customersProvider,
+      customersQueryProvider,
+      customerProvider,
+      customerSalesProvider,
+      receivablesProvider,
+      receivablesSearchProvider,
+      customerReceivablesProvider,
+
+      // Dashboard & Reports
+      dashboardProvider,
+      activityProvider,
+      activityQueryProvider,
+      salesSummaryProvider,
+      dailyReportProvider,
+      productReportProvider,
+      productReportQueryProvider,
+      reportRangeProvider,
+
+      // Notifications
+      unreadCountProvider,
+      notificationsProvider,
+
+      // Offline
+      catalogSnapshotProvider,
+      syncStateProvider,
+
+      // Printing
+      receiptProfileProvider,
+    };
+
+    for (final provider in providers) {
+      _ref.invalidate(provider);
+    }
+  }
 }
+

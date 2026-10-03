@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -24,8 +27,11 @@ import 'open_shift_card.dart';
 import 'widgets/cash_movement_sheet.dart';
 import 'widgets/close_shift_sheet.dart';
 import 'widgets/drawer_cash_card.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
-const _methodLabels = {'qris': 'QRIS', 'transfer': 'Transfer', 'card': 'Kartu'};
+const _methodLabels = {PaymentMethods.qris: ShiftStrings.methodQris, PaymentMethods.transfer: ShiftStrings.methodTransfer, PaymentMethods.card: ShiftStrings.methodCard};
 
 /// The logged-in cashier's own shift.
 class ShiftScreen extends ConsumerWidget {
@@ -39,17 +45,17 @@ class ShiftScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Shift saya'),
+        title: const Text(ShiftStrings.myShiftTitle),
         actions: [
           if (canSeeHistory)
-            IconButton(tooltip: 'Riwayat shift', icon: const Icon(LucideIcons.history, size: 20), onPressed: () => context.push('/shifts')),
+            IconButton(tooltip: ShiftStrings.shiftHistoryTooltip, icon: const Icon(AppIcons.history, size: AppSizes.s20), onPressed: () => context.push(AppRoutes.shifts)),
           if (shift.value != null && ref.watch(printerSettingsProvider).isConfigured)
             IconButton(
-              tooltip: 'Cetak rekap',
-              icon: const Icon(LucideIcons.printer, size: 20),
-              onPressed: () => runPrint(context, () => ref.read(printerServiceProvider).printShift(shift.value!), success: 'Rekap shift dicetak.'),
+              tooltip: ShiftStrings.printRecapTooltip,
+              icon: const Icon(AppIcons.printer, size: AppSizes.s20),
+              onPressed: () => runPrint(context, () => ref.read(printerServiceProvider).printShift(shift.value!), success: ShiftStrings.recapPrinted),
             ),
-          IconButton(tooltip: 'Muat ulang', icon: const Icon(LucideIcons.refreshCw, size: 20), onPressed: notifier.refresh),
+          IconButton(tooltip: ShiftStrings.reloadTooltip, icon: const Icon(AppIcons.refreshCw, size: AppSizes.s20), onPressed: notifier.refresh),
         ],
       ),
       body: switch (shift) {
@@ -93,13 +99,13 @@ class ShiftDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(shift.value?.number ?? 'Shift'),
+        title: Text(shift.value?.number ?? ShiftStrings.shiftFallbackTitle),
         actions: [
           if (shift.value != null && ref.watch(printerSettingsProvider).isConfigured)
             IconButton(
-              tooltip: 'Cetak rekap',
-              icon: const Icon(LucideIcons.printer, size: 20),
-              onPressed: () => runPrint(context, () => ref.read(printerServiceProvider).printShift(shift.value!), success: 'Rekap shift dicetak.'),
+              tooltip: ShiftStrings.printRecapTooltip,
+              icon: const Icon(AppIcons.printer, size: AppSizes.s20),
+              onPressed: () => runPrint(context, () => ref.read(printerServiceProvider).printShift(shift.value!), success: ShiftStrings.recapPrinted),
             ),
         ],
       ),
@@ -146,7 +152,7 @@ class ShiftView extends ConsumerWidget {
     return RefreshIndicator(
       onRefresh: onRefresh,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.s16),
         children: [
           MaxWidth(
             width: 640,
@@ -155,59 +161,59 @@ class ShiftView extends ConsumerWidget {
               children: [
                 DrawerCashCard(shift: shift),
                 if (shift.canRecordCash) ...[
-                  const SizedBox(height: 14),
+                  const SizedBox(height: AppSizes.s14),
                   Row(
                     children: [
                       Expanded(
                         child: _ShiftActionCard(
-                          title: 'Kas Masuk',
-                          subtitle: 'Setor modal / penerimaan',
-                          icon: LucideIcons.arrowDownToLine,
+                          title: ShiftStrings.cashInMiniLabel,
+                          subtitle: ShiftStrings.setOpeningCashSubtitle,
+                          icon: AppIcons.arrowDownToLine,
                           color: colors.success,
-                          onTap: () => FormSheet.show<void>(context, CashMovementSheet(type: 'in', recordCash: recordCash)),
+                          onTap: () => FormSheet.show<void>(context, CashMovementSheet(type: CashMovementTypes.cashIn, recordCash: recordCash)),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: AppSizes.s10),
                       Expanded(
                         child: _ShiftActionCard(
-                          title: 'Kas Keluar',
-                          subtitle: 'Tarik kas / pengeluaran',
-                          icon: LucideIcons.arrowUpFromLine,
+                          title: ShiftStrings.cashOutMiniLabel,
+                          subtitle: ShiftStrings.withdrawCashSubtitle,
+                          icon: AppIcons.arrowUpFromLine,
                           color: colors.warning,
-                          onTap: () => FormSheet.show<void>(context, CashMovementSheet(type: 'out', recordCash: recordCash)),
+                          onTap: () => FormSheet.show<void>(context, CashMovementSheet(type: CashMovementTypes.cashOut, recordCash: recordCash)),
                         ),
                       ),
                     ],
                   ),
                 ],
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSizes.s16),
                 if (summary != null)
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(AppSpacing.s18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             children: [
-                              Icon(LucideIcons.fileSpreadsheet, size: 18, color: colors.info),
-                              const SizedBox(width: 8),
+                              Icon(AppIcons.fileSpreadsheet, size: AppSizes.s18, color: colors.info),
+                              const SizedBox(width: AppSizes.s8),
                               const Expanded(
-                                child: Text('Rekapitulasi Arus Kas', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                child: Text(ShiftStrings.cashFlowRecapTitle, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          InfoRow('Modal awal', rupiah(summary.opening)),
-                          InfoRow('Penjualan tunai', rupiah(summary.cashSales)),
-                          if (summary.cashReceivables > 0) InfoRow('Pelunasan kasbon tunai', rupiah(summary.cashReceivables)),
-                          InfoRow('Kas masuk', rupiah(summary.cashIn)),
-                          InfoRow('Kas keluar', summary.cashOut > 0 ? '-${rupiah(summary.cashOut)}' : rupiah(0)),
+                          const SizedBox(height: AppSizes.s14),
+                          InfoRow(ShiftStrings.openingCashLabel, rupiah(summary.opening)),
+                          InfoRow(ShiftStrings.cashSalesLabel, rupiah(summary.cashSales)),
+                          if (summary.cashReceivables > 0) InfoRow(ShiftStrings.cashReceivableSettlementLabel, rupiah(summary.cashReceivables)),
+                          InfoRow(ShiftStrings.cashInLabel, rupiah(summary.cashIn)),
+                          InfoRow(ShiftStrings.cashOutLabel, summary.cashOut > 0 ? '-${rupiah(summary.cashOut)}' : rupiah(0)),
                           if (!shift.isOpen) ...[
-                            InfoRow('Uang di laci seharusnya', rupiah(summary.expected), bold: true),
-                            InfoRow('Uang fisik dihitung', rupiah(shift.countedCash ?? 0)),
+                            InfoRow(ShiftStrings.expectedInDrawerLabel, rupiah(summary.expected), bold: true),
+                            InfoRow(ShiftStrings.countedCashLabel, rupiah(shift.countedCash ?? 0)),
                             InfoRow(
-                              'Selisih',
+                              ShiftStrings.differenceLabel,
                               _signed(shift.cashDifference ?? 0),
                               valueColor: (shift.cashDifference ?? 0) == 0 ? colors.success : colors.warning,
                             ),
@@ -215,17 +221,17 @@ class ShiftView extends ConsumerWidget {
                           const Divider(height: 24),
                           Row(
                             children: [
-                              Icon(LucideIcons.trendingUp, size: 18, color: colors.success),
-                              const SizedBox(width: 8),
+                              Icon(AppIcons.trendingUp, size: AppSizes.s18, color: colors.success),
+                              const SizedBox(width: AppSizes.s8),
                               const Expanded(
-                                child: Text('Performa Penjualan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                child: Text(ShiftStrings.salesPerformanceTitle, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 14),
-                          InfoRow('Transaksi selesai', '${summary.salesCount}'),
-                          InfoRow('Total penjualan', rupiah(summary.salesTotal)),
-                          if (summary.voidedCount > 0) InfoRow('Dibatalkan', '${summary.voidedCount}'),
+                          const SizedBox(height: AppSizes.s14),
+                          InfoRow(ShiftStrings.completedTransactionsLabel, '${summary.salesCount}'),
+                          InfoRow(ShiftStrings.totalSalesLabel, rupiah(summary.salesTotal)),
+                          if (summary.voidedCount > 0) InfoRow(ShiftStrings.voidedLabel, '${summary.voidedCount}'),
                           for (final entry in summary.nonCash.entries)
                             if (entry.value > 0) InfoRow(_methodLabels[entry.key] ?? entry.key, rupiah(entry.value)),
                         ],
@@ -233,22 +239,22 @@ class ShiftView extends ConsumerWidget {
                     ),
                   ),
                 if (shift.closingNote != null && shift.closingNote!.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSizes.s8),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(AppSpacing.s12),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.slate800 : AppColors.slate100,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
                     ),
-                    child: Text('Catatan tutup: ${shift.closingNote}', style: TextStyle(color: muted, fontSize: 13)),
+                    child: Text(ShiftStrings.closingNoteLabel(shift.closingNote!), style: TextStyle(color: muted, fontSize: 13)),
                   ),
                 ],
-                const SizedBox(height: 12),
-                const SectionTitle('Kas masuk & keluar'),
+                const SizedBox(height: AppSizes.s12),
+                const SectionTitle(ShiftStrings.cashMovementsTitle),
                 if (shift.cashMovements.isEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
-                    child: Text('Belum ada kas masuk atau keluar di shift ini.', style: TextStyle(color: muted)),
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8, horizontal: AppSpacing.s4),
+                    child: Text(ShiftStrings.noCashMovements, style: TextStyle(color: muted)),
                   )
                 else
                   Card(
@@ -257,19 +263,19 @@ class ShiftView extends ConsumerWidget {
                         for (final movement in shift.cashMovements)
                           ListTile(
                             leading: Container(
-                              padding: const EdgeInsets.all(8),
+                              padding: const EdgeInsets.all(AppSpacing.s8),
                               decoration: BoxDecoration(
                                 color: (movement.isIn ? colors.success : colors.warning).withValues(alpha: 0.12),
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                movement.isIn ? LucideIcons.arrowDownToLine : LucideIcons.arrowUpFromLine,
-                                size: 16,
+                                movement.isIn ? AppIcons.arrowDownToLine : AppIcons.arrowUpFromLine,
+                                size: AppSizes.s16,
                                 color: movement.isIn ? colors.success : colors.warning,
                               ),
                             ),
                             title: Text(movement.reason, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
-                            subtitle: Text('${movement.typeLabel} · ${timeOnly(movement.createdAt)}', style: TextStyle(color: muted, fontSize: 12)),
+                            subtitle: Text(ShiftStrings.movementSubtitle(movement.typeLabel, timeOnly(movement.createdAt)), style: TextStyle(color: muted, fontSize: 12)),
                             trailing: Text(
                               '${movement.isIn ? '+' : '-'}${rupiah(movement.amount)}',
                               style: AppTypography.money(
@@ -284,24 +290,24 @@ class ShiftView extends ConsumerWidget {
                   ),
                 if (showSales) _ShiftSales(shiftId: shift.id),
                 if (shift.canClose) ...[
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSizes.s24),
                   Card(
                     color: isDark ? AppColors.slate900 : Colors.white,
                     child: Padding(
-                      padding: const EdgeInsets.all(18),
+                      padding: const EdgeInsets.all(AppSpacing.s18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           const Text(
-                            'Tutup Shift Kasir',
+                            ShiftStrings.closeShiftCardTitle,
                             style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                           ),
-                          const SizedBox(height: 4),
+                          const SizedBox(height: AppSizes.s4),
                           Text(
-                            'Pastikan semua pesanan telah selesai dan hitung uang tunai di laci kasir.',
+                            ShiftStrings.closeShiftCardDescription,
                             style: TextStyle(color: muted, fontSize: 13),
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSizes.s16),
                           FilledButton.icon(
                             style: FilledButton.styleFrom(
                               backgroundColor: colors.danger,
@@ -313,15 +319,15 @@ class ShiftView extends ConsumerWidget {
                               if (waiting > 0) {
                                 showMessage(
                                   context,
-                                  'Masih ada $waiting transaksi offline yang belum terkirim. Kirim dulu di Menu → Mode offline.',
+                                  ShiftStrings.pendingOfflineMessage(waiting),
                                   isError: true,
                                 );
                                 return;
                               }
                               FormSheet.show<void>(context, CloseShiftSheet(shift: shift, close: close));
                             },
-                            icon: const Icon(LucideIcons.lockKeyhole, size: 18),
-                            label: const Text('Tutup Shift'),
+                            icon: const Icon(AppIcons.lockKeyhole, size: AppSizes.s18),
+                            label: const Text(ShiftStrings.closeShiftButton),
                           ),
                         ],
                       ),
@@ -358,27 +364,27 @@ class _ShiftActionCard extends StatelessWidget {
 
     return Material(
       color: isDark ? AppColors.slate900 : Colors.white,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppRadius.r14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.r14),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s14),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(AppRadius.r14),
             border: Border.all(color: color.withValues(alpha: 0.35)),
           ),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppSpacing.s8),
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.r10),
                 ),
-                child: Icon(icon, size: 18, color: color),
+                child: Icon(icon, size: AppSizes.s18, color: color),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: AppSizes.s10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -391,7 +397,7 @@ class _ShiftActionCard extends StatelessWidget {
                         color: isDark ? AppColors.slate100 : AppColors.slate900,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: AppSizes.s2),
                     Text(
                       subtitle,
                       maxLines: 1,
@@ -424,14 +430,14 @@ class _ShiftSales extends ConsumerWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        SectionTitle('Transaksi (${sales.value?.length ?? 0})'),
+        SectionTitle(ShiftStrings.transactionsHeader(sales.value?.length ?? 0)),
         switch (sales) {
           AsyncData(:final value) when value.isEmpty =>
-            Text('Belum ada transaksi.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            Text(ShiftStrings.noTransactions, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           AsyncData(:final value) => Column(
               children: [
                 for (final sale in value)
-                  SaleTile(sale: sale, margin: const EdgeInsets.only(bottom: 8)),
+                  SaleTile(sale: sale, margin: const EdgeInsets.only(bottom: AppSpacing.s8)),
               ],
             ),
           AsyncError(:final error) => Text(errorMessage(error)),

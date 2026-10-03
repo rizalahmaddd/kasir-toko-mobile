@@ -2,8 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
@@ -13,6 +14,8 @@ import '../../data_changes.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class CustomerPicker extends ConsumerStatefulWidget {
   const CustomerPicker({super.key});
@@ -74,41 +77,41 @@ class _CustomerPickerState extends ConsumerState<CustomerPicker> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         BottomSheetHeader(
-          title: 'Pilih pelanggan',
+          title: PosStrings.chooseCustomerTitle,
           actions: [
             TextButton.icon(
               onPressed: _create,
-              icon: const Icon(LucideIcons.userPlus, size: 16),
-              label: const Text('Baru'),
+              icon: const Icon(AppIcons.userPlus, size: AppSizes.s16),
+              label: const Text(PosStrings.newCustomerButton),
             ),
           ],
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s0, AppSpacing.s16, AppSpacing.s8),
           child: SearchField(
             controller: _search,
             autofocus: true,
-            hint: 'Nama, nomor HP, atau kode',
+            hint: PosStrings.customerSearchHint,
             onChanged: _load,
           ),
         ),
         if (current != null)
           ListTile(
-            leading: const Icon(LucideIcons.x, size: 18),
-            title: Text('Lepas ${current.name}'),
-            subtitle: const Text('Transaksi tanpa nama pelanggan'),
+            leading: const Icon(AppIcons.x, size: AppSizes.s18),
+            title: Text(PosStrings.releaseCustomer(current.name)),
+            subtitle: const Text(PosStrings.customerNoNameSubtitle),
             onTap: () => _pick(null),
           ),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSizes.s8),
         Expanded(
           child: AsyncView(
             value: _results,
             onRetry: () => _load(_search.text.trim()),
             data: (customers) => customers.isEmpty
                 ? EmptyState(
-                    icon: LucideIcons.users,
-                    title: 'Pelanggan tidak ditemukan',
-                    action: OutlinedButton(onPressed: _create, child: const Text('Tambah Pelanggan Baru')),
+                    icon: AppIcons.users,
+                    title: PosStrings.customerNotFoundTitle,
+                    action: OutlinedButton(onPressed: _create, child: const Text(PosStrings.addNewCustomerButton)),
                   )
                 : ListView.builder(
                     itemCount: customers.length,
@@ -119,7 +122,7 @@ class _CustomerPickerState extends ConsumerState<CustomerPicker> {
                         title: Text(customer.name),
                         subtitle: Text([customer.code, customer.phone].nonNulls.join(' · ')),
                         trailing: customer.due > 0
-                            ? Text('Kasbon ${rupiah(customer.due)}', style: TextStyle(color: warning, fontSize: 12, fontWeight: FontWeight.w600))
+                            ? Text(PosStrings.creditAmount(rupiah(customer.due)), style: TextStyle(color: warning, fontSize: 12, fontWeight: FontWeight.w600))
                             : null,
                         onTap: () => _pick(customer),
                       );
@@ -178,7 +181,7 @@ class _QuickCustomerDialogState extends ConsumerState<_QuickCustomerDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Pelanggan baru'),
+      title: const Text(PosStrings.newCustomerDialogTitle),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -186,19 +189,19 @@ class _QuickCustomerDialogState extends ConsumerState<_QuickCustomerDialog> {
             controller: _name,
             autofocus: true,
             textCapitalization: TextCapitalization.words,
-            decoration: InputDecoration(labelText: 'Nama', errorText: _error?.fieldError('name')),
+            decoration: InputDecoration(labelText: PosStrings.customerNameField, errorText: _error?.fieldError('name')),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.s12),
           TextField(
             controller: _phone,
             keyboardType: TextInputType.phone,
-            decoration: InputDecoration(labelText: 'Nomor HP / WhatsApp', errorText: _error?.fieldError('phone')),
+            decoration: InputDecoration(labelText: PosStrings.customerPhoneField, errorText: _error?.fieldError('phone')),
           ),
         ],
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
-        FilledButton(onPressed: _busy ? null : _save, child: const Text('Simpan Pelanggan')),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text(PosStrings.cancel)),
+        FilledButton(onPressed: _busy ? null : _save, child: const Text(PosStrings.saveCustomerButton)),
       ],
     );
   }

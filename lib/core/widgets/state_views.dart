@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../network/api_exception.dart';
 import '../theme/app_theme.dart';
 import 'app_skeleton.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class EmptyState extends StatelessWidget {
   const EmptyState({super.key, required this.icon, required this.title, this.description, this.action});
@@ -20,22 +24,22 @@ class EmptyState extends StatelessWidget {
 
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(AppSpacing.s24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 36, color: theme.colorScheme.onSurfaceVariant),
-            const SizedBox(height: 12),
+            Icon(icon, size: AppSizes.s36, color: theme.colorScheme.onSurfaceVariant),
+            const SizedBox(height: AppSizes.s12),
             Text(title, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w600), textAlign: TextAlign.center),
             if (description != null) ...[
-              const SizedBox(height: 4),
+              const SizedBox(height: AppSizes.s4),
               Text(
                 description!,
                 style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                 textAlign: TextAlign.center,
               ),
             ],
-            if (action != null) ...[const SizedBox(height: 16), action!],
+            if (action != null) ...[const SizedBox(height: AppSizes.s16), action!],
           ],
         ),
       ),
@@ -52,12 +56,12 @@ class ErrorState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return EmptyState(
-      icon: LucideIcons.circleAlert,
-      title: 'Gagal memuat data',
+      icon: AppIcons.circleAlert,
+      title: CoreStrings.errorLoadFailed,
       description: errorMessage(error),
       action: onRetry == null
           ? null
-          : OutlinedButton.icon(onPressed: onRetry, icon: const Icon(LucideIcons.refreshCw, size: 18), label: const Text('Coba Lagi')),
+          : OutlinedButton.icon(onPressed: onRetry, icon: const Icon(AppIcons.refreshCw, size: AppSizes.s18), label: const Text(CoreStrings.actionRetry)),
     );
   }
 }
@@ -87,7 +91,7 @@ class AsyncView<T> extends StatelessWidget {
   }
 }
 
-String errorMessage(Object error) => error is ApiException ? error.message : 'Terjadi kesalahan. Coba lagi.';
+String errorMessage(Object error) => error is ApiException ? error.message : CoreStrings.errorGeneric;
 
 void showMessage(BuildContext context, String message, {bool isError = false}) {
   final messenger = ScaffoldMessenger.of(context)..hideCurrentSnackBar();
@@ -121,10 +125,10 @@ class StatusBadge extends StatelessWidget {
     };
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s3),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(AppRadius.r6),
       ),
       child: Text(
         label.toUpperCase(),

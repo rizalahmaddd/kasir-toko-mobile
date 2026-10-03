@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
@@ -8,6 +9,8 @@ import '../../../core/widgets/money_field.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../data_changes.dart';
 import '../shift_controller.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 /// Shown in place of the cashier and shift screens until the cashier opens a shift.
 class OpenShiftCard extends ConsumerStatefulWidget {
@@ -52,34 +55,34 @@ class _OpenShiftCardState extends ConsumerState<OpenShiftCard> {
 
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppSpacing.s20),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 420),
           child: Card(
             elevation: 4,
             shadowColor: Colors.black26,
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(AppSpacing.s20),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(LucideIcons.wallet, size: 28, color: theme.colorScheme.primary),
-                  const SizedBox(height: 12),
-                  Text('Buka shift dulu', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-                  const SizedBox(height: 4),
+                  Icon(AppIcons.wallet, size: AppSizes.s28, color: theme.colorScheme.primary),
+                  const SizedBox(height: AppSizes.s12),
+                  Text(ShiftStrings.openShiftTitle, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                  const SizedBox(height: AppSizes.s4),
                   Text(
-                    'Hitung uang di laci sebelum mulai berjualan. Angka ini jadi patokan saat tutup shift nanti.',
+                    ShiftStrings.openShiftDescription,
                     style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
-                  const SizedBox(height: 20),
-                  MoneyField(controller: _cash, label: 'Modal awal di laci', errorText: _error, onSubmitted: (_) => _open()),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppSizes.s20),
+                  MoneyField(controller: _cash, label: ShiftStrings.openingCashFieldLabel, errorText: _error, onSubmitted: (_) => _open()),
+                  const SizedBox(height: AppSizes.s16),
                   FilledButton.icon(
                     onPressed: _busy ? null : _open,
                     icon: _busy
-                        ? const SizedBox.square(dimension: 18, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(LucideIcons.circlePlay, size: 18),
-                    label: const Text('Buka Shift'),
+                        ? const SizedBox.square(dimension: AppSizes.s18, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(AppIcons.circlePlay, size: AppSizes.s18),
+                    label: const Text(ShiftStrings.openShiftButton),
                   ),
                 ],
               ),

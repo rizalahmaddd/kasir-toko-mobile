@@ -1,12 +1,14 @@
 import 'package:intl/intl.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/constants/date_formats.dart';
 
-final _rupiah = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp', decimalDigits: 0);
-final _number = NumberFormat.decimalPattern('id_ID');
-final _quantity = NumberFormat('#,##0.###', 'id_ID');
-final _dateTime = DateFormat('d MMM yyyy, HH:mm', 'id_ID');
-final _date = DateFormat('d MMM yyyy', 'id_ID');
-final _weekdayDate = DateFormat('EEEE, d MMM yyyy', 'id_ID');
-final _time = DateFormat('HH:mm', 'id_ID');
+final _rupiah = NumberFormat.currency(locale: AppDateFormat.locale, symbol: 'Rp', decimalDigits: 0);
+final _number = NumberFormat.decimalPattern(AppDateFormat.locale);
+final _quantity = NumberFormat('#,##0.###', AppDateFormat.locale);
+final _dateTime = DateFormat(AppDateFormat.dateTimeMinutes, AppDateFormat.locale);
+final _date = DateFormat(AppDateFormat.date, AppDateFormat.locale);
+final _weekdayDate = DateFormat(AppDateFormat.weekdayDate, AppDateFormat.locale);
+final _time = DateFormat(AppDateFormat.time, AppDateFormat.locale);
 
 String rupiah(num value) => _rupiah.format(value);
 
@@ -36,18 +38,18 @@ double? parseQuantity(String input) => double.tryParse(input.trim().replaceAll('
 String compactNumber(num value) {
   final abs = value.abs();
   if (abs >= 1e9) {
-    return '${_short.format(value / 1e9)} M';
+    return '${_short.format(value / 1e9)} ${CoreStrings.compactBillionSuffix}';
   }
   if (abs >= 1e6) {
-    return '${_short.format(value / 1e6)} jt';
+    return '${_short.format(value / 1e6)} ${CoreStrings.compactMillionSuffix}';
   }
   if (abs >= 1e3) {
-    return '${_short.format(value / 1e3)} rb';
+    return '${_short.format(value / 1e3)} ${CoreStrings.compactThousandSuffix}';
   }
 
   return _short.format(value);
 }
 
-final _short = NumberFormat('#,##0.#', 'id_ID');
+final _short = NumberFormat('#,##0.#', AppDateFormat.locale);
 
-String percent(num value) => '${_short.format(value)}%';
+String percent(num value) => '${_short.format(value)}${CoreStrings.percentSuffix}';

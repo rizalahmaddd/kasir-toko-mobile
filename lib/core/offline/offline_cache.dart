@@ -25,7 +25,7 @@ class OfflineCache {
   final String _server;
 
   // Own prefix: the offline sales queue also lives under "offline_" and must survive clear().
-  static const _prefix = 'offline_cache_';
+  static const _prefix = StorageKeys.offlineCachePrefix;
 
   String _key(String name) => '$_prefix$name';
 
@@ -138,18 +138,26 @@ class OfflineCache {
     }
   }
 
+  static Future<void> clearStorage(SharedPreferences prefs) async {
+    for (final key in prefs.getKeys().where((key) => key.startsWith(_prefix)).toList()) {
+      await prefs.remove(key);
+    }
+    try {
+      final file = File('${(await getApplicationSupportDirectory()).path}/catalog.json');
+      if (await file.exists()) {
+        await file.delete();
+      }
+      final responses = Directory('${(await getApplicationSupportDirectory()).path}/responses');
+      if (await responses.exists()) {
+        await responses.delete(recursive: true);
+      }
+    } on Object {
+      // Ignored: storage might not be accessible
+    }
+  }
+
   Future<void> clear() async {
     _memoryResponses.clear();
-    for (final key in _prefs.getKeys().where((key) => key.startsWith(_prefix)).toList()) {
-      await _prefs.remove(key);
-    }
-    final file = await _file('catalog');
-    if (await file.exists()) {
-      await file.delete();
-    }
-    final responses = await _responsesDir();
-    if (await responses.exists()) {
-      await responses.delete(recursive: true);
-    }
+    await clearStorage(_prefs);
   }
 }

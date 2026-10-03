@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:web_pos_mobile/core/constants/app_fonts.dart';
 
 import '../receipt_layout.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_colors.dart';
 
 /// Draws the exact lines sent to the printer on a paper-like strip, so what you see is what prints.
 class ReceiptPreview extends StatelessWidget {
@@ -9,10 +13,10 @@ class ReceiptPreview extends StatelessWidget {
   final List<PrintLine> lines;
   final String paperWidth;
 
-  static const _ink = Color(0xFF1F2937);
+  static const _ink = AppColors.gray800;
   static const _style = TextStyle(
-    fontFamily: 'monospace',
-    fontFamilyFallback: ['Menlo', 'Courier New', 'Courier'],
+    fontFamily: AppFonts.monospace,
+    fontFamilyFallback: AppFonts.monospaceFallbackCourierNew,
     fontSize: 12,
     height: 1.35,
     color: _ink,
@@ -50,12 +54,12 @@ class ReceiptPreview extends StatelessWidget {
         constraints: BoxConstraints(maxWidth: paperWidth == '80' ? 380 : 290),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFEFA),
-            borderRadius: BorderRadius.circular(4),
+            color: AppColors.warmWhite,
+            borderRadius: BorderRadius.circular(AppRadius.r4),
             boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.18), blurRadius: 12, offset: const Offset(0, 4))],
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(14, 18, 14, 22),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s14, AppSpacing.s18, AppSpacing.s14, AppSpacing.s22),
             child: FittedBox(
               fit: BoxFit.fitWidth,
               alignment: Alignment.topCenter,

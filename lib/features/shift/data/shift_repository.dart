@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/offline/offline_cache.dart';
@@ -17,7 +18,7 @@ class ShiftRepository {
   /// Falls back to the last known shift when offline, so the cashier can keep selling.
   Future<Shift?> current() async {
     try {
-      final shift = ApiClient.data(await _api.get('pos/shift'))['shift'];
+      final shift = ApiClient.data(await _api.get(ApiEndpoints.posShift))['shift'];
       await _cache?.put('current_shift', shift);
       return shift == null ? null : Shift.fromJson(shift as Map<String, dynamic>);
     } on ApiException catch (error) {
@@ -30,21 +31,21 @@ class ShiftRepository {
   }
 
   Future<Shift> open(int openingCash) async {
-    final data = ApiClient.data(await _api.post('pos/shift', data: {'opening_cash': openingCash}));
+    final data = ApiClient.data(await _api.post(ApiEndpoints.posShift, data: {'opening_cash': openingCash}));
     await _cache?.put('current_shift', data);
     return Shift.fromJson(data);
   }
 
   Future<void> recordCash({required String type, required int amount, required String reason}) =>
-      _api.post('pos/shift/cash-movements', data: {'type': type, 'amount': amount, 'reason': reason});
+      _api.post(ApiEndpoints.posShiftCashMovements, data: {'type': type, 'amount': amount, 'reason': reason});
 
   Future<Paginated<Shift>> list({String? status, int page = 1}) async =>
-      Paginated.fromJson(await _api.get('shifts', query: {'status': status, 'page': page, 'per_page': 30}), Shift.fromJson);
+      Paginated.fromJson(await _api.get(ApiEndpoints.shifts, query: {'status': status, 'page': page, 'per_page': 30}), Shift.fromJson);
 
-  Future<Shift> show(int id) async => Shift.fromJson(ApiClient.data(await _api.get('shifts/$id')));
+  Future<Shift> show(int id) async => Shift.fromJson(ApiClient.data(await _api.get(ApiEndpoints.shift(id))));
 
   Future<Shift?> getCached(int id) async {
-    final copy = await _api.offlineCopy('shifts/$id');
+    final copy = await _api.offlineCopy(ApiEndpoints.shift(id));
     if (copy == null) {
       return null;
     }
@@ -55,10 +56,10 @@ class ShiftRepository {
     }
   }
 
-  Future<List<SaleSummary>> sales(int id) async => ApiClient.list(await _api.get('shifts/$id/sales')).map(SaleSummary.fromJson).toList();
+  Future<List<SaleSummary>> sales(int id) async => ApiClient.list(await _api.get(ApiEndpoints.shiftSales(id))).map(SaleSummary.fromJson).toList();
 
   Future<List<SaleSummary>?> getCachedSales(int id) async {
-    final copy = await _api.offlineCopy('shifts/$id/sales');
+    final copy = await _api.offlineCopy(ApiEndpoints.shiftSales(id));
     if (copy == null) {
       return null;
     }
@@ -70,11 +71,11 @@ class ShiftRepository {
   }
 
   Future<void> recordCashFor(int shiftId, {required String type, required int amount, required String reason}) =>
-      _api.post('shifts/$shiftId/cash-movements', data: {'type': type, 'amount': amount, 'reason': reason});
+      _api.post(ApiEndpoints.shiftCashMovements(shiftId.toString()), data: {'type': type, 'amount': amount, 'reason': reason});
 
   Future<Shift> close(int shiftId, {required int countedCash, String? note}) async {
-    final data = ApiClient.data(await _api.post('shifts/$shiftId/close', data: {'counted_cash': countedCash, 'closing_note': note}));
-    await _api.updateCached('shifts/$shiftId', {'data': data});
+    final data = ApiClient.data(await _api.post(ApiEndpoints.shiftClose(shiftId.toString()), data: {'counted_cash': countedCash, 'closing_note': note}));
+    await _api.updateCached(ApiEndpoints.shift(shiftId), {'data': data});
     final cached = _cache?.get('current_shift');
     if (cached is Map && cached['id'] == shiftId) {
       await _cache?.put('current_shift', null);

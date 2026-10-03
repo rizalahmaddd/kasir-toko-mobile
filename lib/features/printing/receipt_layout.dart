@@ -1,7 +1,10 @@
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
+import '../../core/storage/app_storage.dart';
 import '../../core/utils/formatters.dart';
 import '../sales/data/sale_models.dart';
 import '../shift/data/shift_models.dart';
@@ -31,7 +34,7 @@ class ReceiptProfile {
     this.phone = '',
     this.header = '',
     this.footer = '',
-    this.taxLabel = 'Pajak',
+    this.taxLabel = PrintingStrings.defaultTaxLabel,
     this.paperWidth,
   });
 
@@ -52,17 +55,17 @@ class ReceiptProfile {
     final width = '${json['paper_width'] ?? ''}';
 
     return ReceiptProfile(
-      storeName: text('store_name').isEmpty ? 'Toko' : text('store_name'),
+      storeName: text('store_name').isEmpty ? PrintingStrings.defaultStoreName : text('store_name'),
       address: text('address'),
       phone: text('phone'),
       header: text('header'),
       footer: text('footer'),
-      taxLabel: text('tax_label').isEmpty ? 'Pajak' : text('tax_label'),
+      taxLabel: text('tax_label').isEmpty ? PrintingStrings.defaultTaxLabel : text('tax_label'),
       paperWidth: width == '58' || width == '80' ? width : null,
     );
   }
 
-  static const cacheKey = 'receipt_profile';
+  static const cacheKey = StorageKeys.receiptProfile;
 
   static ReceiptProfile? cached(SharedPreferences prefs) {
     final raw = prefs.getString(cacheKey);
@@ -142,7 +145,7 @@ List<PrintLine> _centered(String text, int width) =>
 List<PrintLine> storeHeader(ReceiptProfile profile, int width, {bool showStoreInfo = true, bool showHeader = true}) => [
       for (final line in wrap(profile.storeName, width ~/ 2)) PrintLine(line, bold: true, align: LineAlign.center, large: true),
       if (showStoreInfo && profile.address.isNotEmpty) ..._centered(profile.address, width),
-      if (showStoreInfo && profile.phone.isNotEmpty) ..._centered('Telp ${profile.phone}', width),
+      if (showStoreInfo && profile.phone.isNotEmpty) ..._centered(PrintingStrings.receiptPhoneLine(profile.phone), width),
       if (showHeader && profile.header.isNotEmpty) ..._centered(profile.header, width),
     ];
 
@@ -152,11 +155,11 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
   final lines = <PrintLine>[
     ...storeHeader(profile, width, showStoreInfo: showStoreInfo),
     const PrintLine.rule(),
-    for (final l in columns('No', sale.number, width)) PrintLine(l),
-    for (final l in columns('Tanggal', dateTime(sale.soldAt), width)) PrintLine(l),
-    for (final l in columns('Kasir', sale.cashierName, width)) PrintLine(l),
-    if (sale.customer != null) for (final l in columns('Pelanggan', sale.customer!.name, width)) PrintLine(l),
-    if (sale.isVoided) const PrintLine('*** DIBATALKAN ***', bold: true, align: LineAlign.center),
+    for (final l in columns(PrintingStrings.receiptNoLabel, sale.number, width)) PrintLine(l),
+    for (final l in columns(PrintingStrings.receiptDateLabel, dateTime(sale.soldAt), width)) PrintLine(l),
+    for (final l in columns(PrintingStrings.receiptCashierLabel, sale.cashierName, width)) PrintLine(l),
+    if (sale.customer != null) for (final l in columns(PrintingStrings.receiptCustomerLabel, sale.customer!.name, width)) PrintLine(l),
+    if (sale.isVoided) const PrintLine(PrintingStrings.receiptVoided, bold: true, align: LineAlign.center),
     const PrintLine.rule(),
   ];
 
@@ -164,7 +167,7 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
     lines.addAll(wrap(item.productName, width).map(PrintLine.new));
     lines.addAll(columns('  ${quantity(item.quantity)} x ${_money(item.price)}', _money(item.total + item.discountAmount), width).map(PrintLine.new));
     if (item.discountAmount > 0) {
-      lines.addAll(columns('  Diskon', '-${_money(item.discountAmount)}', width).map(PrintLine.new));
+      lines.addAll(columns(PrintingStrings.receiptItemDiscountLabel, '-${_money(item.discountAmount)}', width).map(PrintLine.new));
     }
     if (item.note != null && item.note!.isNotEmpty) {
       lines.addAll(wrap('  ${item.note}', width).map(PrintLine.new));
@@ -173,35 +176,35 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
 
   lines
     ..add(const PrintLine.rule())
-    ..addAll(columns('Subtotal', _money(sale.subtotal), width).map(PrintLine.new));
+    ..addAll(columns(SalesStrings.subtotal, _money(sale.subtotal), width).map(PrintLine.new));
   if (sale.discountAmount > 0) {
-    final label = sale.discountType == 'percent' ? 'Diskon ${quantity(sale.discountValue)}%' : 'Diskon';
+    final label = sale.discountType == DiscountTypes.percent ? PrintingStrings.receiptPercentDiscount(quantity(sale.discountValue)) : PrintingStrings.receiptDiscountLabel;
     lines.addAll(columns(label, '-${_money(sale.discountAmount)}', width).map(PrintLine.new));
   }
   if (sale.taxAmount > 0) {
-    lines.addAll(columns('${profile.taxLabel} ${quantity(sale.taxRate)}%', _money(sale.taxAmount), width).map(PrintLine.new));
+    lines.addAll(columns(PrintingStrings.receiptTaxLine(profile.taxLabel, quantity(sale.taxRate)), _money(sale.taxAmount), width).map(PrintLine.new));
   }
   lines
-    ..addAll(columns('TOTAL', rupiah(sale.total), width).map((l) => PrintLine(l, bold: true)))
+    ..addAll(columns(PrintingStrings.receiptTotalLabel, rupiah(sale.total), width).map((l) => PrintLine(l, bold: true)))
     ..add(const PrintLine.rule());
 
-  for (final payment in sale.payments.where((p) => p.kind == 'sale')) {
-    final amount = payment.method == 'cash' && sale.cashReceived > 0 ? sale.cashReceived : payment.amount;
+  for (final payment in sale.payments.where((p) => p.kind == PaymentKinds.sale)) {
+    final amount = payment.method == PaymentMethods.cash && sale.cashReceived > 0 ? sale.cashReceived : payment.amount;
     lines.addAll(columns(payment.methodLabel, _money(amount), width).map(PrintLine.new));
   }
   if (sale.changeAmount > 0) {
-    lines.addAll(columns('Kembali', _money(sale.changeAmount), width).map((l) => PrintLine(l, bold: true)));
+    lines.addAll(columns(PrintingStrings.receiptChangeLabel, _money(sale.changeAmount), width).map((l) => PrintLine(l, bold: true)));
   }
-  for (final payment in sale.payments.where((p) => p.kind == 'receivable')) {
-    lines.addAll(columns('Pelunasan ${dateOnly(payment.paidAt)}', _money(payment.amount), width).map(PrintLine.new));
+  for (final payment in sale.payments.where((p) => p.kind == PaymentKinds.receivable)) {
+    lines.addAll(columns(PrintingStrings.receiptReceivablePayment(dateOnly(payment.paidAt)), _money(payment.amount), width).map(PrintLine.new));
   }
   if (sale.dueAmount > 0 && !sale.isVoided) {
-    lines.addAll(columns('Sisa kasbon', _money(sale.dueAmount), width).map((l) => PrintLine(l, bold: true)));
+    lines.addAll(columns(PrintingStrings.receiptDueLabel, _money(sale.dueAmount), width).map((l) => PrintLine(l, bold: true)));
   }
   if (sale.note != null && sale.note!.trim().isNotEmpty) {
     lines
       ..add(const PrintLine.rule())
-      ..addAll(wrap('Catatan: ${sale.note!.trim()}', width).map(PrintLine.new));
+      ..addAll(wrap(PrintingStrings.receiptNote(sale.note!.trim()), width).map(PrintLine.new));
   }
   if (profile.footer.isNotEmpty) {
     lines
@@ -212,7 +215,7 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
   return lines;
 }
 
-const _methodLabels = {'qris': 'QRIS', 'transfer': 'Transfer', 'card': 'Kartu'};
+const _methodLabels = {PaymentMethods.qris: PrintingStrings.methodQris, PaymentMethods.transfer: PrintingStrings.methodTransfer, PaymentMethods.card: PrintingStrings.methodCard};
 
 List<PrintLine> shiftRecap(Shift shift, {required ReceiptProfile profile, required String paperWidth}) {
   final width = charsPerLine(paperWidth);
@@ -221,28 +224,28 @@ List<PrintLine> shiftRecap(Shift shift, {required ReceiptProfile profile, requir
 
   return [
     ...storeHeader(profile, width, showStoreInfo: false, showHeader: false),
-    const PrintLine('REKAP SHIFT', bold: true, align: LineAlign.center),
+    const PrintLine(PrintingStrings.shiftRecapTitle, bold: true, align: LineAlign.center),
     const PrintLine.rule(),
-    ...row('No', shift.number),
-    ...row('Kasir', shift.cashierName),
-    ...row('Buka', dateTime(shift.openedAt)),
-    if (shift.closedAt != null) ...row('Tutup', dateTime(shift.closedAt!)),
+    ...row(PrintingStrings.receiptNoLabel, shift.number),
+    ...row(PrintingStrings.receiptCashierLabel, shift.cashierName),
+    ...row(PrintingStrings.receiptOpenedLabel, dateTime(shift.openedAt)),
+    if (shift.closedAt != null) ...row(PrintingStrings.receiptClosedLabel, dateTime(shift.closedAt!)),
     const PrintLine.rule(),
     if (summary != null) ...[
-      ...row('Modal awal', _money(summary.opening)),
-      ...row('Penjualan tunai', _money(summary.cashSales)),
-      if (summary.cashReceivables > 0) ...row('Pelunasan tunai', _money(summary.cashReceivables)),
-      ...row('Kas masuk', _money(summary.cashIn)),
-      ...row('Kas keluar', summary.cashOut > 0 ? '-${_money(summary.cashOut)}' : '0'),
-      ...row('Seharusnya', _money(summary.expected), bold: true),
+      ...row(PrintingStrings.summaryOpening, _money(summary.opening)),
+      ...row(PrintingStrings.summaryCashSales, _money(summary.cashSales)),
+      if (summary.cashReceivables > 0) ...row(PrintingStrings.summaryCashReceivableSettlement, _money(summary.cashReceivables)),
+      ...row(PrintingStrings.summaryCashIn, _money(summary.cashIn)),
+      ...row(PrintingStrings.summaryCashOut, summary.cashOut > 0 ? '-${_money(summary.cashOut)}' : '0'),
+      ...row(PrintingStrings.summaryExpected, _money(summary.expected), bold: true),
       if (!shift.isOpen) ...[
-        ...row('Dihitung', _money(shift.countedCash ?? 0)),
-        ...row('Selisih', _money(shift.cashDifference ?? 0), bold: true),
+        ...row(PrintingStrings.summaryCounted, _money(shift.countedCash ?? 0)),
+        ...row(PrintingStrings.summaryDifference, _money(shift.cashDifference ?? 0), bold: true),
       ],
       const PrintLine.rule(),
-      ...row('Transaksi', '${summary.salesCount}'),
-      ...row('Total penjualan', _money(summary.salesTotal), bold: true),
-      if (summary.voidedCount > 0) ...row('Dibatalkan', '${summary.voidedCount}'),
+      ...row(PrintingStrings.summaryTransactions, '${summary.salesCount}'),
+      ...row(PrintingStrings.summaryTotalSales, _money(summary.salesTotal), bold: true),
+      if (summary.voidedCount > 0) ...row(PrintingStrings.summaryVoided, '${summary.voidedCount}'),
       for (final entry in summary.nonCash.entries)
         if (entry.value > 0) ...row(_methodLabels[entry.key] ?? entry.key, _money(entry.value)),
     ],
@@ -251,7 +254,7 @@ List<PrintLine> shiftRecap(Shift shift, {required ReceiptProfile profile, requir
       for (final m in shift.cashMovements) ...row('${m.isIn ? '+' : '-'} ${m.reason}', _money(m.amount)),
     ],
     const PrintLine(''),
-    PrintLine('Dicetak ${dateTime(DateTime.now())}', align: LineAlign.center),
+    PrintLine(PrintingStrings.printedAtLabel(dateTime(DateTime.now())), align: LineAlign.center),
   ];
 }
 
@@ -262,16 +265,16 @@ List<PrintLine> testPage(ReceiptProfile profile, {required String paperWidth, bo
   return [
     ...storeHeader(profile, width, showStoreInfo: showStoreInfo),
     const PrintLine.rule(),
-    const PrintLine('TES PRINTER BERHASIL', bold: true, align: LineAlign.center),
+    const PrintLine(PrintingStrings.testSuccess, bold: true, align: LineAlign.center),
     const PrintLine.rule(),
-    ...row('Kertas', '$paperWidth mm'),
-    ...row('Karakter per baris', '$width'),
-    ...row('Dicetak', dateTime(DateTime.now())),
+    ...row(PrintingStrings.testPaperLabel, '$paperWidth mm'),
+    ...row(PrintingStrings.testCharsPerLineLabel, '$width'),
+    ...row(PrintingStrings.testPrintedLabel, dateTime(DateTime.now())),
     const PrintLine.rule(),
     PrintLine('1234567890' * (width ~/ 10) + '1234567890'.substring(0, width % 10)),
-    const PrintLine('Teks tebal', bold: true),
-    const PrintLine('Rata tengah', align: LineAlign.center),
-    const PrintLine('BESAR', large: true, align: LineAlign.center),
+    const PrintLine(PrintingStrings.testBoldText, bold: true),
+    const PrintLine(PrintingStrings.testCenteredText, align: LineAlign.center),
+    const PrintLine(PrintingStrings.testLargeText, large: true, align: LineAlign.center),
   ];
 }
 
@@ -279,13 +282,13 @@ List<PrintLine> testPage(ReceiptProfile profile, {required String paperWidth, bo
 SaleDetail sampleSale() => SaleDetail.fromJson({
       'id': 0,
       'number': 'TRX-${DateTime.now().year}-000123',
-      'status': 'completed',
+      'status': SaleStatuses.completed,
       'status_label': 'Selesai',
       'sold_at': DateTime.now().toIso8601String(),
       'cashier': {'id': 0, 'name': 'Kasir'},
       'customer': {'id': 0, 'name': 'Bu Sri', 'phone': null},
       'subtotal': 110000,
-      'discount_type': 'percent',
+      'discount_type': DiscountTypes.percent,
       'discount_value': '5',
       'discount_amount': 5500,
       'tax_rate': '0',
@@ -301,7 +304,7 @@ SaleDetail sampleSale() => SaleDetail.fromJson({
         {'product_name': 'Minyak Goreng 1L', 'unit': 'btl', 'quantity': '2', 'price': 18000, 'discount_amount': 2000, 'total': 34000, 'note': 'merek apa saja'},
       ],
       'payments': [
-        {'kind': 'sale', 'method': 'cash', 'method_label': 'Tunai', 'amount': 104500, 'paid_at': DateTime.now().toIso8601String()},
+        {'kind': PaymentKinds.sale, 'method': PaymentMethods.cash, 'method_label': 'Tunai', 'amount': 104500, 'paid_at': DateTime.now().toIso8601String()},
       ],
       'abilities': const {'void': false, 'collect_payment': false},
     });

@@ -2,17 +2,32 @@ import 'dart:math';
 
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
+import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../utils/formatters.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class SimpleBarChart extends StatelessWidget {
-  const SimpleBarChart({super.key, required this.points, this.height = 180, this.money = true, this.highlightLast = false});
+  const SimpleBarChart({
+    super.key,
+    required this.points,
+    this.height = 180,
+    this.money = true,
+    this.highlightLast = false,
+    this.highlightPredicate,
+    this.highlightColor,
+  });
 
   final List<({String label, num value})> points;
   final double height;
   final bool money;
   final bool highlightLast;
+  final bool Function(int index)? highlightPredicate;
+  final Color? highlightColor;
 
   @override
   Widget build(BuildContext context) {
@@ -58,7 +73,7 @@ class SimpleBarChart extends StatelessWidget {
                     return const SizedBox.shrink();
                   }
                   return Padding(
-                    padding: const EdgeInsets.only(top: 4),
+                    padding: const EdgeInsets.only(top: AppSpacing.s4),
                     child: Text(points[i].label, style: TextStyle(fontSize: 10, color: muted)),
                   );
                 },
@@ -69,7 +84,7 @@ class SimpleBarChart extends StatelessWidget {
             touchTooltipData: BarTouchTooltipData(
               getTooltipColor: (_) => theme.colorScheme.surfaceContainerHigh,
               getTooltipItem: (group, _, rod, _) => BarTooltipItem(
-                '${points[group.x].label}\n${money ? rupiah(rod.toY) : thousands(rod.toY)}',
+                CoreStrings.chartTooltip(points[group.x].label, money ? rupiah(rod.toY) : thousands(rod.toY)),
                 TextStyle(color: theme.colorScheme.onSurface, fontWeight: FontWeight.w600, fontSize: 12),
               ),
             ),
@@ -83,7 +98,9 @@ class SimpleBarChart extends StatelessWidget {
                     toY: point.value.toDouble(),
                     width: points.length > 20 ? 6 : 14,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                    color: highlightLast && i < points.length - 1 ? primary.withValues(alpha: 0.45) : primary,
+                    color: highlightPredicate != null && highlightPredicate!(i)
+                        ? (highlightColor ?? AppColors.amber500)
+                        : (highlightLast && i < points.length - 1 ? primary.withValues(alpha: 0.45) : primary),
                   ),
                 ],
               ),
@@ -109,7 +126,7 @@ class ShareBar extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -119,9 +136,9 @@ class ShareBar extends StatelessWidget {
               Text(value, style: AppTypography.money(fontSize: 13, fontWeight: FontWeight.w700)),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSizes.s4),
           ClipRRect(
-            borderRadius: BorderRadius.circular(4),
+            borderRadius: BorderRadius.circular(AppRadius.r4),
             child: LinearProgressIndicator(
               value: share.clamp(0, 1),
               minHeight: 6,
@@ -130,7 +147,7 @@ class ShareBar extends StatelessWidget {
             ),
           ),
           if (caption != null) ...[
-            const SizedBox(height: 2),
+            const SizedBox(height: AppSizes.s2),
             Text(caption!, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
           ],
         ],

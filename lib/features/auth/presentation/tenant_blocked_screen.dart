@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
+import '../../../core/constants/date_formats.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/utils/launch.dart';
 import '../auth_controller.dart';
 import '../data/current_user.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 /// Shown while the shop is suspended or its trial/subscription has ended. Data stays on the
 /// server; the owner renews with the service admin and taps "Periksa lagi".
@@ -22,9 +26,9 @@ class _TenantBlockedScreenState extends ConsumerState<TenantBlockedScreen> {
   bool _checking = false;
 
   static const _messages = {
-    'tenant_suspended': 'Toko ini sedang dinonaktifkan. Hubungi admin layanan.',
-    'trial_expired': 'Masa uji coba toko ini sudah berakhir. Hubungi admin layanan untuk berlangganan.',
-    'subscription_expired': 'Langganan toko ini sudah berakhir. Hubungi admin layanan untuk memperpanjang.',
+    'tenant_suspended': AuthStrings.blockedTenantSuspended,
+    'trial_expired': AuthStrings.blockedTrialExpired,
+    'subscription_expired': AuthStrings.blockedSubscriptionExpired,
   };
 
   @override
@@ -55,51 +59,51 @@ class _TenantBlockedScreenState extends ConsumerState<TenantBlockedScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(AppSpacing.s24),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(LucideIcons.clockAlert, size: 48, color: warning),
-                  const SizedBox(height: 16),
+                  Icon(AppIcons.clockAlert, size: AppSizes.s48, color: warning),
+                  const SizedBox(height: AppSizes.s16),
                   Text(
-                    '${tenant?.name ?? 'Toko'} belum bisa dipakai',
+                    AuthStrings.blockedTitle(tenant?.name ?? AuthStrings.defaultShopName),
                     textAlign: TextAlign.center,
                     style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSizes.s8),
                   Text(
-                    tenant?.blockedMessage ?? _messages[tenant?.blockedReason] ?? 'Toko ini tidak aktif.',
+                    tenant?.blockedMessage ?? _messages[tenant?.blockedReason] ?? AuthStrings.blockedFallback,
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                   ),
                   if (endsAt != null) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: AppSizes.s8),
                     Text(
-                      'Masa aktif berakhir ${DateFormat('d MMMM y', 'id_ID').format(endsAt.toLocal())}. Data toko tetap tersimpan.',
+                      AuthStrings.blockedEndsAt(DateFormat(AppDateFormat.dateLong, AppDateFormat.locale).format(endsAt.toLocal())),
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
                   if (tenant?.renewal case final renewal? when !renewal.isEmpty) ...[
-                    const SizedBox(height: 20),
+                    const SizedBox(height: AppSizes.s20),
                     _RenewalCard(renewal: renewal, shopName: tenant?.name ?? ''),
                   ],
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSizes.s24),
                   FilledButton.icon(
                     style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                     onPressed: _checking ? null : _check,
                     icon: _checking
-                        ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(LucideIcons.refreshCw, size: 16),
-                    label: const Text('Periksa lagi'),
+                        ? const SizedBox.square(dimension: AppSizes.s16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : const Icon(AppIcons.refreshCw, size: AppSizes.s16),
+                    label: const Text(AuthStrings.checkAgain),
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSizes.s8),
                   OutlinedButton(
                     style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
                     onPressed: () => ref.read(authControllerProvider.notifier).logout(),
-                    child: const Text('Keluar'),
+                    child: const Text(AuthStrings.logout),
                   ),
                 ],
               ),
@@ -127,40 +131,40 @@ class _RenewalCard extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppSpacing.s16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text('Cara memperpanjang', style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+            Text(AuthStrings.renewalHeading, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
             for (final plan in renewal.plans)
               Padding(
-                padding: const EdgeInsets.only(top: 10),
+                padding: const EdgeInsets.only(top: AppSpacing.s10),
                 child: Row(
                   children: [
                     Expanded(child: Text(plan.label, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600))),
-                    Text('${rupiah(plan.price)}/bulan', style: theme.textTheme.bodyMedium),
+                    Text(AuthStrings.renewalPlanPrice(rupiah(plan.price)), style: theme.textTheme.bodyMedium),
                   ],
                 ),
               ),
             if ((renewal.paymentInstructions ?? '').isNotEmpty) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppSizes.s12),
               SelectableText(renewal.paymentInstructions!, style: theme.textTheme.bodyMedium),
             ],
             if (contact.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text('Admin layanan', style: muted),
+              const SizedBox(height: AppSizes.s12),
+              Text(AuthStrings.serviceAdminLabel, style: muted),
               SelectableText(contact, style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600)),
               if (wa != null) ...[
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSizes.s12),
                 OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(44)),
                   onPressed: () => openExternal(
                     context,
-                    Uri.https('wa.me', '/$wa', {'text': 'Halo, saya ingin memperpanjang langganan toko $shopName.'}),
-                    failure: 'WhatsApp tidak bisa dibuka.',
+                    Uri.https('wa.me', '/$wa', {'text': AuthStrings.whatsappRenewalMessage(shopName)}),
+                    failure: AuthStrings.whatsappOpenFailed,
                   ),
-                  icon: const Icon(LucideIcons.messageCircle, size: 16),
-                  label: const Text('Hubungi lewat WhatsApp'),
+                  icon: const Icon(AppIcons.messageCircle, size: AppSizes.s16),
+                  label: const Text(AuthStrings.contactWhatsapp),
                 ),
               ],
             ],

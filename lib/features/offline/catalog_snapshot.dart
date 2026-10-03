@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_pos_mobile/core/constants/api_endpoints.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/offline/offline_cache.dart';
+import '../../core/storage/app_storage.dart';
 import '../../core/utils/json.dart';
 import '../pos/data/pos_models.dart';
 import '../products/data/product_models.dart';
@@ -51,17 +54,17 @@ class CatalogSnapshot {
   /// Product screens answered from the snapshot while offline. It only holds active products,
   /// so asking for inactive ones returns null and the caller falls back to its own copy.
   Paginated<ProductRecord>? records({String? search, int? categoryId, String? status, String? sort, int page = 1}) {
-    if (status == 'inactive') {
+    if (status == ProductStatuses.inactive) {
       return null;
     }
-    final sortKey = (sort ?? 'name').replaceFirst('-', '');
+    final sortKey = (sort ?? ProductSortKeys.name).replaceFirst('-', '');
     int compare(ProductRecord a, ProductRecord b) => switch (sortKey) {
-          'price' => a.price.compareTo(b.price),
-          'stock' => a.stock.compareTo(b.stock),
-          'sku' => a.sku.compareTo(b.sku),
+          ProductSortKeys.price => a.price.compareTo(b.price),
+          ProductSortKeys.stock => a.stock.compareTo(b.stock),
+          ProductSortKeys.sku => a.sku.compareTo(b.sku),
           _ => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
         };
-    final matches = _records(search).where((p) => (categoryId == null || p.category?.id == categoryId) && (status != 'low' || p.isLowStock)).toList()
+    final matches = _records(search).where((p) => (categoryId == null || p.category?.id == categoryId) && (status != StockLevels.low || p.isLowStock)).toList()
       ..sort((a, b) => (sort ?? '').startsWith('-') ? compare(b, a) : compare(a, b));
 
     return _page(matches, page, 30);
@@ -73,8 +76,8 @@ class CatalogSnapshot {
         return false;
       }
       return switch (level) {
-        'low' => p.isLowStock && p.stock > 0,
-        'out' => p.stock <= 0,
+        StockLevels.low => p.isLowStock && p.stock > 0,
+        StockLevels.out => p.stock <= 0,
         _ => true,
       };
     }).toList()
@@ -153,7 +156,7 @@ class CatalogSnapshotNotifier extends AsyncNotifier<CatalogSnapshot?> {
 
   @override
   Future<CatalogSnapshot?> build() async {
-    final stored = asMap(await ref.watch(offlineCacheProvider).readFile('catalog'));
+    final stored = asMap(await ref.watch(offlineCacheProvider).readFile(StorageKeys.catalog));
     if (stored.isEmpty) {
       return null;
     }
@@ -169,7 +172,7 @@ class CatalogSnapshotNotifier extends AsyncNotifier<CatalogSnapshot?> {
     var lastPage = 1;
 
     do {
-      final body = await api.get('pos/products', query: {'page': page, 'per_page': 100});
+      final body = await api.get(ApiEndpoints.posProducts, query: {'page': page, 'per_page': 100});
       products.addAll(ApiClient.list(body));
       lastPage = asInt(asMap((body as Map<String, dynamic>)['meta'])['last_page']);
       page++;
@@ -195,5 +198,5 @@ class CatalogSnapshotNotifier extends AsyncNotifier<CatalogSnapshot?> {
   }
 
   Future<void> _save(CatalogSnapshot snapshot) =>
-      _cache.writeFile('catalog', {'products': snapshot.products, 'updated_at': snapshot.updatedAt.toIso8601String()});
+      _cache.writeFile(StorageKeys.catalog, {'products': snapshot.products, 'updated_at': snapshot.updatedAt.toIso8601String()});
 }

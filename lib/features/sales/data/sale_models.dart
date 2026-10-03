@@ -1,3 +1,5 @@
+import 'package:web_pos_mobile/core/constants/status_values.dart';
+
 int _int(dynamic value) => value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 
 double _double(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
@@ -59,7 +61,7 @@ class SalePayment {
   });
 
   factory SalePayment.fromJson(Map<String, dynamic> json) => SalePayment(
-        kind: json['kind'] as String? ?? 'sale',
+        kind: json['kind'] as String? ?? PaymentKinds.sale,
         method: json['method'] as String,
         methodLabel: json['method_label'] as String,
         amount: _int(json['amount']),
@@ -121,7 +123,7 @@ class SaleSummary {
   final int dueAmount;
   final List<String> paymentMethods;
 
-  bool get isVoided => status == 'voided';
+  bool get isVoided => status == SaleStatuses.voided;
 }
 
 class SaleDetail {
@@ -217,7 +219,7 @@ class SaleDetail {
   final double discountValue;
   final String? shiftNumber;
 
-  bool get isVoided => status == 'voided';
+  bool get isVoided => status == SaleStatuses.voided;
 }
 
 class Receipt {

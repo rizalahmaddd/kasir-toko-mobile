@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
@@ -23,6 +25,9 @@ import 'widgets/recent_sales_section.dart';
 import 'widgets/shift_and_sync_banner.dart';
 import 'widgets/today_sales_hero.dart';
 import 'widgets/weekly_trend_card.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
@@ -30,8 +35,10 @@ class DashboardScreen extends ConsumerWidget {
   String _greeting() {
     final hour = DateTime.now().hour;
     return hour < 11
-        ? 'Selamat pagi'
-        : (hour < 15 ? 'Selamat siang' : (hour < 18 ? 'Selamat sore' : 'Selamat malam'));
+        ? DashboardStrings.greetingMorning
+        : (hour < 15
+            ? DashboardStrings.greetingAfternoon
+            : (hour < 18 ? DashboardStrings.greetingEvening : DashboardStrings.greetingNight));
   }
 
   @override
@@ -48,12 +55,12 @@ class DashboardScreen extends ConsumerWidget {
         title: Row(
           children: [
             Tooltip(
-              message: 'Buka Profil',
+              message: DashboardStrings.tooltipProfile,
               child: InkWell(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(AppRadius.r20),
                 onTap: () {
                   unawaited(HapticFeedback.lightImpact());
-                  context.push('/account');
+                  context.push(AppRoutes.account);
                 },
                 child: Container(
                   width: 38,
@@ -68,7 +75,7 @@ class DashboardScreen extends ConsumerWidget {
                   ),
                   alignment: Alignment.center,
                   child: Text(
-                    (user?.name.characters.take(1).toString() ?? 'U').toUpperCase(),
+                    (user?.name.characters.take(1).toString() ?? DashboardStrings.avatarInitialFallback).toUpperCase(),
                     style: TextStyle(
                       color: theme.colorScheme.primary,
                       fontWeight: FontWeight.w800,
@@ -78,7 +85,7 @@ class DashboardScreen extends ConsumerWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: AppSizes.s10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,19 +94,19 @@ class DashboardScreen extends ConsumerWidget {
                     children: [
                       Flexible(
                         child: Text(
-                          '${_greeting()}, ${user?.name.split(' ').first ?? ''}',
+                          DashboardStrings.greetingLine(_greeting(), user?.name.split(' ').first ?? ''),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
                         ),
                       ),
                       if (user?.roleLabel != null && user!.roleLabel != '-') ...[
-                        const SizedBox(width: 6),
+                        const SizedBox(width: AppSizes.s6),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s1_5),
                           decoration: BoxDecoration(
                             color: isDark ? AppColors.slate800 : AppColors.slate200,
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(AppRadius.r4),
                           ),
                           child: Text(
                             user.roleLabel,
@@ -128,31 +135,31 @@ class DashboardScreen extends ConsumerWidget {
         ),
         actions: [
           IconButton(
-            tooltip: 'Cari',
-            icon: const Icon(LucideIcons.search, size: 20),
+            tooltip: DashboardStrings.tooltipSearch,
+            icon: const Icon(AppIcons.search, size: AppSizes.s20),
             onPressed: () {
               unawaited(HapticFeedback.lightImpact());
-              context.push('/search');
+              context.push(AppRoutes.search);
             },
           ),
           IconButton(
-            tooltip: 'Notifikasi',
+            tooltip: DashboardStrings.tooltipNotifications,
             icon: Badge(
               isLabelVisible: unread > 0,
               label: Text('$unread'),
-              child: const Icon(LucideIcons.bell, size: 20),
+              child: const Icon(AppIcons.bell, size: AppSizes.s20),
             ),
             onPressed: () async {
               unawaited(HapticFeedback.lightImpact());
-              await context.push('/notifications');
+              await context.push(AppRoutes.notifications);
               ref.invalidate(dashboardProvider);
             },
           ),
           IconButton(
-            tooltip: ref.watch(themeModeProvider) == ThemeMode.dark ? 'Mode terang' : 'Mode gelap',
+            tooltip: ref.watch(themeModeProvider) == ThemeMode.dark ? DashboardStrings.themeLightTooltip : DashboardStrings.themeDarkTooltip,
             icon: Icon(
-              ref.watch(themeModeProvider) == ThemeMode.dark ? LucideIcons.sun : LucideIcons.moon,
-              size: 20,
+              ref.watch(themeModeProvider) == ThemeMode.dark ? AppIcons.sun : AppIcons.moon,
+              size: AppSizes.s20,
             ),
             onPressed: () {
               unawaited(HapticFeedback.lightImpact());
@@ -180,7 +187,7 @@ class DashboardScreen extends ConsumerWidget {
               await ref.read(dashboardProvider.notifier).refresh();
             },
             child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s12),
               children: [
                 MaxWidth(
                   width: 960,
@@ -188,32 +195,32 @@ class DashboardScreen extends ConsumerWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const ShiftAndSyncBanner(),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSizes.s12),
                       if (data.today != null) ...[
                         TodaySalesHero(today: data.today!),
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppSizes.s14),
                       ],
                       QuickActionsBar(
                         lowStockCount: lowStockCount,
                         unpaidReceivablesCount: unpaidReceivablesCount,
                       ),
                       if (data.stats.isNotEmpty) ...[
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppSizes.s14),
                         DashboardStatsGrid(stats: data.stats, receivables: data.receivables),
                       ],
                       if (data.weekChart != null && data.weekChart!.isNotEmpty) ...[
-                        const SizedBox(height: 14),
+                        const SizedBox(height: AppSizes.s14),
                         WeeklyTrendCard(points: data.weekChart!),
                       ],
                       if (data.lowStock != null) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSizes.s8),
                         LowStockSection(products: data.lowStock!),
                       ],
                       if (data.recentSales != null && data.recentSales!.isNotEmpty) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSizes.s8),
                         RecentSalesSection(sales: data.recentSales!),
                       ],
-                      const SizedBox(height: 24),
+                      const SizedBox(height: AppSizes.s24),
                     ],
                   ),
                 ),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -14,8 +17,11 @@ import '../../offline/offline_queue.dart';
 import '../data/sale_models.dart';
 import 'sale_tile.dart';
 import '../sales_controller.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
-const _statuses = [(null, 'Semua Status'), ('completed', 'Selesai'), ('credit', 'Kasbon'), ('voided', 'Dibatalkan')];
+const _statuses = [(null, SalesStrings.allStatuses), (SaleStatuses.completed, SalesStrings.statusCompleted), (SaleStatuses.credit, SalesStrings.statusCredit), (SaleStatuses.voided, SalesStrings.statusVoided)];
 
 class SalesScreen extends ConsumerStatefulWidget {
   const SalesScreen({super.key});
@@ -55,8 +61,8 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
 
     return Scaffold(
       appBar: SearchableAppBar(
-        title: const Text('Riwayat Transaksi'),
-        hint: 'No. transaksi, pelanggan, atau barang',
+        title: const Text(SalesStrings.salesHistoryTitle),
+        hint: SalesStrings.salesSearchHint,
         initialSearch: filter.search,
         onSearchChanged: (value) => _apply(_filter.copyWith(search: value)),
         onSearchClosed: () => _apply(_filter.copyWith(search: '')),
@@ -64,7 +70,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s12, AppSpacing.s8, AppSpacing.s12, AppSpacing.s8),
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(
@@ -73,35 +79,35 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                     selectedRange: filter.range,
                     onRangeChanged: (range) => _apply(_filter.copyWith(range: range)),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSizes.s8),
                   FilterDropdownPill<String>(
-                    label: 'Status',
-                    icon: LucideIcons.badgeCheck,
+                    label: SalesStrings.statusFilterLabel,
+                    icon: AppIcons.badgeCheck,
                     value: filter.status,
                     items: _statuses,
                     onChanged: (val) => _apply(val == null ? filter.copyWith(clearStatus: true) : filter.copyWith(status: val)),
                   ),
                   if (filter.status != null) ...[
-                    const SizedBox(width: 6),
+                    const SizedBox(width: AppSizes.s6),
                     InkWell(
-                      borderRadius: BorderRadius.circular(9),
+                      borderRadius: BorderRadius.circular(AppRadius.r9),
                       onTap: () => _apply(filter.copyWith(clearStatus: true)),
                       child: Container(
                         height: 34,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(9),
+                          color: isDark ? AppColors.slate800 : AppColors.slate100,
+                          borderRadius: BorderRadius.circular(AppRadius.r9),
                           border: Border.all(
-                            color: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
+                            color: isDark ? AppColors.slate700 : AppColors.slate300,
                           ),
                         ),
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(LucideIcons.x, size: 13),
-                            SizedBox(width: 4),
-                            Text('Reset', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                            Icon(AppIcons.x, size: AppSizes.s13),
+                            SizedBox(width: AppSizes.s4),
+                            Text(SalesStrings.reset, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                           ],
                         ),
                       ),
@@ -111,7 +117,7 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSizes.s2),
           Expanded(
             child: AsyncView(
               value: sales,
@@ -129,21 +135,21 @@ class _SalesScreenState extends ConsumerState<SalesScreen> {
                       const SliverFillRemaining(
                         hasScrollBody: false,
                         child: EmptyState(
-                          icon: LucideIcons.receiptText,
-                          title: 'Belum ada transaksi',
-                          description: 'Tidak ada transaksi di rentang tanggal dan filter ini.',
+                          icon: AppIcons.receiptText,
+                          title: SalesStrings.emptySalesTitle,
+                          description: SalesStrings.emptySalesDescription,
                         ),
                       )
                     else
                       SliverList.separated(
                         itemCount: state.page.items.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 2),
+                        separatorBuilder: (_, _) => const SizedBox(height: AppSizes.s2),
                         itemBuilder: (context, index) => SaleTile(sale: state.page.items[index]),
                       ),
                     if (state.loadingMore)
                       const SliverToBoxAdapter(
                         child: Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s12),
                           child: AppShimmer(
                             child: SkeletonBox(height: 72, borderRadius: 14),
                           ),
@@ -174,26 +180,26 @@ class _QueuedNotice extends ConsumerWidget {
     final total = queued.fold<int>(0, (sum, sale) => sum + sale.total);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s0, AppSpacing.s16, AppSpacing.s8),
       child: Material(
         color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () => context.push('/offline'),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
+          onTap: () => context.push(AppRoutes.offline),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s10),
             child: Row(
               children: [
-                Icon(LucideIcons.cloudUpload, size: 18, color: color),
-                const SizedBox(width: 10),
+                Icon(AppIcons.cloudUpload, size: AppSizes.s18, color: color),
+                const SizedBox(width: AppSizes.s10),
                 Expanded(
                   child: Text(
-                    '${queued.length} transaksi offline (${rupiah(total)}) belum terkirim, jadi belum masuk daftar ini.',
+                    SalesStrings.offlineQueuedNotice(queued.length, rupiah(total)),
                     style: TextStyle(color: color, fontSize: 12.5, fontWeight: FontWeight.w600),
                   ),
                 ),
-                Icon(LucideIcons.chevronRight, size: 16, color: color),
+                Icon(AppIcons.chevronRight, size: AppSizes.s16, color: color),
               ],
             ),
           ),
@@ -215,14 +221,14 @@ class _Summary extends StatelessWidget {
     final muted = theme.colorScheme.onSurfaceVariant;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s6, AppSpacing.s16, AppSpacing.s8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s12),
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1E293B) : Colors.white,
-          borderRadius: BorderRadius.circular(12),
+          color: isDark ? AppColors.slate800 : Colors.white,
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           border: Border.all(
-            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+            color: isDark ? AppColors.slate700 : AppColors.slate200,
           ),
           boxShadow: [
             if (!isDark)
@@ -239,11 +245,11 @@ class _Summary extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Total Penjualan', style: theme.textTheme.bodySmall?.copyWith(color: muted, fontWeight: FontWeight.w500)),
-                  const SizedBox(height: 2),
+                  Text(SalesStrings.totalSales, style: theme.textTheme.bodySmall?.copyWith(color: muted, fontWeight: FontWeight.w500)),
+                  const SizedBox(height: AppSizes.s2),
                   Text(
                     rupiah(page.total),
-                    style: AppTypography.money(fontSize: 18, fontWeight: FontWeight.w800, color: const Color(0xFF059669)),
+                    style: AppTypography.money(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.emerald600),
                   ),
                 ],
               ),
@@ -251,20 +257,20 @@ class _Summary extends StatelessWidget {
             Container(
               height: 36,
               width: 1,
-              color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-              margin: const EdgeInsets.symmetric(horizontal: 16),
+              color: isDark ? AppColors.slate700 : AppColors.slate200,
+              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
             ),
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '${page.count} transaksi',
+                  SalesStrings.transactionCount(page.count),
                   style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
                 ),
                 if (page.voided > 0)
                   Text(
-                    '${page.voided} dibatalkan',
-                    style: const TextStyle(fontSize: 11, color: Color(0xFFDC2626), fontWeight: FontWeight.w500),
+                    SalesStrings.voidedCount(page.voided),
+                    style: const TextStyle(fontSize: 11, color: AppColors.red600, fontWeight: FontWeight.w500),
                   ),
               ],
             ),

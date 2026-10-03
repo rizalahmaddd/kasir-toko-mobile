@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/paging/paged.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
 import '../products_providers.dart';
 import 'movement_tile.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class MovementsScreen extends ConsumerStatefulWidget {
   const MovementsScreen({super.key, this.productId, this.productName});
@@ -30,8 +33,8 @@ class _MovementsScreenState extends ConsumerState<MovementsScreen> {
     return Scaffold(
       appBar: widget.productId == null
           ? SearchableAppBar(
-              title: const Text('Kartu stok'),
-              hint: 'Cari produk',
+              title: const Text(ProductStrings.sectionStockCard),
+              hint: ProductStrings.searchMovementProductHint,
               initialSearch: _search,
               onSearchChanged: (term) => setState(() => _search = term),
             )
@@ -39,15 +42,15 @@ class _MovementsScreenState extends ConsumerState<MovementsScreen> {
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
             child: Row(
               children: [
                 FilterDropdownPill<String>(
-                  label: 'Jenis',
-                  icon: LucideIcons.arrowLeftRight,
+                  label: ProductStrings.filterLabelMovementType,
+                  icon: AppIcons.arrowLeftRight,
                   value: _type,
                   items: [
-                    (null, 'Semua Jenis Mutasi'),
+                    (null, ProductStrings.filterAllMovementTypes),
                     for (final entry in stockMovementTypes.entries) (entry.key, entry.value),
                   ],
                   onChanged: (type) => setState(() => _type = type),
@@ -55,14 +58,14 @@ class _MovementsScreenState extends ConsumerState<MovementsScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSizes.s2),
           Expanded(
             child: PagedListView(
               value: ref.watch(movementsProvider(query)),
               onLoadMore: () => ref.read(movementsProvider(query).notifier).loadMore(),
               onRefresh: () => ref.refresh(movementsProvider(query).future),
-              padding: const EdgeInsets.fromLTRB(0, 4, 0, 32),
-              empty: const EmptyState(icon: LucideIcons.history, title: 'Belum ada mutasi stok'),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s0, AppSpacing.s4, AppSpacing.s0, AppSpacing.s32),
+              empty: const EmptyState(icon: AppIcons.history, title: ProductStrings.emptyMovementsTitle),
               itemBuilder: (context, movement) => MovementTile(movement: movement, showProduct: widget.productId == null),
             ),
           ),

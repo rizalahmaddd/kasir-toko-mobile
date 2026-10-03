@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -20,6 +23,9 @@ import '../products_providers.dart';
 import 'movement_tile.dart';
 import 'product_widgets.dart';
 import 'stock_adjust_sheet.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class ProductDetailScreen extends ConsumerWidget {
   const ProductDetailScreen({super.key, required this.productId});
@@ -34,18 +40,18 @@ class ProductDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(product.value?.name ?? 'Produk', maxLines: 1, overflow: TextOverflow.ellipsis),
+        title: Text(product.value?.name ?? ProductStrings.appTitleProducts, maxLines: 1, overflow: TextOverflow.ellipsis),
         actions: [
           if (canManage && product.value != null) ...[
             IconButton(
-              tooltip: 'Ubah',
-              icon: const Icon(LucideIcons.pencil, size: 20),
-              onPressed: () => context.push('/product/$productId/edit'),
+              tooltip: ProductStrings.actionEdit,
+              icon: const Icon(AppIcons.pencil, size: AppSizes.s20),
+              onPressed: () => context.push(AppRoutes.productEdit(productId)),
             ),
             IconButton(
-              tooltip: 'Hapus',
-              icon: const Icon(LucideIcons.trash2, size: 20),
-              onPressed: () => _delete(context, ref, product.value!),
+              tooltip: ProductStrings.actionDelete,
+              icon: const Icon(AppIcons.trash2, size: AppSizes.s20),
+              onPressed: product.value == null ? null : () => _delete(context, ref, product.value!),
             ),
           ],
         ],
@@ -57,17 +63,17 @@ class ProductDetailScreen extends ConsumerWidget {
         data: (product) => RefreshIndicator(
           onRefresh: () => ref.refresh(productDetailProvider(productId).future),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.s16),
             children: [
               MaxWidth(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _Header(product: product, canManage: canManage),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: AppSizes.s16),
                     _PricingAndSpecsCard(product: product),
                     if (product.trackStock) ...[
-                      const SectionTitle('Stok'),
+                      const SectionTitle(ProductStrings.sectionStock),
                       _StockCard(product: product, canAdjust: user?.canAdjustStock ?? false),
                       if (user?.canViewStock ?? false) _RecentMovements(product: product),
                     ],
@@ -84,9 +90,9 @@ class ProductDetailScreen extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref, ProductRecord product) async {
     final ok = await confirmAction(
       context,
-      title: 'Hapus produk?',
-      message: '${product.name} tidak akan muncul lagi di kasir. Riwayat transaksi tetap tersimpan.',
-      confirmLabel: 'Hapus',
+      title: ProductStrings.deleteProductConfirmTitle,
+      message: ProductStrings.productDeleteConfirmMessage(product.name),
+      confirmLabel: ProductStrings.deleteProductConfirmAction,
       danger: true,
     );
     if (!ok || !context.mounted) {
@@ -99,7 +105,7 @@ class ProductDetailScreen extends ConsumerWidget {
       ref.read(dataChangesProvider).after({DataChange.products});
       if (context.mounted) {
         context.pop();
-        showMessage(context, '${product.name} dihapus.');
+        showMessage(context, ProductStrings.productDeletedMessage(product.name));
       }
     } on ApiException catch (error) {
       if (context.mounted) {
@@ -130,16 +136,16 @@ class _HeaderState extends ConsumerState<_Header> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const BottomSheetHeader(title: 'Foto Produk'),
-            ListTile(leading: const Icon(LucideIcons.camera), title: const Text('Ambil foto'), onTap: () => Navigator.pop(context, 'camera')),
-            ListTile(leading: const Icon(LucideIcons.image), title: const Text('Pilih dari galeri'), onTap: () => Navigator.pop(context, 'gallery')),
+            const BottomSheetHeader(title: ProductStrings.photoSheetTitle),
+            ListTile(leading: const Icon(AppIcons.camera), title: const Text(ProductStrings.actionTakePhoto), onTap: () => Navigator.pop(context, 'camera')),
+            ListTile(leading: const Icon(AppIcons.image), title: const Text(ProductStrings.actionPickFromGallery), onTap: () => Navigator.pop(context, 'gallery')),
             if (hasImage)
               ListTile(
-                leading: Icon(LucideIcons.trash2, color: StatusColors.of(context).danger),
-                title: Text('Hapus foto', style: TextStyle(color: StatusColors.of(context).danger)),
+                leading: Icon(AppIcons.trash2, color: StatusColors.of(context).danger),
+                title: Text(ProductStrings.actionDeletePhoto, style: TextStyle(color: StatusColors.of(context).danger)),
                 onTap: () => Navigator.pop(context, 'delete'),
               ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppSizes.s12),
           ],
         ),
       ),
@@ -199,30 +205,30 @@ class _HeaderState extends ConsumerState<_Header> {
                   child: CircleAvatar(
                     radius: 13,
                     backgroundColor: theme.colorScheme.primary,
-                    child: const Icon(LucideIcons.camera, size: 14, color: Colors.white),
+                    child: const Icon(AppIcons.camera, size: AppSizes.s14, color: Colors.white),
                   ),
                 ),
             ],
           ),
         ),
-        const SizedBox(width: 16),
+        const SizedBox(width: AppSizes.s16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(product.name, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSizes.s2),
               Text(product.sku, style: TextStyle(color: theme.colorScheme.onSurfaceVariant)),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSizes.s8),
               Wrap(
                 spacing: 6,
                 runSpacing: 6,
                 children: [
-                  StatusBadge(label: product.isActive ? 'Aktif' : 'Nonaktif', tone: product.isActive ? BadgeTone.success : BadgeTone.muted),
+                  StatusBadge(label: product.isActive ? ProductStrings.statusActive : ProductStrings.statusInactive, tone: product.isActive ? BadgeTone.success : BadgeTone.muted),
                   if (product.isOutOfStock)
-                    const StatusBadge(label: 'Habis', tone: BadgeTone.danger)
+                    const StatusBadge(label: ProductStrings.statusOutOfStock, tone: BadgeTone.danger)
                   else if (product.isLowStock)
-                    const StatusBadge(label: 'Stok menipis', tone: BadgeTone.warning),
+                    const StatusBadge(label: ProductStrings.statusLowStockLong, tone: BadgeTone.warning),
                 ],
               ),
             ],
@@ -249,10 +255,10 @@ class _PricingAndSpecsCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -263,53 +269,52 @@ class _PricingAndSpecsCard extends StatelessWidget {
             ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.s16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Harga Jual', style: TextStyle(fontSize: 12, color: muted, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
+                  Text(ProductStrings.labelSellingPrice, style: TextStyle(fontSize: 12, color: muted, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: AppSizes.s2),
                   Text(
                     rupiah(product.price),
                     style: AppTypography.money(
                       fontSize: 22,
                       fontWeight: FontWeight.w800,
-                      color: const Color(0xFF059669),
+                      color: AppColors.emerald600,
                     ),
                   ),
                 ],
               ),
-              const Spacer(),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s5),
                 decoration: BoxDecoration(
                   color: isPositiveMargin
-                      ? const Color(0xFF10B981).withValues(alpha: 0.12)
+                      ? AppColors.emerald500.withValues(alpha: 0.12)
                       : colors.danger.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppRadius.r8),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isPositiveMargin ? LucideIcons.trendingUp : LucideIcons.trendingDown,
-                      size: 14,
-                      color: isPositiveMargin ? const Color(0xFF059669) : colors.danger,
+                      isPositiveMargin ? AppIcons.trendingUp : AppIcons.trendingDown,
+                      size: AppSizes.s14,
+                      color: isPositiveMargin ? AppColors.emerald600 : colors.danger,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSizes.s4),
                     Text(
-                      '${isPositiveMargin ? '+' : ''}${rupiah(product.margin)} (${marginPercent.toStringAsFixed(1)}%)',
+                      ProductStrings.priceMarginLabel(isPositiveMargin, rupiah(product.margin), marginPercent.toStringAsFixed(1)),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
-                        color: isPositiveMargin ? const Color(0xFF059669) : colors.danger,
+                        color: isPositiveMargin ? AppColors.emerald600 : colors.danger,
                       ),
                     ),
                   ],
@@ -317,17 +322,17 @@ class _PricingAndSpecsCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.s12),
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(AppSpacing.s10),
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(10),
+              color: isDark ? AppColors.slate900 : AppColors.slate50,
+              borderRadius: BorderRadius.circular(AppRadius.r10),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Harga Modal (HPP)', style: TextStyle(fontSize: 13, color: muted)),
+                Text(ProductStrings.labelCostPrice, style: TextStyle(fontSize: 13, color: muted)),
                 Text(
                   rupiah(product.costPrice),
                   style: AppTypography.money(fontSize: 13, fontWeight: FontWeight.w700),
@@ -336,12 +341,12 @@ class _PricingAndSpecsCard extends StatelessWidget {
             ),
           ),
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.s12),
             child: Divider(height: 1),
           ),
-          InfoRow('Satuan', product.unit),
-          InfoRow('Kategori', product.category?.name ?? '-'),
-          InfoRow('Barcode', product.barcode ?? '-'),
+          InfoRow(ProductStrings.labelUnit, product.unit),
+          InfoRow(ProductStrings.labelCategory, product.category?.name ?? '-'),
+          InfoRow(ProductStrings.labelBarcode, product.barcode ?? '-'),
         ],
       ),
     );
@@ -363,10 +368,10 @@ class _StockCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r16),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -377,7 +382,7 @@ class _StockCard extends StatelessWidget {
             ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppSpacing.s16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -387,10 +392,10 @@ class _StockCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Stok Saat Ini', style: TextStyle(fontSize: 12, color: muted, fontWeight: FontWeight.w600)),
-                  const SizedBox(height: 2),
+                  Text(ProductStrings.labelCurrentStock, style: TextStyle(fontSize: 12, color: muted, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: AppSizes.s2),
                   Text(
-                    '${quantity(product.stock)} ${product.unit}',
+                    ProductStrings.stockQuantity(quantity(product.stock), product.unit),
                     style: AppTypography.quantity(
                       fontSize: 20,
                       fontWeight: FontWeight.w800,
@@ -402,53 +407,53 @@ class _StockCard extends StatelessWidget {
                 ],
               ),
               if (product.isOutOfStock)
-                const StatusBadge(label: 'Habis', tone: BadgeTone.danger)
+                const StatusBadge(label: ProductStrings.statusOutOfStock, tone: BadgeTone.danger)
               else if (product.isLowStock)
-                const StatusBadge(label: 'Menipis', tone: BadgeTone.warning)
+                const StatusBadge(label: ProductStrings.statusLowStock, tone: BadgeTone.warning)
               else
-                const StatusBadge(label: 'Tersedia', tone: BadgeTone.success),
+                const StatusBadge(label: ProductStrings.statusAvailable, tone: BadgeTone.success),
             ],
           ),
-          const SizedBox(height: 12),
-          InfoRow('Batas minimum', '${quantity(product.minStock)} ${product.unit}'),
-          InfoRow('Nilai stok (modal)', rupiah((product.stock > 0 ? product.stock : 0) * product.costPrice)),
+          const SizedBox(height: AppSizes.s12),
+          InfoRow(ProductStrings.labelMinimumLimit, ProductStrings.stockQuantity(quantity(product.minStock), product.unit)),
+          InfoRow(ProductStrings.labelStockValueCost, rupiah((product.stock > 0 ? product.stock : 0) * product.costPrice)),
           if (canAdjust) ...[
-            const SizedBox(height: 14),
+            const SizedBox(height: AppSizes.s14),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.all(8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r10)),
                     ),
-                    onPressed: () => StockAdjustSheet.show(context, product, 'stock_in'),
-                    icon: const Icon(LucideIcons.arrowDownToLine, size: 16),
-                    label: const Text('Masuk', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    onPressed: () => StockAdjustSheet.show(context, product, MovementTypes.stockIn),
+                    icon: const Icon(AppIcons.arrowDownToLine, size: AppSizes.s16),
+                    label: const Text(ProductStrings.actionStockInShort, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.all(8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r10)),
                     ),
-                    onPressed: () => StockAdjustSheet.show(context, product, 'stock_out'),
-                    icon: const Icon(LucideIcons.arrowUpFromLine, size: 16),
-                    label: const Text('Keluar', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    onPressed: () => StockAdjustSheet.show(context, product, MovementTypes.stockOut),
+                    icon: const Icon(AppIcons.arrowUpFromLine, size: AppSizes.s16),
+                    label: const Text(ProductStrings.actionStockOutShort, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 Expanded(
                   child: OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.all(8),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.all(AppSpacing.s8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r10)),
                     ),
-                    onPressed: () => StockAdjustSheet.show(context, product, 'opname'),
-                    icon: const Icon(LucideIcons.clipboardCheck, size: 16),
-                    label: const Text('Opname', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    onPressed: () => StockAdjustSheet.show(context, product, MovementTypes.opname),
+                    icon: const Icon(AppIcons.clipboardCheck, size: AppSizes.s16),
+                    label: const Text(ProductStrings.actionOpnameShort, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                 ),
               ],
@@ -474,21 +479,21 @@ class _RecentMovements extends ConsumerWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionTitle(
-          'Kartu stok',
-          trailing: TextButton(onPressed: () => context.push('/stock/movements?product=${product.id}&name=${Uri.encodeComponent(product.name)}'), child: const Text('Lihat semua')),
+          ProductStrings.sectionStockCard,
+          trailing: TextButton(onPressed: () => context.push(AppRoutes.stockMovementsFor(product.id, product.name)), child: const Text(ProductStrings.actionViewAll)),
         ),
         if (movements.isLoading && items.isEmpty)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: 4),
-            child: DefaultListSkeleton(itemCount: 3),
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.s4),
+            child: DefaultListSkeleton(itemCount: 3, padding: EdgeInsets.zero, shrinkWrap: true),
           )
         else if (items.isEmpty)
           Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text('Belum ada mutasi stok.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
+            padding: const EdgeInsets.all(AppSpacing.s8),
+            child: Text(ProductStrings.emptyInlineMovements, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           )
         else
-          Column(children: [for (final movement in items) MovementTile(movement: movement, margin: const EdgeInsets.only(bottom: 6))]),
+          Column(children: [for (final movement in items) MovementTile(movement: movement, margin: const EdgeInsets.only(bottom: AppSpacing.s6))]),
       ],
     );
   }

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../theme/app_typography.dart';
 import '../utils/formatters.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
 
 class QuantityStepper extends StatelessWidget {
   const QuantityStepper({
@@ -39,35 +42,35 @@ class QuantityStepper extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(AppRadius.r8),
         border: Border.all(color: theme.colorScheme.outlineVariant.withValues(alpha: 0.6)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            tooltip: isAtMin ? 'Hapus' : 'Kurangi',
+            tooltip: isAtMin ? CoreStrings.quantityRemove : CoreStrings.quantityDecrease,
             visualDensity: VisualDensity.compact,
             iconSize: 18,
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppSpacing.s8),
             constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
-            icon: Icon(isAtMin ? LucideIcons.trash2 : LucideIcons.minus),
+            icon: Icon(isAtMin ? AppIcons.trash2 : AppIcons.minus),
             onPressed: _decrement,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6),
             child: Text(
-              unit == null ? quantity(value) : '${quantity(value)} $unit',
+              unit == null ? quantity(value) : CoreStrings.quantityWithUnit(quantity(value), unit!),
               style: AppTypography.quantity(fontSize: 14, fontWeight: FontWeight.w700),
             ),
           ),
           IconButton(
-            tooltip: 'Tambah',
+            tooltip: CoreStrings.quantityIncrease,
             visualDensity: VisualDensity.compact,
             iconSize: 18,
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.all(AppSpacing.s8),
             constraints: const BoxConstraints(minWidth: 38, minHeight: 38),
-            icon: const Icon(LucideIcons.plus),
+            icon: const Icon(AppIcons.plus),
             onPressed: _increment,
           ),
         ],

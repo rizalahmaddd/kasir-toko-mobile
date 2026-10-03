@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
@@ -17,6 +19,9 @@ import '../../receivables/receivables.dart';
 import '../../sales/presentation/sale_tile.dart';
 import '../customers_providers.dart';
 import '../data/customers_repository.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class CustomerDetailScreen extends ConsumerWidget {
   const CustomerDetailScreen({super.key, required this.customerId});
@@ -31,11 +36,11 @@ class CustomerDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(customer.value?.name ?? 'Pelanggan'),
+        title: Text(customer.value?.name ?? CustomerStrings.screenTitle),
         actions: [
           if (canManage && customer.value != null) ...[
-            IconButton(tooltip: 'Ubah', icon: const Icon(LucideIcons.pencil, size: 20), onPressed: () => context.push('/customer/$customerId/edit')),
-            IconButton(tooltip: 'Hapus', icon: const Icon(LucideIcons.trash2, size: 20), onPressed: () => _delete(context, ref, customer.value!)),
+            IconButton(tooltip: CustomerStrings.editTooltip, icon: const Icon(AppIcons.pencil, size: AppSizes.s20), onPressed: () => context.push(AppRoutes.customerEdit(customerId))),
+            IconButton(tooltip: CustomerStrings.deleteTooltip, icon: const Icon(AppIcons.trash2, size: AppSizes.s20), onPressed: () => _delete(context, ref, customer.value!)),
           ],
         ],
       ),
@@ -52,23 +57,23 @@ class CustomerDetailScreen extends ConsumerWidget {
               ref.read(customerReceivablesProvider(customerId).notifier).refresh(),
             ]),
             child: ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(AppSpacing.s16),
               children: [
                 MaxWidth(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(18),
+                        padding: const EdgeInsets.all(AppSpacing.s18),
                         decoration: BoxDecoration(
                           color: Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF1E293B)
+                              ? AppColors.slate800
                               : Colors.white,
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(AppRadius.r16),
                           border: Border.all(
                             color: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF334155)
-                                : const Color(0xFFE2E8F0),
+                                ? AppColors.slate700
+                                : AppColors.slate200,
                           ),
                           boxShadow: [
                             if (Theme.of(context).brightness != Brightness.dark)
@@ -90,9 +95,9 @@ class CustomerDetailScreen extends ConsumerWidget {
                                   height: 52,
                                   decoration: BoxDecoration(
                                     color: Theme.of(context).brightness == Brightness.dark
-                                        ? const Color(0xFF1E3A8A).withValues(alpha: 0.4)
-                                        : const Color(0xFFDBEAFE),
-                                    borderRadius: BorderRadius.circular(14),
+                                        ? AppColors.blue900.withValues(alpha: 0.4)
+                                        : AppColors.blue100,
+                                    borderRadius: BorderRadius.circular(AppRadius.r14),
                                   ),
                                   alignment: Alignment.center,
                                   child: Text(
@@ -100,11 +105,11 @@ class CustomerDetailScreen extends ConsumerWidget {
                                     style: const TextStyle(
                                       fontSize: 22,
                                       fontWeight: FontWeight.w800,
-                                      color: Color(0xFF2563EB),
+                                      color: AppColors.blue600,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 14),
+                                const SizedBox(width: AppSizes.s14),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -116,18 +121,18 @@ class CustomerDetailScreen extends ConsumerWidget {
                                           fontSize: 18,
                                         ),
                                       ),
-                                      const SizedBox(height: 6),
+                                      const SizedBox(height: AppSizes.s6),
                                       Wrap(
                                         spacing: 6,
                                         runSpacing: 4,
                                         children: [
                                           Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s7, vertical: AppSpacing.s2),
                                             decoration: BoxDecoration(
                                               color: Theme.of(context).brightness == Brightness.dark
-                                                  ? const Color(0xFF334155)
-                                                  : const Color(0xFFF1F5F9),
-                                              borderRadius: BorderRadius.circular(6),
+                                                  ? AppColors.slate700
+                                                  : AppColors.slate100,
+                                              borderRadius: BorderRadius.circular(AppRadius.r6),
                                             ),
                                             child: Text(
                                               customer.code,
@@ -140,22 +145,22 @@ class CustomerDetailScreen extends ConsumerWidget {
                                           ),
                                           if (customer.type != null)
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s7, vertical: AppSpacing.s2),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFF0D9488).withValues(alpha: 0.1),
-                                                borderRadius: BorderRadius.circular(6),
+                                                color: AppColors.teal600.withValues(alpha: 0.1),
+                                                borderRadius: BorderRadius.circular(AppRadius.r6),
                                               ),
                                               child: Text(
                                                 customer.type!,
                                                 style: const TextStyle(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w700,
-                                                  color: Color(0xFF0D9488),
+                                                  color: AppColors.teal600,
                                                 ),
                                               ),
                                             ),
                                           StatusBadge(
-                                            label: customer.isActive ? 'Aktif' : 'Nonaktif',
+                                            label: customer.isActive ? CustomerStrings.active : CustomerStrings.inactive,
                                             tone: customer.isActive ? BadgeTone.success : BadgeTone.muted,
                                           ),
                                         ],
@@ -166,33 +171,33 @@ class CustomerDetailScreen extends ConsumerWidget {
                               ],
                             ),
                             if (customer.phone != null) ...[
-                              const SizedBox(height: 16),
+                              const SizedBox(height: AppSizes.s16),
                               Row(
                                 children: [
                                   Expanded(
                                     child: OutlinedButton.icon(
                                       style: OutlinedButton.styleFrom(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s10),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r10)),
                                       ),
                                       onPressed: () => openExternal(context, Uri(scheme: 'tel', path: customer.phone)),
-                                      icon: const Icon(LucideIcons.phone, size: 16),
-                                      label: const Text('Telepon', style: TextStyle(fontWeight: FontWeight.w600)),
+                                      icon: const Icon(AppIcons.phone, size: AppSizes.s16),
+                                      label: const Text(CustomerStrings.teleponButton, style: TextStyle(fontWeight: FontWeight.w600)),
                                     ),
                                   ),
                                   if (wa != null) ...[
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: AppSizes.s8),
                                     Expanded(
                                       child: FilledButton.tonalIcon(
                                         style: FilledButton.styleFrom(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                          backgroundColor: const Color(0xFF10B981).withValues(alpha: 0.15),
-                                          foregroundColor: const Color(0xFF059669),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s10),
+                                          backgroundColor: AppColors.emerald500.withValues(alpha: 0.15),
+                                          foregroundColor: AppColors.emerald600,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r10)),
                                         ),
-                                        onPressed: () => openExternal(context, Uri.parse('https://wa.me/$wa'), failure: 'WhatsApp tidak bisa dibuka.'),
-                                        icon: const Icon(LucideIcons.messageCircle, size: 16),
-                                        label: const Text('WhatsApp', style: TextStyle(fontWeight: FontWeight.w700)),
+                                        onPressed: () => openExternal(context, Uri.parse('https://wa.me/$wa'), failure: CustomerStrings.whatsappOpenFailed),
+                                        icon: const Icon(AppIcons.messageCircle, size: AppSizes.s16),
+                                        label: const Text(CustomerStrings.whatsappButton, style: TextStyle(fontWeight: FontWeight.w700)),
                                       ),
                                     ),
                                   ],
@@ -200,15 +205,18 @@ class CustomerDetailScreen extends ConsumerWidget {
                               ),
                             ],
                             const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 12),
+                              padding: EdgeInsets.symmetric(vertical: AppSpacing.s12),
                               child: Divider(height: 1),
                             ),
-                            InfoRow('Nomor HP', customer.phone ?? '-'),
-                            if (customer.contactPerson != null) InfoRow('Kontak person', customer.contactPerson!),
-                            if (customer.email != null) InfoRow('Email', customer.email!),
-                            if (customer.address != null) InfoRow('Alamat', customer.address!),
-                            if (customer.npwp != null) InfoRow('NPWP', customer.npwp!),
-                            InfoRow('Tempo bayar', customer.paymentTermDays == 0 ? 'Tunai' : '${customer.paymentTermDays} hari'),
+                            InfoRow(CustomerStrings.phoneInfoLabel, customer.phone ?? '-'),
+                            if (customer.contactPerson != null) InfoRow(CustomerStrings.contactPersonInfoLabel, customer.contactPerson!),
+                            if (customer.email != null) InfoRow(CustomerStrings.emailInfoLabel, customer.email!),
+                            if (customer.address != null) InfoRow(CustomerStrings.addressInfoLabel, customer.address!),
+                            if (customer.npwp != null) InfoRow(CustomerStrings.npwpInfoLabel, customer.npwp!),
+                            InfoRow(
+                              CustomerStrings.paymentTermInfoLabel,
+                              customer.paymentTermDays == 0 ? CustomerStrings.cashPayment : CustomerStrings.paymentTermDays(customer.paymentTermDays),
+                            ),
                           ],
                         ),
                       ),
@@ -227,9 +235,9 @@ class CustomerDetailScreen extends ConsumerWidget {
   Future<void> _delete(BuildContext context, WidgetRef ref, Customer customer) async {
     final ok = await confirmAction(
       context,
-      title: 'Hapus pelanggan?',
-      message: '${customer.name} akan dihapus. Riwayat transaksinya tetap tersimpan.',
-      confirmLabel: 'Hapus',
+      title: CustomerStrings.deleteDialogTitle,
+      message: CustomerStrings.deleteCustomerMessage(customer.name),
+      confirmLabel: CustomerStrings.deleteConfirmButton,
       danger: true,
     );
     if (!ok || !context.mounted) {
@@ -242,7 +250,7 @@ class CustomerDetailScreen extends ConsumerWidget {
       ref.read(dataChangesProvider).after({DataChange.customers});
       if (context.mounted) {
         context.pop();
-        showMessage(context, '${customer.name} dihapus.');
+        showMessage(context, CustomerStrings.customerDeleted(customer.name));
       }
     } on ApiException catch (error) {
       if (context.mounted) {
@@ -266,19 +274,19 @@ class _CustomerSales extends ConsumerWidget {
       AsyncData(:final value) => Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.s12),
           IntrinsicHeight(
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
-                  child: StatTile(label: 'Belanja setahun', value: rupiah(value.total), caption: '${value.count} transaksi'),
+                  child: StatTile(label: CustomerStrings.yearlySpendLabel, value: rupiah(value.total), caption: CustomerStrings.transactionCount(value.count)),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 if (ref.watch(currentUserProvider)?.canManageReceivables ?? false)
                   Expanded(
                     child: StatTile(
-                      label: 'Kasbon belum lunas',
+                      label: CustomerStrings.unpaidReceivablesLabel,
                       value: rupiah(ref.watch(customerReceivablesProvider(customerId)).value?.fold<int>(0, (sum, sale) => sum + sale.dueAmount) ?? 0),
                       color: colors.warning,
                     ),
@@ -286,21 +294,21 @@ class _CustomerSales extends ConsumerWidget {
               ],
             ),
           ),
-          const SectionTitle('Transaksi terakhir'),
+          const SectionTitle(CustomerStrings.recentTransactionsTitle),
           if (value.items.isEmpty)
-            Text('Belum ada transaksi dalam setahun terakhir.', style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
+            Text(CustomerStrings.noTransactionsLastYear, style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant))
           else
             Column(
               children: [
                 for (final sale in value.items.take(15))
-                  SaleTile(sale: sale, margin: const EdgeInsets.only(bottom: 8)),
+                  SaleTile(sale: sale, margin: const EdgeInsets.only(bottom: AppSpacing.s8)),
               ],
             ),
         ],
       ),
-      AsyncError(:final error) => Padding(padding: const EdgeInsets.only(top: 16), child: Text(errorMessage(error))),
+      AsyncError(:final error) => Padding(padding: const EdgeInsets.only(top: AppSpacing.s16), child: Text(errorMessage(error))),
       _ => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.s8),
         child: SalesListSkeleton(itemCount: 3, showSummary: false, shrinkWrap: true),
       ),
     };

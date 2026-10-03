@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+
+import '../../../core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
+import 'package:web_pos_mobile/core/theme/app_colors.dart';
 
 /// Returns the first barcode read, or null when the cashier backs out.
 class CameraScannerScreen extends StatefulWidget {
@@ -24,7 +31,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with SingleTi
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1800),
+      duration: AppDurations.milliseconds1800,
     )..repeat(reverse: true);
   }
 
@@ -60,19 +67,19 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with SingleTi
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,
-        title: const Text('Scan Barcode / QR', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+        title: const Text(PosStrings.scanTitle, style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
         actions: [
           IconButton(
-            tooltip: 'Lampu kilat',
+            tooltip: PosStrings.torchTooltip,
             icon: Icon(
-              _torchOn ? LucideIcons.flashlight : LucideIcons.flashlightOff,
-              color: _torchOn ? const Color(0xFFFBBF24) : Colors.white,
+              _torchOn ? AppIcons.flashlight : AppIcons.flashlightOff,
+              color: _torchOn ? AppColors.amber400 : Colors.white,
             ),
             onPressed: _toggleTorch,
           ),
           IconButton(
-            tooltip: 'Ganti kamera',
-            icon: const Icon(LucideIcons.switchCamera, color: Colors.white),
+            tooltip: PosStrings.switchCameraTooltip,
+            icon: const Icon(AppIcons.switchCamera, color: Colors.white),
             onPressed: () => _controller.switchCamera(),
           ),
         ],
@@ -85,9 +92,9 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with SingleTi
             onDetect: _onDetect,
             errorBuilder: (context, error) => const Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: EdgeInsets.all(AppSpacing.s24),
                 child: Text(
-                  'Kamera tidak bisa dibuka. Izinkan akses kamera di pengaturan perangkat.',
+                  PosStrings.cameraError,
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white70),
                 ),
@@ -116,7 +123,7 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with SingleTi
                     height: scanBoxHeight,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(AppRadius.r16),
                     ),
                   ),
                 ),
@@ -135,9 +142,9 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with SingleTi
                   Positioned.fill(
                     child: Container(
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(AppRadius.r16),
                         border: Border.all(
-                          color: const Color(0xFF10B981).withValues(alpha: 0.8),
+                          color: AppColors.emerald500.withValues(alpha: 0.8),
                           width: 2,
                         ),
                       ),
@@ -158,15 +165,15 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with SingleTi
                             gradient: const LinearGradient(
                               colors: [
                                 Colors.transparent,
-                                Color(0xFF10B981),
-                                Color(0xFF34D399),
-                                Color(0xFF10B981),
+                                AppColors.emerald500,
+                                AppColors.emerald400,
+                                AppColors.emerald500,
                                 Colors.transparent,
                               ],
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.6),
+                                color: AppColors.emerald500.withValues(alpha: 0.6),
                                 blurRadius: 8,
                                 spreadRadius: 1,
                               ),
@@ -188,19 +195,19 @@ class _CameraScannerScreenState extends State<CameraScannerScreen> with SingleTi
             bottom: 50,
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s10),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.75),
-                  borderRadius: BorderRadius.circular(30),
+                  borderRadius: BorderRadius.circular(AppRadius.r30),
                   border: Border.all(color: Colors.white24),
                 ),
                 child: const Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(LucideIcons.scanLine, size: 16, color: Color(0xFF10B981)),
-                    SizedBox(width: 8),
+                    Icon(AppIcons.scanLine, size: AppSizes.s16, color: AppColors.emerald500),
+                    SizedBox(width: AppSizes.s8),
                     Text(
-                      'Posisikan barcode di dalam kotak',
+                      PosStrings.scanHint,
                       style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
                     ),
                   ],

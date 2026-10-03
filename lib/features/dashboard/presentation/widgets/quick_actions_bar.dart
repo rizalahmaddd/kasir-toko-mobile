@@ -4,11 +4,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../auth/access.dart';
 import '../../../auth/auth_controller.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class QuickActionsBar extends ConsumerWidget {
   const QuickActionsBar({
@@ -29,48 +34,48 @@ class QuickActionsBar extends ConsumerWidget {
     final actions = <({IconData icon, String label, String route, int? badge, Color? badgeColor})>[
       if (user?.canViewStock ?? false)
         (
-          icon: LucideIcons.packageSearch,
-          label: 'Stok Barang',
-          route: '/stock',
+          icon: AppIcons.packageSearch,
+          label: DashboardStrings.quickActionStock,
+          route: AppRoutes.stock,
           badge: lowStockCount > 0 ? lowStockCount : null,
           badgeColor: AppColors.amber500,
         ),
       if (user?.canViewSales ?? false)
         (
-          icon: LucideIcons.receiptText,
-          label: 'Penjualan',
-          route: '/sales',
+          icon: AppIcons.receiptText,
+          label: DashboardStrings.quickActionSales,
+          route: AppRoutes.sales,
           badge: null,
           badgeColor: null,
         ),
       if (user?.canManageReceivables ?? false)
         (
-          icon: LucideIcons.handCoins,
-          label: 'Kasbon',
-          route: '/receivables',
+          icon: AppIcons.handCoins,
+          label: DashboardStrings.quickActionReceivables,
+          route: AppRoutes.receivables,
           badge: unpaidReceivablesCount > 0 ? unpaidReceivablesCount : null,
           badgeColor: AppColors.sky500,
         ),
       if (user?.canManageMasterData ?? false)
         (
-          icon: LucideIcons.plus,
-          label: 'Tambah Produk',
-          route: '/product/new',
+          icon: AppIcons.plus,
+          label: DashboardStrings.quickActionAddProduct,
+          route: AppRoutes.productNew,
           badge: null,
           badgeColor: null,
         ),
       if (user?.canViewSalesReport ?? false)
         (
-          icon: LucideIcons.trendingUp,
-          label: 'Laporan',
-          route: '/reports/sales',
+          icon: AppIcons.trendingUp,
+          label: DashboardStrings.quickActionReport,
+          route: AppRoutes.reportsSales,
           badge: null,
           badgeColor: null,
         ),
       (
-        icon: LucideIcons.printer,
-        label: 'Printer',
-        route: '/printer',
+        icon: AppIcons.printer,
+        label: DashboardStrings.quickActionPrinter,
+        route: AppRoutes.printer,
         badge: null,
         badgeColor: null,
       ),
@@ -82,10 +87,10 @@ class QuickActionsBar extends ConsumerWidget {
         if (user?.canSell ?? false) ...[
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.r16),
               gradient: LinearGradient(
                 colors: isDark
-                    ? const [AppColors.emerald600, Color(0xFF047857)]
+                    ? const [AppColors.emerald600, AppColors.emerald700]
                     : const [AppColors.emerald500, AppColors.emerald600],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -100,36 +105,36 @@ class QuickActionsBar extends ConsumerWidget {
             ),
             child: Material(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadius.r16),
               child: InkWell(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadius.r16),
                 onTap: () {
                   unawaited(HapticFeedback.lightImpact());
-                  context.go('/pos');
+                  context.go(AppRoutes.pos);
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s18, vertical: AppSpacing.s14),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(10),
+                        padding: const EdgeInsets.all(AppSpacing.s10),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.r12),
                         ),
                         child: const Icon(
-                          LucideIcons.shoppingCart,
-                          size: 22,
+                          AppIcons.shoppingCart,
+                          size: AppSizes.s22,
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: AppSizes.s14),
                       const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Buka Kasir POS',
+                              DashboardStrings.openPosTitle,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -137,9 +142,9 @@ class QuickActionsBar extends ConsumerWidget {
                                 letterSpacing: -0.2,
                               ),
                             ),
-                            SizedBox(height: 2),
+                            SizedBox(height: AppSizes.s2),
                             Text(
-                              'Mulai transaksi & cetak struk penjualan',
+                              DashboardStrings.openPosSubtitle,
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: 12,
@@ -149,14 +154,14 @@ class QuickActionsBar extends ConsumerWidget {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(AppSpacing.s8),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.15),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
-                          LucideIcons.arrowRight,
-                          size: 18,
+                          AppIcons.arrowRight,
+                          size: AppSizes.s18,
                           color: Colors.white,
                         ),
                       ),
@@ -166,7 +171,7 @@ class QuickActionsBar extends ConsumerWidget {
               ),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.s12),
         ],
         if (actions.isNotEmpty)
           SingleChildScrollView(
@@ -185,7 +190,7 @@ class QuickActionsBar extends ConsumerWidget {
                       context.push(action.route);
                     },
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSizes.s8),
                 ],
               ],
             ),
@@ -218,28 +223,28 @@ class _QuickActionChip extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: isDark ? AppColors.slate900 : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
           color: isDark ? AppColors.slate800 : AppColors.slate200,
         ),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s10),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(
                   icon,
-                  size: 16,
+                  size: AppSizes.s16,
                   color: theme.colorScheme.primary,
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 Text(
                   label,
                   style: TextStyle(
@@ -249,12 +254,12 @@ class _QuickActionChip extends StatelessWidget {
                   ),
                 ),
                 if (badge != null && badge! > 0) ...[
-                  const SizedBox(width: 6),
+                  const SizedBox(width: AppSizes.s6),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
                     decoration: BoxDecoration(
                       color: badgeColor ?? theme.colorScheme.error,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
                     ),
                     child: Text(
                       badge.toString(),

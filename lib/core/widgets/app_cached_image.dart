@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../utils/image_url_resolver.dart';
 import 'app_skeleton.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
 /// Reusable optimized image widget using CachedNetworkImage.
 ///
@@ -66,7 +67,7 @@ class AppCachedImage extends ConsumerWidget {
       width: width,
       height: height,
       fit: fit,
-      fadeInDuration: const Duration(milliseconds: 100),
+      fadeInDuration: AppDurations.milliseconds100,
       fadeOutDuration: Duration.zero,
       memCacheWidth: memCacheWidth,
       memCacheHeight: memCacheHeight,

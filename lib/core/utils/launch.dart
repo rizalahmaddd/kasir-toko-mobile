@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../widgets/state_views.dart';
 
-Future<void> openExternal(BuildContext context, Uri uri, {String failure = 'Tautan tidak bisa dibuka di perangkat ini.'}) async {
+Future<void> openExternal(BuildContext context, Uri uri, {String failure = CoreStrings.errorLinkOpenFailed}) async {
   final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
   if (!opened && context.mounted) {
     showMessage(context, failure, isError: true);

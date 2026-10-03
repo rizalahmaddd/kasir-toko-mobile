@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/constants/api_endpoints.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
 import '../../offline/catalog_snapshot.dart';
@@ -46,14 +47,14 @@ class ProductsRepository {
   }
 
   Future<Paginated<ProductRecord>> products({String? search, int? categoryId, String? status, String? sort, int page = 1}) => _read(
-        'master-data/products',
+        ApiEndpoints.products,
         {'search': search, 'category_id': categoryId, 'status': status, 'sort': sort, 'page': page, 'per_page': 30},
         (body) => Paginated.fromJson(body, ProductRecord.fromJson),
         (snapshot) => snapshot.records(search: search, categoryId: categoryId, status: status, sort: sort, page: page),
       );
 
   Future<ProductRecord> product(int id) => _read(
-        'master-data/products/$id',
+        ApiEndpoints.product(id),
         const {},
         (body) => ProductRecord.fromJson(ApiClient.data(body)),
         (snapshot) => snapshot.record(id),
@@ -65,7 +66,7 @@ class ProductsRepository {
     if (localRecord != null) {
       return localRecord;
     }
-    final copy = await _api.offlineCopy('master-data/products/$id');
+    final copy = await _api.offlineCopy(ApiEndpoints.product(id));
     if (copy == null) {
       return null;
     }
@@ -77,25 +78,25 @@ class ProductsRepository {
   }
 
   Future<ProductRecord> saveProduct(ProductInput input, {int? id}) async {
-    final body = id == null ? await _api.post('master-data/products', data: input.toJson()) : await _api.put('master-data/products/$id', data: input.toJson());
+    final body = id == null ? await _api.post(ApiEndpoints.products, data: input.toJson()) : await _api.put(ApiEndpoints.product(id), data: input.toJson());
     if (id != null) {
-      await _api.updateCached('master-data/products/$id', body);
+      await _api.updateCached(ApiEndpoints.product(id), body);
     }
     return ProductRecord.fromJson(ApiClient.data(body));
   }
 
   Future<void> deleteProduct(int id) async {
-    await _api.delete('master-data/products/$id');
-    await _api.removeCached('master-data/products/$id');
+    await _api.delete(ApiEndpoints.product(id));
+    await _api.removeCached(ApiEndpoints.product(id));
   }
 
   Future<ProductRecord> uploadImage(int id, String filePath) async =>
-      ProductRecord.fromJson(ApiClient.data(await _api.upload('master-data/products/$id/image', field: 'image', filePath: filePath)));
+      ProductRecord.fromJson(ApiClient.data(await _api.upload(ApiEndpoints.productImage(id), field: 'image', filePath: filePath)));
 
-  Future<ProductRecord> deleteImage(int id) async => ProductRecord.fromJson(ApiClient.data(await _api.delete('master-data/products/$id/image')));
+  Future<ProductRecord> deleteImage(int id) async => ProductRecord.fromJson(ApiClient.data(await _api.delete(ApiEndpoints.productImage(id))));
 
   Future<Paginated<CategoryRecord>> categories({String? search, int page = 1, int perPage = 50}) => _read(
-        'master-data/categories',
+        ApiEndpoints.categories,
         {'search': search, 'page': page, 'per_page': perPage},
         (body) => Paginated.fromJson(body, CategoryRecord.fromJson),
         (snapshot) => (search ?? '').isEmpty && page == 1 ? Paginated(items: snapshot.categories(), currentPage: 1, lastPage: 1) : null,
@@ -104,12 +105,12 @@ class ProductsRepository {
 
   Future<CategoryRecord> saveCategory({int? id, required String name, required int sortOrder, required bool isActive}) async {
     final data = {'name': name, 'sort_order': sortOrder, 'is_active': isActive};
-    final body = id == null ? await _api.post('master-data/categories', data: data) : await _api.put('master-data/categories/$id', data: data);
+    final body = id == null ? await _api.post(ApiEndpoints.categories, data: data) : await _api.put(ApiEndpoints.category(id), data: data);
 
     return CategoryRecord.fromJson(ApiClient.data(body));
   }
 
-  Future<void> deleteCategory(int id) => _api.delete('master-data/categories/$id');
+  Future<void> deleteCategory(int id) => _api.delete(ApiEndpoints.category(id));
 
   Future<Paginated<ProductRecord>> stock({String? search, String? level, int page = 1}) => _read(
         'inventory/stock',

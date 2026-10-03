@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
@@ -12,6 +14,9 @@ import '../../../auth/access.dart';
 import '../../../auth/auth_controller.dart';
 import '../../../offline/offline_queue.dart';
 import '../../../shift/shift_controller.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class ShiftAndSyncBanner extends ConsumerWidget {
   const ShiftAndSyncBanner({super.key});
@@ -34,10 +39,10 @@ class ShiftAndSyncBanner extends ConsumerWidget {
       children: [
         if (queuedSales.isNotEmpty) ...[
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s10),
             decoration: BoxDecoration(
               color: isDark ? AppColors.amber600.withValues(alpha: 0.15) : AppColors.amber500.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.r12),
               border: Border.all(
                 color: isDark ? AppColors.amber600.withValues(alpha: 0.4) : AppColors.amber500.withValues(alpha: 0.3),
               ),
@@ -45,17 +50,17 @@ class ShiftAndSyncBanner extends ConsumerWidget {
             child: Row(
               children: [
                 Icon(
-                  LucideIcons.cloudOff,
-                  size: 18,
+                  AppIcons.cloudOff,
+                  size: AppSizes.s18,
                   color: isDark ? AppColors.amber500 : AppColors.amber600,
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: AppSizes.s10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${queuedSales.length} transaksi offline di perangkat',
+                        DashboardStrings.offlineSalesCount(queuedSales.length),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
@@ -63,7 +68,7 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        'Belum tersinkron ke server',
+                        DashboardStrings.offlineNotSynced,
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark ? AppColors.slate400 : AppColors.slate600,
@@ -75,7 +80,7 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                 TextButton.icon(
                   style: TextButton.styleFrom(
                     visualDensity: VisualDensity.compact,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s4),
                   ),
                   onPressed: syncState.syncing
                       ? null
@@ -84,7 +89,7 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                           final synced = await ref.read(offlineQueueProvider.notifier).sync(includeFailed: true);
                           if (context.mounted && synced > 0) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('$synced transaksi berhasil dikirim ke server')),
+                              SnackBar(content: Text(DashboardStrings.syncSuccess(synced))),
                             );
                           }
                         },
@@ -94,35 +99,35 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                           height: 14,
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Icon(LucideIcons.refreshCw, size: 14),
-                  label: Text(syncState.syncing ? 'Sinkron...' : 'Kirim'),
+                      : const Icon(AppIcons.refreshCw, size: AppSizes.s14),
+                  label: Text(syncState.syncing ? DashboardStrings.syncInProgress : DashboardStrings.syncAction),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: AppSizes.s10),
         ],
         if (user?.canSell ?? false) ...[
           if (shift != null && shift.isOpen) ...[
             Container(
               decoration: BoxDecoration(
                 color: isDark ? AppColors.slate900 : Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.r14),
                 border: Border.all(
                   color: isDark ? AppColors.slate800 : AppColors.slate200,
                 ),
               ),
               child: Material(
                 color: Colors.transparent,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.r14),
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadius.r14),
                   onTap: () {
                     unawaited(HapticFeedback.lightImpact());
-                    context.push('/shift');
+                    context.push(AppRoutes.shift);
                   },
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
                     child: Row(
                       children: [
                         Container(
@@ -133,7 +138,7 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                             shape: BoxShape.circle,
                           ),
                         ),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: AppSizes.s10),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,16 +146,16 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                               Row(
                                 children: [
                                   Text(
-                                    'Shift Kasir Aktif',
+                                    DashboardStrings.shiftActiveTitle,
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
                                       color: isDark ? AppColors.slate200 : AppColors.slate800,
                                     ),
                                   ),
-                                  const SizedBox(width: 6),
+                                  const SizedBox(width: AppSizes.s6),
                                   Text(
-                                    '#${shift.number}',
+                                    DashboardStrings.shiftNumber(shift.number),
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: isDark ? AppColors.slate400 : AppColors.slate500,
@@ -159,9 +164,9 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 2),
+                              const SizedBox(height: AppSizes.s2),
                               Text(
-                                'Kas awal: ${rupiah(shift.openingCash)}${shift.expectedCash != null ? ' · Est. laci: ${rupiah(shift.expectedCash!)}' : ''}',
+                                DashboardStrings.shiftCashSummary(rupiah(shift.openingCash), shift.expectedCash != null ? rupiah(shift.expectedCash!) : null),
                                 style: TextStyle(
                                   fontSize: 11,
                                   color: isDark ? AppColors.slate400 : AppColors.slate600,
@@ -171,26 +176,26 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s4),
                           decoration: BoxDecoration(
                             color: isDark ? AppColors.slate800 : AppColors.slate100,
-                            borderRadius: BorderRadius.circular(6),
+                            borderRadius: BorderRadius.circular(AppRadius.r6),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Kelola Kas',
+                                DashboardStrings.manageCashLabel,
                                 style: TextStyle(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w600,
                                   color: isDark ? AppColors.slate300 : AppColors.slate700,
                                 ),
                               ),
-                              const SizedBox(width: 2),
+                              const SizedBox(width: AppSizes.s2),
                               Icon(
-                                LucideIcons.chevronRight,
-                                size: 14,
+                                AppIcons.chevronRight,
+                                size: AppSizes.s14,
                                 color: isDark ? AppColors.slate400 : AppColors.slate500,
                               ),
                             ],
@@ -204,10 +209,10 @@ class ShiftAndSyncBanner extends ConsumerWidget {
             ),
           ] else if (shiftAsync != null && !shiftAsync.isLoading && shift == null) ...[
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(AppSpacing.s12),
               decoration: BoxDecoration(
                 color: isDark ? AppColors.slate900 : Colors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(AppRadius.r14),
                 border: Border.all(
                   color: isDark ? AppColors.slate800 : AppColors.slate200,
                 ),
@@ -215,24 +220,24 @@ class ShiftAndSyncBanner extends ConsumerWidget {
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppSpacing.s8),
                     decoration: BoxDecoration(
                       color: isDark ? AppColors.slate800 : AppColors.slate100,
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
                     ),
                     child: Icon(
-                      LucideIcons.wallet,
-                      size: 18,
+                      AppIcons.wallet,
+                      size: AppSizes.s18,
                       color: isDark ? AppColors.slate400 : AppColors.slate600,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSizes.s12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Shift kasir belum dibuka',
+                          DashboardStrings.shiftClosedTitle,
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
@@ -240,7 +245,7 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          'Buka shift untuk mencatat uang modal laci',
+                          DashboardStrings.shiftClosedSubtitle,
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark ? AppColors.slate400 : AppColors.slate500,
@@ -252,13 +257,13 @@ class ShiftAndSyncBanner extends ConsumerWidget {
                   FilledButton.tonal(
                     style: FilledButton.styleFrom(
                       visualDensity: VisualDensity.compact,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s6),
                     ),
                     onPressed: () {
                       unawaited(HapticFeedback.lightImpact());
-                      context.push('/shift');
+                      context.push(AppRoutes.shift);
                     },
-                    child: const Text('Buka Shift', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                    child: const Text(DashboardStrings.openShiftButton, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
                   ),
                 ],
               ),

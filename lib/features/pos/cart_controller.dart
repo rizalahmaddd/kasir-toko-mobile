@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../core/constants/app_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/app_storage.dart';
 import '../../core/utils/formatters.dart' as fmt;
@@ -45,21 +46,28 @@ class CartController extends Notifier<Cart> {
 
     if (product.trackStock && !_allowNegativeStock && wanted > product.stock) {
       return product.stock <= 0
-          ? 'Stok ${product.name} habis.'
-          : 'Stok ${product.name} tersisa ${fmt.quantity(product.stock)} ${product.unit}.';
+          ? PosStrings.stockOut(product.name)
+          : PosStrings.stockRemaining(product.name, fmt.quantity(product.stock), product.unit);
     }
 
     final items = [...state.items];
     if (index == -1) {
       items.insert(0, CartItem.fromProduct(product, quantity: quantity));
     } else {
-      items[index] = items[index].copyWith(quantity: wanted, price: product.price, stock: product.stock);
+      items[index] = items[index].copyWith(
+        quantity: wanted,
+        price: product.price,
+        stock: product.stock,
+        imageUrl: product.imageUrl,
+      );
     }
     state = state.copyWith(items: items);
 
     if (product.trackStock && _allowNegativeStock && wanted > product.stock) {
-      final curStock = product.stock <= 0 ? 'kosong' : 'sisa ${fmt.quantity(product.stock)} ${product.unit}';
-      return 'Stok sistem ${product.name} $curStock. Tetap ditambahkan.';
+      final curStock = product.stock <= 0
+          ? PosStrings.stockStatusEmpty
+          : PosStrings.stockStatusRemaining(fmt.quantity(product.stock), product.unit);
+      return PosStrings.stockSystemNotice(product.name, curStock);
     }
 
     return null;
@@ -73,7 +81,7 @@ class CartController extends Notifier<Cart> {
 
     final item = state.items.firstWhere((item) => item.productId == productId);
     if (item.trackStock && !_allowNegativeStock && quantity > item.stock) {
-      return 'Stok ${item.name} tersisa ${fmt.quantity(item.stock)} ${item.unit}.';
+      return PosStrings.stockRemaining(item.name, fmt.quantity(item.stock), item.unit);
     }
 
     _replace(productId, (item) => item.copyWith(quantity: quantity));
@@ -123,11 +131,11 @@ class CartController extends Notifier<Cart> {
     for (final item in state.items) {
       final product = byId[item.productId];
       if (product == null) {
-        notices.add('${item.name} sudah tidak dijual dan dikeluarkan dari keranjang.');
+        notices.add(PosStrings.productNoLongerSold(item.name));
         continue;
       }
       if (product.price != item.price) {
-        notices.add('Harga ${item.name} berubah jadi ${fmt.rupiah(product.price)}.');
+        notices.add(PosStrings.priceChanged(item.name, fmt.rupiah(product.price)));
       }
       items.add(item.copyWith(price: product.price, stock: product.stock));
     }

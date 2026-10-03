@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/paging/paged.dart';
 import '../../../core/theme/app_theme.dart';
@@ -11,6 +13,9 @@ import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/shift_models.dart';
 import '../shifts_providers.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class ShiftsScreen extends ConsumerWidget {
   const ShiftsScreen({super.key});
@@ -21,40 +26,40 @@ class ShiftsScreen extends ConsumerWidget {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Riwayat Shift')),
+      appBar: AppBar(title: const Text(ShiftStrings.historyTitle)),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s4, AppSpacing.s16, AppSpacing.s8),
             child: Row(
               children: [
                 FilterDropdownPill<String>(
-                  label: 'Status Shift',
-                  icon: LucideIcons.wallet,
+                  label: ShiftStrings.statusFilterLabel,
+                  icon: AppIcons.wallet,
                   value: status,
                   items: const [
-                    (null, 'Semua Shift'),
-                    ('open', 'Sedang Buka'),
-                    ('closed', 'Ditutup'),
-                    ('variance', 'Ada Selisih'),
+                    (null, ShiftStrings.allShifts),
+                    ('open', ShiftStrings.openShifts),
+                    ('closed', ShiftStrings.closedShifts),
+                    ('variance', ShiftStrings.varianceShifts),
                   ],
                   onChanged: ref.read(shiftsStatusProvider.notifier).set,
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: AppSizes.s2),
           Expanded(
             child: PagedListView(
               value: ref.watch(shiftsProvider),
               skeleton: const ShiftsListSkeleton(),
               onLoadMore: () => ref.read(shiftsProvider.notifier).loadMore(),
               onRefresh: () => ref.refresh(shiftsProvider.future),
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s4, AppSpacing.s16, AppSpacing.s24),
               empty: const EmptyState(
-                icon: LucideIcons.wallet,
-                title: 'Belum Ada Shift',
-                description: 'Riwayat buka dan tutup kasir akan tercatat di sini.',
+                icon: AppIcons.wallet,
+                title: ShiftStrings.noShiftsTitle,
+                description: ShiftStrings.noShiftsDescription,
               ),
               itemBuilder: (context, shift) => _ShiftCard(shift: shift, isDark: isDark),
             ),
@@ -77,12 +82,12 @@ class _ShiftCard extends StatelessWidget {
     final colors = StatusColors.of(context);
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: AppSpacing.s10),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r14),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -96,10 +101,10 @@ class _ShiftCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(14),
-          onTap: () => context.push('/shift/${shift.id}'),
+          borderRadius: BorderRadius.circular(AppRadius.r14),
+          onTap: () => context.push(AppRoutes.shiftDetail(shift.id)),
           child: Padding(
-            padding: const EdgeInsets.all(14),
+            padding: const EdgeInsets.all(AppSpacing.s14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -107,35 +112,35 @@ class _ShiftCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s3),
                       decoration: BoxDecoration(
                         color: shift.isOpen
-                            ? const Color(0xFFD1FAE5)
+                            ? AppColors.emerald100
                             : isDark
-                                ? const Color(0xFF334155)
-                                : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
+                                ? AppColors.slate700
+                                : AppColors.slate100,
+                        borderRadius: BorderRadius.circular(AppRadius.r6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            LucideIcons.wallet,
-                            size: 12,
+                            AppIcons.wallet,
+                            size: AppSizes.s12,
                             color: shift.isOpen
-                                ? const Color(0xFF059669)
+                                ? AppColors.emerald600
                                 : isDark
                                     ? AppColors.slate300
                                     : AppColors.slate700,
                           ),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: AppSizes.s4),
                           Text(
                             shift.number,
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: shift.isOpen
-                                  ? const Color(0xFF059669)
+                                  ? AppColors.emerald600
                                   : isDark
                                       ? AppColors.slate300
                                       : AppColors.slate800,
@@ -144,35 +149,35 @@ class _ShiftCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSizes.s8),
                     if (shift.isOpen)
-                      const StatusBadge(label: 'Buka', tone: BadgeTone.success)
+                      const StatusBadge(label: ShiftStrings.openBadge, tone: BadgeTone.success)
                     else if (difference != 0)
                       StatusBadge(
-                        label: difference > 0 ? 'Lebih' : 'Kurang',
+                        label: difference > 0 ? ShiftStrings.overBadge : ShiftStrings.shortBadge,
                         tone: BadgeTone.warning,
                       )
                     else
-                      const StatusBadge(label: 'Selesai', tone: BadgeTone.muted),
+                      const StatusBadge(label: ShiftStrings.doneBadge, tone: BadgeTone.muted),
                     const Spacer(),
                     Text(
                       rupiah(shift.salesTotal ?? 0),
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF059669),
+                        color: AppColors.emerald600,
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSizes.s10),
 
                 // Middle: Cashier & Time range
                 Row(
                   children: [
-                    Icon(LucideIcons.user, size: 13, color: isDark ? AppColors.slate400 : AppColors.slate500),
-                    const SizedBox(width: 4),
+                    Icon(AppIcons.user, size: AppSizes.s13, color: isDark ? AppColors.slate400 : AppColors.slate500),
+                    const SizedBox(width: AppSizes.s4),
                     Text(
                       shift.cashierName,
                       style: TextStyle(
@@ -182,14 +187,14 @@ class _ShiftCard extends StatelessWidget {
                       ),
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6),
                       child: Text('·', style: TextStyle(color: isDark ? AppColors.slate500 : AppColors.slate400)),
                     ),
-                    Icon(LucideIcons.clock, size: 13, color: isDark ? AppColors.slate400 : AppColors.slate500),
-                    const SizedBox(width: 4),
+                    Icon(AppIcons.clock, size: AppSizes.s13, color: isDark ? AppColors.slate400 : AppColors.slate500),
+                    const SizedBox(width: AppSizes.s4),
                     Flexible(
                       child: Text(
-                        '${dateTime(shift.openedAt)}${shift.closedAt == null ? ' – Sekarang' : ' – ${timeOnly(shift.closedAt!)}'}',
+                        ShiftStrings.shiftTimeRange(dateTime(shift.openedAt), shift.closedAt == null ? null : timeOnly(shift.closedAt!)),
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark ? AppColors.slate400 : AppColors.slate500,
@@ -200,19 +205,19 @@ class _ShiftCard extends StatelessWidget {
                   ],
                 ),
 
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSizes.s10),
                 Divider(
                   height: 1,
                   thickness: 1,
-                  color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9),
+                  color: isDark ? AppColors.slate700 : AppColors.slate100,
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSizes.s8),
 
                 // Bottom metrics: Transaction count & Cash Difference or Starting Cash
                 Row(
                   children: [
                     Text(
-                      '${shift.salesCount ?? 0} transaksi',
+                      ShiftStrings.transactionCount(shift.salesCount ?? 0),
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
@@ -222,7 +227,7 @@ class _ShiftCard extends StatelessWidget {
                     const Spacer(),
                     if (difference != 0) ...[
                       Text(
-                        'Selisih kas: ',
+                        ShiftStrings.cashDifferenceLabel,
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark ? AppColors.slate400 : AppColors.slate500,
@@ -237,7 +242,7 @@ class _ShiftCard extends StatelessWidget {
                         ),
                       ),
                     ] else ...[
-                      const Icon(LucideIcons.chevronRight, size: 16, color: AppColors.slate400),
+                      const Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
                     ],
                   ],
                 ),

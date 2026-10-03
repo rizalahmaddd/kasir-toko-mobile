@@ -3,8 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
@@ -19,6 +20,10 @@ import '../pos_providers.dart';
 import 'cart_panel.dart';
 import 'catalog_panel.dart';
 import 'pos_actions.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
 class PosScreen extends ConsumerWidget {
   const PosScreen({super.key});
@@ -30,9 +35,9 @@ class PosScreen extends ConsumerWidget {
     if (user != null && (!user.can('pos.sell') || !user.hasFeature('pos.cashier'))) {
       return const Scaffold(
         body: EmptyState(
-          icon: LucideIcons.ban,
-          title: 'Layar kasir tidak tersedia',
-          description: 'Akun ini tidak punya izin berjualan, atau fitur kasir dimatikan di pengaturan toko.',
+          icon: AppIcons.ban,
+          title: PosStrings.posUnavailableTitle,
+          description: PosStrings.posUnavailableDescription,
         ),
       );
     }
@@ -111,7 +116,7 @@ class _CashierState extends ConsumerState<_Cashier> {
     }
 
     final now = DateTime.now();
-    if (now.difference(_lastKey) > const Duration(milliseconds: 100)) {
+    if (now.difference(_lastKey) > AppDurations.milliseconds100) {
       _scanBuffer.clear();
     }
     _lastKey = now;
@@ -138,7 +143,7 @@ class _CashierState extends ConsumerState<_Cashier> {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => Scaffold(
-          appBar: AppBar(title: const Text('Keranjang')),
+          appBar: AppBar(title: const Text(PosStrings.cartAppBarTitle)),
           body: const SafeArea(child: CartPanel()),
         ),
       ),
@@ -190,7 +195,7 @@ class _CartBar extends ConsumerWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.fromLTRB(12, 6, 12, 12),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.s12, AppSpacing.s6, AppSpacing.s12, AppSpacing.s12),
       decoration: BoxDecoration(
         color: isDark ? AppColors.slate950 : Colors.white,
         border: Border(
@@ -208,10 +213,10 @@ class _CartBar extends ConsumerWidget {
       ),
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.r16),
           gradient: LinearGradient(
             colors: isDark
-                ? const [AppColors.emerald600, Color(0xFF047857)]
+                ? const [AppColors.emerald600, AppColors.emerald700]
                 : const [AppColors.emerald500, AppColors.emerald600],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
@@ -226,37 +231,37 @@ class _CartBar extends ConsumerWidget {
         ),
         child: Material(
           color: Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(AppRadius.r16),
           child: InkWell(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(AppRadius.r16),
             onTap: () {
               unawaited(HapticFeedback.lightImpact());
               onOpen();
             },
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.all(AppSpacing.s8),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
                     ),
                     child: const Icon(
-                      LucideIcons.shoppingBag,
-                      size: 20,
+                      AppIcons.shoppingBag,
+                      size: AppSizes.s20,
                       color: Colors.white,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: AppSizes.s12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          '${quantity(cart.itemCount)} barang',
+                          PosStrings.cartItemCount(quantity(cart.itemCount)),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -264,7 +269,7 @@ class _CartBar extends ConsumerWidget {
                           ),
                         ),
                         Text(
-                          cart.customer != null ? cart.customer!.name : 'Buka keranjang untuk checkout',
+                          cart.customer != null ? cart.customer!.name : PosStrings.openCartHint,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -292,15 +297,15 @@ class _CartBar extends ConsumerWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Bayar',
+                            PosStrings.payLabel,
                             style: TextStyle(
                               color: Colors.white70,
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
-                          SizedBox(width: 2),
-                          Icon(LucideIcons.chevronRight, size: 14, color: Colors.white70),
+                          SizedBox(width: AppSizes.s2),
+                          Icon(AppIcons.chevronRight, size: AppSizes.s14, color: Colors.white70),
                         ],
                       ),
                     ],

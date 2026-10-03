@@ -1,13 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../printing/presentation/printer_screen.dart';
 import '../../printing/printer.dart';
 import '../../sales/data/sale_models.dart';
 import '../../sales/presentation/receipt_sheet.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 /// Shown right after checkout. The change amount is what the cashier needs first.
 class CheckoutSuccess extends ConsumerStatefulWidget {
@@ -46,11 +50,11 @@ class _CheckoutSuccessState extends ConsumerState<CheckoutSuccess> {
     final muted = theme.colorScheme.onSurfaceVariant;
 
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s24),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(AppSpacing.s20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -62,29 +66,29 @@ class _CheckoutSuccessState extends ConsumerState<CheckoutSuccess> {
                   color: colors.success.withValues(alpha: 0.14),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(LucideIcons.circleCheck, size: 36, color: colors.success),
+                child: Icon(AppIcons.circleCheck, size: AppSizes.s36, color: colors.success),
               ),
-              const SizedBox(height: 14),
-              Text('Transaksi berhasil', textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
-              const SizedBox(height: 2),
+              const SizedBox(height: AppSizes.s14),
+              Text(PosStrings.transactionSuccessTitle, textAlign: TextAlign.center, style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+              const SizedBox(height: AppSizes.s2),
               Text(sale.number, textAlign: TextAlign.center, style: TextStyle(color: muted, fontSize: 13)),
-              const SizedBox(height: 18),
+              const SizedBox(height: AppSizes.s18),
               if (sale.changeAmount > 0) ...[
                 Container(
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s14, horizontal: AppSpacing.s16),
                   decoration: BoxDecoration(
                     color: colors.success.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(AppRadius.r12),
                     border: Border.all(color: colors.success.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     children: [
                       Text(
-                        'Kembalian',
+                        PosStrings.changeLabel,
                         textAlign: TextAlign.center,
                         style: TextStyle(color: colors.success, fontWeight: FontWeight.w600, fontSize: 13),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSizes.s4),
                       Text(
                         rupiah(sale.changeAmount),
                         textAlign: TextAlign.center,
@@ -107,39 +111,39 @@ class _CheckoutSuccessState extends ConsumerState<CheckoutSuccess> {
                   ),
                 ),
               if (sale.dueAmount > 0) ...[
-                const SizedBox(height: 10),
+                const SizedBox(height: AppSizes.s10),
                 Text(
-                  'Kasbon ${rupiah(sale.dueAmount)} atas nama ${sale.customer?.name ?? '-'}',
+                  PosStrings.creditNote(rupiah(sale.dueAmount), sale.customer?.name ?? '-'),
                   textAlign: TextAlign.center,
                   style: TextStyle(color: colors.warning, fontWeight: FontWeight.w600),
                 ),
               ],
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSizes.s20),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => ReceiptSheet.show(context, sale.id),
-                      icon: const Icon(LucideIcons.receiptText, size: 18),
-                      label: const Text('Lihat Struk'),
+                      icon: const Icon(AppIcons.receiptText, size: AppSizes.s18),
+                      label: const Text(PosStrings.viewReceiptButton),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: AppSizes.s8),
                   Expanded(
                     child: OutlinedButton.icon(
                       onPressed: () => openWhatsApp(context, sale.whatsappUrl),
-                      icon: const Icon(LucideIcons.messageCircle, size: 18),
-                      label: const Text('WhatsApp'),
+                      icon: const Icon(AppIcons.messageCircle, size: AppSizes.s18),
+                      label: const Text(PosStrings.whatsappButton),
                     ),
                   ),
                 ],
               ),
               if (hasPrinter) ...[
-                const SizedBox(height: 8),
-                OutlinedButton.icon(onPressed: _print, icon: const Icon(LucideIcons.printer, size: 18), label: const Text('Cetak Struk')),
+                const SizedBox(height: AppSizes.s8),
+                OutlinedButton.icon(onPressed: _print, icon: const Icon(AppIcons.printer, size: AppSizes.s18), label: const Text(PosStrings.printReceiptButton)),
               ],
-              const SizedBox(height: 8),
-              FilledButton(onPressed: () => Navigator.pop(context), child: const Text('Transaksi Baru')),
+              const SizedBox(height: AppSizes.s8),
+              FilledButton(onPressed: () => Navigator.pop(context), child: const Text(PosStrings.newTransactionButton)),
             ],
           ),
         ),

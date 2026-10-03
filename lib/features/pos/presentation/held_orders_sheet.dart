@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
@@ -11,6 +12,9 @@ import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
 import '../pos_providers.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 final heldOrdersProvider = FutureProvider.autoDispose<List<HeldOrder>>((ref) => ref.watch(posRepositoryProvider).heldOrders());
 
@@ -29,11 +33,11 @@ class HeldOrdersSheet extends ConsumerWidget {
       final replace = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
-          title: const Text('Ganti keranjang sekarang?'),
-          content: const Text('Keranjang yang sedang dibuka akan dikosongkan. Tunda dulu kalau masih dibutuhkan.'),
+          title: const Text(PosStrings.replaceCartTitle),
+          content: const Text(PosStrings.replaceCartContent),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Ganti Keranjang')),
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text(PosStrings.cancel)),
+            FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text(PosStrings.replaceCartConfirm)),
           ],
         ),
       );
@@ -51,7 +55,7 @@ class HeldOrdersSheet extends ConsumerWidget {
 
       if (context.mounted) {
         Navigator.pop(context);
-        showMessage(context, notices.isEmpty ? '${resumed.label ?? 'Pesanan'} dilanjutkan.' : notices.join('\n'));
+        showMessage(context, notices.isEmpty ? PosStrings.heldOrderResumed(resumed.label ?? PosStrings.heldOrderFallbackLabel) : notices.join('\n'));
       }
     } on ApiException catch (error) {
       if (context.mounted) {
@@ -64,14 +68,14 @@ class HeldOrdersSheet extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Hapus ${order.label ?? 'pesanan'}?'),
-        content: const Text('Keranjang yang ditunda ini akan dihapus permanen.'),
+        title: Text(PosStrings.deleteHeldOrderTitle(order.label ?? PosStrings.heldOrderFallbackLower)),
+        content: const Text(PosStrings.deleteHeldOrderContent),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text(PosStrings.cancel)),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.red600),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus'),
+            child: const Text(PosStrings.delete),
           ),
         ],
       ),
@@ -98,15 +102,15 @@ class HeldOrdersSheet extends ConsumerWidget {
     final diff = now.difference(dateTime);
 
     if (diff.inSeconds < 45) {
-      return 'Baru saja';
+      return PosStrings.relativeJustNow;
     } else if (diff.inMinutes < 60) {
-      return '${diff.inMinutes} mnt lalu';
+      return PosStrings.relativeMinutesAgo(diff.inMinutes);
     } else if (diff.inHours < 24) {
-      return '${diff.inHours} jam lalu';
+      return PosStrings.relativeHoursAgo(diff.inHours);
     } else if (diff.inDays == 1) {
-      return 'Kemarin';
+      return PosStrings.relativeYesterday;
     } else {
-      return '${diff.inDays} hr lalu';
+      return PosStrings.relativeDaysAgo(diff.inDays);
     }
   }
 
@@ -116,13 +120,13 @@ class HeldOrdersSheet extends ConsumerWidget {
     if (items.isEmpty) return null;
     final names = items
         .map((item) {
-          final name = item['name'] ?? item['product_name'] ?? 'Item';
+          final name = item['name'] ?? item['product_name'] ?? PosStrings.heldPreviewItemFallback;
           final qty = item['quantity'] ?? 1;
-          return '${quantity(qty)}x $name';
+          return PosStrings.heldPreviewItem(quantity(qty), name);
         })
         .take(3)
         .join(', ');
-    return items.length > 3 ? '$names, ...' : names;
+    return items.length > 3 ? PosStrings.heldPreviewMore(names) : names;
   }
 
   @override
@@ -138,20 +142,20 @@ class HeldOrdersSheet extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BottomSheetHeader(
-            title: 'Transaksi Tertunda',
-            subtitle: list.isEmpty ? null : '${list.length} pesanan tersimpan',
+            title: PosStrings.heldOrdersTitle,
+            subtitle: list.isEmpty ? null : PosStrings.heldOrdersSaved(list.length),
           ),
           Expanded(
             child: list.isEmpty
                 ? const EmptyState(
-                    icon: LucideIcons.clock,
-                    title: 'Tidak Ada Transaksi Tertunda',
-                    description: 'Tekan tombol "Tunda" di keranjang kasir untuk menyimpan transaksi sementara.',
+                    icon: AppIcons.clock,
+                    title: PosStrings.heldOrdersEmptyTitle,
+                    description: PosStrings.heldOrdersEmptyDescription,
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s4, AppSpacing.s16, AppSpacing.s20),
                     itemCount: list.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => const SizedBox(height: AppSizes.s8),
                     itemBuilder: (context, index) {
                       final order = list[index];
                       final preview = previews[order.id] ?? _extractCartPreview(order.cart);
@@ -191,14 +195,14 @@ class _HeldOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final label = order.label?.trim().isNotEmpty == true ? order.label! : 'Pesanan #${order.id}';
+    final label = order.label?.trim().isNotEmpty == true ? order.label! : PosStrings.heldOrderNumber(order.id);
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          color: isDark ? AppColors.slate700 : AppColors.slate200,
         ),
         boxShadow: [
           if (!isDark)
@@ -212,10 +216,10 @@ class _HeldOrderCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: onResume,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s11),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -223,28 +227,28 @@ class _HeldOrderCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF78350F).withValues(alpha: 0.4) : const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(6),
+                        color: isDark ? AppColors.amber900.withValues(alpha: 0.4) : AppColors.amber100,
+                        borderRadius: BorderRadius.circular(AppRadius.r6),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(LucideIcons.pause, size: 10, color: Color(0xFFD97706)),
-                          const SizedBox(width: 3),
+                          const Icon(AppIcons.pause, size: AppSizes.s10, color: AppColors.amber600),
+                          const SizedBox(width: AppSizes.s3),
                           Text(
-                            '#${order.id}',
+                            PosStrings.heldOrderIdBadge(order.id),
                             style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFFD97706),
+                              color: AppColors.amber600,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSizes.s8),
                     Expanded(
                       child: Text(
                         label,
@@ -256,19 +260,19 @@ class _HeldOrderCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSizes.s8),
                     Text(
                       rupiah(order.total),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w800,
-                        color: Color(0xFF059669),
+                        color: AppColors.emerald600,
                       ),
                     ),
                   ],
                 ),
 
-                const SizedBox(height: 5),
+                const SizedBox(height: AppSizes.s5),
 
                 // Line 2: Items count, time info + Actions (Delete & Continue)
                 Row(
@@ -280,13 +284,13 @@ class _HeldOrderCard extends StatelessWidget {
                           Row(
                             children: [
                               Icon(
-                                LucideIcons.shoppingBag,
-                                size: 12,
+                                AppIcons.shoppingBag,
+                                size: AppSizes.s12,
                                 color: isDark ? AppColors.slate400 : AppColors.slate500,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: AppSizes.s4),
                               Text(
-                                '${quantity(order.itemCount)} item',
+                                PosStrings.heldOrderItemCount(quantity(order.itemCount)),
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -294,7 +298,7 @@ class _HeldOrderCard extends StatelessWidget {
                                 ),
                               ),
                               Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 6),
+                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6),
                                 child: Text(
                                   '·',
                                   style: TextStyle(
@@ -304,11 +308,11 @@ class _HeldOrderCard extends StatelessWidget {
                                 ),
                               ),
                               Icon(
-                                LucideIcons.clock,
-                                size: 12,
+                                AppIcons.clock,
+                                size: AppSizes.s12,
                                 color: isDark ? AppColors.slate400 : AppColors.slate500,
                               ),
-                              const SizedBox(width: 4),
+                              const SizedBox(width: AppSizes.s4),
                               Flexible(
                                 child: Text(
                                   timeFormatted,
@@ -322,7 +326,7 @@ class _HeldOrderCard extends StatelessWidget {
                             ],
                           ),
                           if (preview != null && preview!.isNotEmpty) ...[
-                            const SizedBox(height: 3),
+                            const SizedBox(height: AppSizes.s3),
                             Text(
                               preview!,
                               maxLines: 1,
@@ -336,31 +340,31 @@ class _HeldOrderCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSizes.s8),
                     IconButton(
-                      tooltip: 'Hapus',
+                      tooltip: PosStrings.delete,
                       style: IconButton.styleFrom(
                         visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.all(5),
+                        padding: const EdgeInsets.all(AppSpacing.s5),
                         minimumSize: const Size(30, 30),
                       ),
-                      icon: const Icon(LucideIcons.trash2, size: 16, color: Color(0xFFDC2626)),
+                      icon: const Icon(AppIcons.trash2, size: AppSizes.s16, color: AppColors.red600),
                       onPressed: onDelete,
                     ),
-                    const SizedBox(width: 4),
+                    const SizedBox(width: AppSizes.s4),
                     FilledButton.icon(
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFF059669),
+                        backgroundColor: AppColors.emerald600,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s0),
                         minimumSize: const Size(0, 30),
                         visualDensity: VisualDensity.compact,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r8)),
                       ),
                       onPressed: onResume,
-                      icon: const Icon(LucideIcons.play, size: 12),
+                      icon: const Icon(AppIcons.play, size: AppSizes.s12),
                       label: const Text(
-                        'Lanjut',
+                        PosStrings.heldOrderResumeButton,
                         style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                       ),
                     ),

@@ -66,3 +66,8 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    compileOnly(project(":integration_test"))
+}
+

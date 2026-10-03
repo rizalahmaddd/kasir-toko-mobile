@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_pos_mobile/core/constants/api_endpoints.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/offline/cached_notifier.dart';
@@ -33,7 +34,7 @@ final dashboardProvider = AsyncNotifierProvider.autoDispose<DashboardNotifier, D
 class DashboardNotifier extends CachedNotifier<DashboardData> {
   @override
   Future<DashboardData?> loadCache() async {
-    final copy = await ref.read(apiClientProvider).offlineCopy('dashboard');
+    final copy = await ref.read(apiClientProvider).offlineCopy(ApiEndpoints.dashboard);
     if (copy == null) {
       return null;
     }
@@ -46,7 +47,7 @@ class DashboardNotifier extends CachedNotifier<DashboardData> {
 
   @override
   Future<DashboardData> fetchRemote() async {
-    final body = await ref.read(apiClientProvider).get('dashboard');
+    final body = await ref.read(apiClientProvider).get(ApiEndpoints.dashboard);
     return DashboardData(ApiClient.data(body));
   }
 }

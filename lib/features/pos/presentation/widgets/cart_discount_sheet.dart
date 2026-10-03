@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/constants/app_strings.dart';
 import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/common.dart';
 import '../../../../core/widgets/money_field.dart';
 import '../../cart_controller.dart';
 import '../../data/pos_models.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class CartDiscountSheet extends ConsumerStatefulWidget {
   const CartDiscountSheet({super.key});
@@ -43,7 +46,7 @@ class _CartDiscountSheetState extends ConsumerState<CartDiscountSheet> {
   void _save() {
     final value = _type == DiscountType.percent ? parseQuantity(_value.text) ?? 0 : parseRupiah(_value.text).toDouble();
     if (_type == DiscountType.percent && value > 100) {
-      setState(() => _error = 'Diskon persen maksimal 100%.');
+      setState(() => _error = PosStrings.errDiscountMaxPercent);
       return;
     }
     ref.read(cartProvider.notifier).setDiscount(_type, value);
@@ -58,17 +61,17 @@ class _CartDiscountSheetState extends ConsumerState<CartDiscountSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const BottomSheetHeader(title: 'Diskon transaksi'),
+          const BottomSheetHeader(title: PosStrings.discountSheetTitle),
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+            padding: const EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s0, AppSpacing.s20, AppSpacing.s20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
           SegmentedButton<DiscountType>(
             segments: const [
-              ButtonSegment(value: DiscountType.amount, label: Text('Rupiah')),
-              ButtonSegment(value: DiscountType.percent, label: Text('Persen')),
+              ButtonSegment(value: DiscountType.amount, label: Text(PosStrings.discountRupiahSegment)),
+              ButtonSegment(value: DiscountType.percent, label: Text(PosStrings.discountPercentSegment)),
             ],
             selected: {_type},
             onSelectionChanged: (selection) => setState(() {
@@ -77,18 +80,18 @@ class _CartDiscountSheetState extends ConsumerState<CartDiscountSheet> {
               _error = null;
             }),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSizes.s12),
           if (_type == DiscountType.amount)
-            MoneyField(controller: _value, label: 'Potongan', autofocus: true)
+            MoneyField(controller: _value, label: PosStrings.discountAmountField, autofocus: true)
           else
             TextField(
               controller: _value,
               autofocus: true,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
               inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))],
-              decoration: InputDecoration(labelText: 'Potongan', suffixText: '%', errorText: _error),
+              decoration: InputDecoration(labelText: PosStrings.discountAmountField, suffixText: '%', errorText: _error),
             ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSizes.s16),
           Row(
             children: [
               TextButton(
@@ -96,10 +99,10 @@ class _CartDiscountSheetState extends ConsumerState<CartDiscountSheet> {
                   ref.read(cartProvider.notifier).setDiscount(null, 0);
                   Navigator.pop(context);
                 },
-                child: const Text('Hapus Diskon'),
+                child: const Text(PosStrings.removeDiscountButton),
               ),
               const Spacer(),
-              FilledButton(onPressed: _save, child: const Text('Terapkan')),
+              FilledButton(onPressed: _save, child: const Text(PosStrings.applyButton)),
             ],
           ),
         ],

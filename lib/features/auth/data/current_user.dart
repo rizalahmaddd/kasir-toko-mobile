@@ -1,3 +1,5 @@
+import 'package:web_pos_mobile/core/constants/status_values.dart';
+
 class CurrentUser {
   const CurrentUser({
     required this.id,
@@ -125,7 +127,7 @@ class TenantInfo {
   /// How to renew, sent by /auth/me only while the shop is blocked; null on older servers.
   final RenewalInfo? renewal;
 
-  bool get isTrial => plan == 'trial';
+  bool get isTrial => plan == PlanKinds.trial;
 
   TenantInfo blocked(String? reason, {String? message}) => TenantInfo(
         id: id,

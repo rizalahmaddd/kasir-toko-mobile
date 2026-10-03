@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/network/api_exception.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../dashboard/dashboard.dart';
 import '../notifications.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_colors.dart';
 
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
@@ -48,10 +53,10 @@ class NotificationsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Notifikasi'),
+        title: const Text(NotificationStrings.notificationsTitle),
         actions: [
           if (notifications.value?.any((n) => n.isUnread) ?? false)
-            TextButton(onPressed: () => _markAll(context, ref), child: const Text('Tandai semua dibaca')),
+            TextButton(onPressed: () => _markAll(context, ref), child: const Text(NotificationStrings.markAllRead)),
         ],
       ),
       body: AsyncView(
@@ -60,9 +65,9 @@ class NotificationsScreen extends ConsumerWidget {
         data: (items) => RefreshIndicator(
           onRefresh: () => ref.refresh(notificationsProvider.future),
           child: items.isEmpty
-              ? ListView(children: const [SizedBox(height: 320, child: EmptyState(icon: LucideIcons.bellOff, title: 'Belum ada notifikasi'))])
+              ? ListView(children: const [SizedBox(height: AppSizes.s320, child: EmptyState(icon: AppIcons.bellOff, title: NotificationStrings.emptyState))])
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
                   itemCount: items.length,
                   itemBuilder: (context, i) {
                     final n = items[i];
@@ -92,16 +97,16 @@ class _NotificationCard extends StatelessWidget {
     final isUnread = notification.isUnread;
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
       decoration: BoxDecoration(
         color: isUnread
-            ? (isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC))
-            : (isDark ? const Color(0xFF0F172A) : Colors.white),
-        borderRadius: BorderRadius.circular(12),
+            ? (isDark ? AppColors.slate800 : AppColors.slate50)
+            : (isDark ? AppColors.slate900 : Colors.white),
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
           color: isUnread
               ? theme.colorScheme.primary.withValues(alpha: 0.4)
-              : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              : (isDark ? AppColors.slate700 : AppColors.slate200),
           width: isUnread ? 1.2 : 1.0,
         ),
         boxShadow: [
@@ -116,10 +121,10 @@ class _NotificationCard extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadius.r12),
           onTap: onTap,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s12),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -129,16 +134,16 @@ class _NotificationCard extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isUnread
                         ? theme.colorScheme.primary.withValues(alpha: 0.15)
-                        : (isDark ? const Color(0xFF334155) : const Color(0xFFF1F5F9)),
-                    borderRadius: BorderRadius.circular(10),
+                        : (isDark ? AppColors.slate700 : AppColors.slate100),
+                    borderRadius: BorderRadius.circular(AppRadius.r10),
                   ),
                   child: Icon(
-                    isUnread ? LucideIcons.bellDot : LucideIcons.bell,
-                    size: 18,
+                    isUnread ? AppIcons.bellDot : AppIcons.bell,
+                    size: AppSizes.s18,
                     color: isUnread ? theme.colorScheme.primary : muted,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: AppSizes.s12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,12 +156,12 @@ class _NotificationCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: isUnread ? FontWeight.w700 : FontWeight.w500,
-                                color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                color: isDark ? Colors.white : AppColors.slate900,
                               ),
                             ),
                           ),
                           if (isUnread) ...[
-                            const SizedBox(width: 6),
+                            const SizedBox(width: AppSizes.s6),
                             Container(
                               width: 8,
                               height: 8,
@@ -168,11 +173,11 @@ class _NotificationCard extends StatelessWidget {
                           ],
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSizes.s4),
                       Row(
                         children: [
-                          Icon(LucideIcons.clock, size: 11, color: muted),
-                          const SizedBox(width: 4),
+                          Icon(AppIcons.clock, size: AppSizes.s11, color: muted),
+                          const SizedBox(width: AppSizes.s4),
                           Text(
                             dateTime(notification.createdAt),
                             style: TextStyle(fontSize: 11.5, color: muted),
@@ -182,10 +187,10 @@ class _NotificationCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSizes.s8),
                 const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Icon(LucideIcons.chevronRight, size: 16, color: Color(0xFF94A3B8)),
+                  padding: EdgeInsets.only(top: AppSpacing.s8),
+                  child: Icon(AppIcons.chevronRight, size: AppSizes.s16, color: AppColors.slate400),
                 ),
               ],
             ),

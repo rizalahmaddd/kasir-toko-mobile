@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
+
+import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_typography.dart';
@@ -22,12 +25,15 @@ import '../data/pos_repository.dart';
 import '../pos_providers.dart';
 import 'widgets/payment_amount_panel.dart';
 import 'widgets/qris_view.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 const _methodIcons = {
-  'cash': LucideIcons.banknote,
-  'qris': LucideIcons.qrCode,
-  'transfer': LucideIcons.landmark,
-  'card': LucideIcons.creditCard,
+  PaymentMethods.cash: AppIcons.banknote,
+  PaymentMethods.qris: AppIcons.qrCode,
+  PaymentMethods.transfer: AppIcons.landmark,
+  PaymentMethods.card: AppIcons.creditCard,
 };
 
 /// Rejections where the server already told us what changed; the cart is fixed up and the
@@ -63,7 +69,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
   void initState() {
     super.initState();
     final methods = ref.read(posConfigProvider).requireValue.paymentMethods;
-    _method = methods.isEmpty ? 'cash' : methods.first.value;
+    _method = methods.isEmpty ? PaymentMethods.cash : methods.first.value;
     _resetEntry();
   }
 
@@ -84,7 +90,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
   int get _entered => parseRupiah(_amount.text);
 
-  bool get _isCash => _method == 'cash';
+  bool get _isCash => _method == PaymentMethods.cash;
 
   /// Non-cash defaults to the exact remaining amount; cash starts empty so the cashier types what was handed over.
   void _resetEntry() {
@@ -141,11 +147,11 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
   void _addSplit() {
     if (_entered <= 0) {
-      setState(() => _error = 'Isi nominal dulu.');
+      setState(() => _error = PosStrings.errFillAmountFirst);
       return;
     }
     if (_entered >= _remaining) {
-      setState(() => _error = 'Nominal ini sudah melunasi tagihan. Tekan Selesaikan Pembayaran.');
+      setState(() => _error = PosStrings.errAmountSettlesBill);
       return;
     }
     setState(() {
@@ -159,21 +165,21 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     final cart = ref.read(cartProvider);
     final payments = _allPayments();
     final paid = payments.fold(0, (sum, payment) => sum + payment.amount);
-    final nonCash = payments.where((payment) => payment.method != 'cash').fold(0, (sum, payment) => sum + payment.amount);
+    final nonCash = payments.where((payment) => payment.method != PaymentMethods.cash).fold(0, (sum, payment) => sum + payment.amount);
     final shortfall = _total - paid;
 
     if (nonCash > _total) {
-      setState(() => _error = 'Pembayaran non-tunai melebihi total. Non-tunai tidak punya kembalian.');
+      setState(() => _error = PosStrings.errNonCashExceedsTotal);
       return;
     }
 
     if (shortfall > 0) {
       if (!_config.allowCredit) {
-        setState(() => _error = 'Pembayaran kurang ${rupiah(shortfall)}.');
+        setState(() => _error = PosStrings.paymentShortfall(rupiah(shortfall)));
         return;
       }
       if (cart.customer == null) {
-        setState(() => _error = 'Pembayaran kurang ${rupiah(shortfall)}. Pilih pelanggan dulu kalau sisanya dicatat sebagai kasbon.');
+        setState(() => _error = PosStrings.paymentShortfallCredit(rupiah(shortfall)));
         return;
       }
       final confirmed = await _confirmCredit(cart.customer!.name, shortfall);
@@ -216,7 +222,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
     final totals = cart.totals(_config.taxRate);
     final labels = {for (final method in _config.paymentMethods) method.value: method.label};
-    final cash = payments.where((p) => p.method == 'cash').fold(0, (sum, p) => sum + p.amount);
+    final cash = payments.where((p) => p.method == PaymentMethods.cash).fold(0, (sum, p) => sum + p.amount);
     final change = paid > totals.total ? paid - totals.total : 0;
     final now = DateTime.now();
     final sale = QueuedSale(
@@ -231,7 +237,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       preview: {
         'id': 0,
         'number': 'OFFLINE-${cart.clientUuid.substring(0, 8).toUpperCase()}',
-        'status': 'completed',
+        'status': SaleStatuses.completed,
         'status_label': 'Menunggu sinkron',
         'sold_at': now.toIso8601String(),
         'cashier': {'id': user.id, 'name': user.name},
@@ -261,7 +267,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
         ],
         'payments': [
           for (final p in payments)
-            {'kind': 'sale', 'method': p.method, 'method_label': labels[p.method] ?? p.method, 'amount': p.amount, 'paid_at': now.toIso8601String()},
+            {'kind': PaymentKinds.sale, 'method': p.method, 'method_label': labels[p.method] ?? p.method, 'amount': p.amount, 'paid_at': now.toIso8601String()},
         ],
       },
     );
@@ -295,11 +301,11 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
         messenger.showSnackBar(SnackBar(content: Text(error.message)));
       case 'total_mismatch':
         ref.invalidate(posConfigProvider);
-        setState(() => _error = 'Pengaturan pajak baru saja berubah. Periksa total lalu bayar lagi.');
+        setState(() => _error = PosStrings.errTaxSettingsChanged);
       default:
         setState(
           () => _error = error.isNetworkError
-              ? '${error.message} Tekan bayar lagi, transaksi tidak akan tercatat dua kali.'
+              ? PosStrings.checkoutRetryMessage(error.message)
               : error.message,
         );
     }
@@ -309,11 +315,11 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Catat sebagai kasbon?'),
-        content: Text('Sisa ${rupiah(amount)} dicatat sebagai kasbon atas nama $customer.'),
+        title: const Text(PosStrings.creditConfirmTitle),
+        content: Text(PosStrings.creditConfirmMessage(rupiah(amount), customer)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Catat Kasbon')),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text(PosStrings.cancel)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text(PosStrings.creditConfirmButton)),
         ],
       ),
     );
@@ -339,32 +345,32 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               BottomSheetHeader(
-                title: 'Pembayaran',
+                title: PosStrings.paymentTitle,
                 onClose: _busy ? null : () => Navigator.pop(context),
               ),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.s20, AppSpacing.s0, AppSpacing.s20, AppSpacing.s20),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       PaymentAmountPanel(total: total, remaining: _lines.isEmpty ? null : remaining),
                       if (_lines.isNotEmpty) ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: AppSizes.s12),
                         for (final (index, line) in _lines.indexed)
                           ListTile(
                             dense: true,
                             contentPadding: EdgeInsets.zero,
-                            leading: Icon(_methodIcons[line.method] ?? LucideIcons.wallet, size: 18),
+                            leading: Icon(_methodIcons[line.method] ?? AppIcons.wallet, size: AppSizes.s18),
                             title: Text(config.paymentMethods.where((m) => m.value == line.method).firstOrNull?.label ?? line.method),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(rupiah(line.amount), style: const TextStyle(fontWeight: FontWeight.w600)),
                                 IconButton(
-                                  tooltip: 'Hapus pembayaran ini',
-                                  icon: const Icon(LucideIcons.x, size: 16),
+                                  tooltip: PosStrings.removePaymentTooltip,
+                                  icon: const Icon(AppIcons.x, size: AppSizes.s16),
                                   onPressed: () => setState(() {
                                     _lines.removeAt(index);
                                     _resetEntry();
@@ -374,14 +380,14 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                             ),
                           ),
                       ],
-                      const SizedBox(height: 14),
+                      const SizedBox(height: AppSizes.s14),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
                         children: [
                           for (final method in config.paymentMethods)
                             ChoiceChip(
-                              avatar: Icon(_methodIcons[method.value] ?? LucideIcons.wallet, size: 16),
+                              avatar: Icon(_methodIcons[method.value] ?? AppIcons.wallet, size: AppSizes.s16),
                               label: Text(method.label),
                               selected: _method == method.value,
                               showCheckmark: false,
@@ -389,65 +395,65 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                             ),
                         ],
                       ),
-                      const SizedBox(height: 16),
-                      if (_method == 'qris' && remaining > 0) ...[
+                      const SizedBox(height: AppSizes.s16),
+                      if (_method == PaymentMethods.qris && remaining > 0) ...[
                         if (config.qrisEnabled) ...[
                           QrisPaymentView(amount: _entered > 0 ? _entered : remaining),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: AppSizes.s8),
                           Center(
                             child: TextButton.icon(
                               onPressed: () {
                                 unawaited(HapticFeedback.lightImpact());
                                 setState(() => _showCustomNominal = !_showCustomNominal);
                               },
-                              icon: Icon(_showCustomNominal ? LucideIcons.chevronUp : LucideIcons.slidersHorizontal, size: 15),
+                              icon: Icon(_showCustomNominal ? AppIcons.chevronUp : AppIcons.slidersHorizontal, size: AppSizes.s15),
                               label: Text(
-                                _showCustomNominal ? 'Sembunyikan Pengaturan Nominal' : 'Ubah Nominal / Split QRIS',
+                                _showCustomNominal ? PosStrings.hideNominalSettings : PosStrings.changeNominalSplitQris,
                                 style: const TextStyle(fontSize: 13),
                               ),
                             ),
                           ),
                         ] else ...[
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: const EdgeInsets.all(AppSpacing.s12),
                             decoration: BoxDecoration(
                               color: colors.warning.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(AppRadius.r10),
                               border: Border.all(color: colors.warning.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
-                                Icon(LucideIcons.alertTriangle, size: 20, color: colors.warning),
-                                const SizedBox(width: 10),
+                                Icon(AppIcons.alertTriangle, size: AppSizes.s20, color: colors.warning),
+                                const SizedBox(width: AppSizes.s10),
                                 Expanded(
                                   child: Text(
-                                    'QRIS toko belum diatur di Pengaturan Kasir web. Minta pelanggan scan QRIS cetak lalu isi nominal.',
+                                    PosStrings.qrisNotConfiguredWarning,
                                     style: TextStyle(color: colors.warning, fontSize: 13),
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSizes.s12),
                         ],
                       ],
-                      if (_isCash || _method != 'qris' || _showCustomNominal || !config.qrisEnabled) ...[
+                      if (_isCash || _method != PaymentMethods.qris || _showCustomNominal || !config.qrisEnabled) ...[
                         MoneyField(
                           controller: _amount,
-                          label: _isCash ? 'Uang diterima' : 'Nominal',
+                          label: _isCash ? PosStrings.cashReceivedLabel : PosStrings.nominalLabel,
                           autofocus: _isCash && context.isMedium,
                           onChanged: (_) => setState(() => _error = null),
                           onSubmitted: (_) => _submit(),
                         ),
                       ],
                       if (_isCash) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSizes.s8),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: [
                             ActionChip(
-                              label: const Text('Uang pas'),
+                              label: const Text(PosStrings.exactCashButton),
                               onPressed: () {
                                 unawaited(HapticFeedback.selectionClick());
                                 setState(() => _amount.text = thousands(remaining));
@@ -464,12 +470,12 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                           ],
                         ),
                         if (_entered > 0) ...[
-                          const SizedBox(height: 12),
+                          const SizedBox(height: AppSizes.s12),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s10),
                             decoration: BoxDecoration(
                               color: (change >= 0 ? colors.success : colors.warning).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(AppRadius.r10),
                               border: Border.all(
                                 color: (change >= 0 ? colors.success : colors.warning).withValues(alpha: 0.3),
                               ),
@@ -477,7 +483,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                             child: Row(
                               children: [
                                 Text(
-                                  change >= 0 ? 'Kembalian' : 'Kurang',
+                                  change >= 0 ? PosStrings.changeLabel : PosStrings.shortageLabel,
                                   style: TextStyle(
                                     color: change >= 0 ? colors.success : colors.warning,
                                     fontWeight: FontWeight.w600,
@@ -497,32 +503,32 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                             ),
                           ),
                         ],
-                      ] else if (_method == 'transfer' || _method == 'card') ...[
-                        const SizedBox(height: 12),
+                      ] else if (_method == PaymentMethods.transfer || _method == PaymentMethods.card) ...[
+                        const SizedBox(height: AppSizes.s12),
                         TextField(
                           controller: _reference,
                           maxLength: 100,
-                          decoration: const InputDecoration(labelText: 'No. referensi (opsional)', hintText: 'mis. 4 digit akhir kartu'),
+                          decoration: const InputDecoration(labelText: PosStrings.referenceFieldLabel, hintText: PosStrings.referenceFieldHint),
                         ),
                       ],
                       if (_error != null) ...[
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSizes.s8),
                         Text(_error!, style: TextStyle(color: colors.danger)),
                       ],
-                      const SizedBox(height: 16),
+                      const SizedBox(height: AppSizes.s16),
                       FilledButton(
                         style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
                         onPressed: _busy ? null : _submit,
                         child: _busy
-                            ? const SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(_method == 'qris' ? 'Pembayaran QRIS Diterima' : 'Selesaikan Pembayaran'),
+                            ? const SizedBox.square(dimension: AppSizes.s22, child: CircularProgressIndicator(strokeWidth: 2))
+                            : Text(_method == PaymentMethods.qris ? PosStrings.qrisPaidButton : PosStrings.finishPaymentButton),
                       ),
                       if (config.paymentMethods.length > 1) ...[
-                        const SizedBox(height: 4),
+                        const SizedBox(height: AppSizes.s4),
                         TextButton.icon(
                           onPressed: _busy ? null : _addSplit,
-                          icon: const Icon(LucideIcons.plus, size: 16),
-                          label: const Text('Bayar sebagian, sisanya metode lain'),
+                          icon: const Icon(AppIcons.plus, size: AppSizes.s16),
+                          label: const Text(PosStrings.splitPaymentButton),
                         ),
                       ],
                     ],

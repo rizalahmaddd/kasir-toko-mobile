@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/constants/api_endpoints.dart';
 import '../../core/network/api_client.dart';
 import '../../core/offline/cached_notifier.dart';
 import '../../core/paging/paged.dart';
@@ -13,13 +14,13 @@ class ReceivablesRepository {
   final ApiClient _api;
 
   Future<Paginated<SaleSummary>> list({String? search, int? customerId, int page = 1}) async {
-    final body = await _api.get('receivables', query: {'search': search, 'customer_id': customerId, 'page': page, 'per_page': 30});
+    final body = await _api.get(ApiEndpoints.receivables, query: {'search': search, 'customer_id': customerId, 'page': page, 'per_page': 30});
 
     return Paginated.fromJson(body, SaleSummary.fromJson);
   }
 
   Future<List<SaleSummary>?> getCachedList({String? search, int? customerId, int page = 1}) async {
-    final copy = await _api.offlineCopy('receivables', query: {'search': search, 'customer_id': customerId, 'page': page, 'per_page': 30});
+    final copy = await _api.offlineCopy(ApiEndpoints.receivables, query: {'search': search, 'customer_id': customerId, 'page': page, 'per_page': 30});
     if (copy == null) {
       return null;
     }
@@ -31,7 +32,7 @@ class ReceivablesRepository {
   }
 
   Future<SaleDetail> pay(int saleId, {required int amount, required String method, String? reference}) async {
-    final body = await _api.post('receivables/$saleId/payments', data: {'amount': amount, 'method': method, 'reference': reference});
+    final body = await _api.post(ApiEndpoints.receivablePayments(saleId), data: {'amount': amount, 'method': method, 'reference': reference});
 
     return SaleDetail.fromJson(ApiClient.data(body));
   }

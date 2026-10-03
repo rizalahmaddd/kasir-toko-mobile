@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../network/api_client.dart';
 import '../widgets/app_skeleton.dart';
 import '../widgets/state_views.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class PagedState<T> {
   const PagedState({required this.items, required this.page, required this.hasMore, this.meta = const {}, this.loadingMore = false});
@@ -76,7 +78,7 @@ class PagedListView<T> extends StatefulWidget {
     this.skeleton,
     this.header,
     this.separated = true,
-    this.padding = const EdgeInsets.only(bottom: 24),
+    this.padding = const EdgeInsets.only(bottom: AppSpacing.s24),
   });
 
   final AsyncValue<PagedState<T>> value;
@@ -127,7 +129,7 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
             onRefresh: widget.onRefresh,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              children: [?header, SizedBox(height: 320, child: widget.empty)],
+              children: [?header, SizedBox(height: AppSizes.s320, child: widget.empty)],
             ),
           );
         }
@@ -146,18 +148,18 @@ class _PagedListViewState<T> extends State<PagedListView<T>> {
               final i = index - headerCount;
               if (i >= state.items.length) {
                 return const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s12),
                   child: AppShimmer(
                     child: Row(
                       children: [
                         SkeletonBox(width: 44, height: 44, borderRadius: 8),
-                        SizedBox(width: 12),
+                        SizedBox(width: AppSizes.s12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               SkeletonBox(width: 130, height: 13, borderRadius: 4),
-                              SizedBox(height: 6),
+                              SizedBox(height: AppSizes.s6),
                               SkeletonBox(width: 80, height: 10, borderRadius: 3),
                             ],
                           ),

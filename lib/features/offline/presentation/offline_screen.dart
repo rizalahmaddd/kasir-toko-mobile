@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_routes.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
 import '../../../core/network/api_client.dart';
 import '../../../core/network/api_exception.dart';
@@ -14,6 +16,9 @@ import '../../auth/auth_controller.dart';
 import '../../pos/cart_controller.dart';
 import '../catalog_snapshot.dart';
 import '../offline_queue.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class OfflineScreen extends ConsumerStatefulWidget {
   const OfflineScreen({super.key});
@@ -30,7 +35,7 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
     try {
       final snapshot = await ref.read(catalogSnapshotProvider.notifier).download();
       if (mounted) {
-        showMessage(context, '${snapshot.products.length} produk tersimpan di perangkat.');
+        showMessage(context, OfflineStrings.productsSavedMessage(snapshot.products.length));
       }
     } on ApiException catch (error) {
       if (mounted) {
@@ -52,8 +57,8 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
     showMessage(
       context,
       sent > 0
-          ? '$sent transaksi terkirim.${left > 0 ? ' $left masih menunggu.' : ''}'
-          : (ref.read(serverReachableProvider) ? 'Tidak ada transaksi yang bisa dikirim.' : 'Server masih belum terjangkau.'),
+          ? OfflineStrings.syncResultMessage(sent, left)
+          : (ref.read(serverReachableProvider) ? OfflineStrings.noSyncableTransactions : OfflineStrings.serverStillUnreachable),
       isError: sent == 0 && left > 0,
     );
   }
@@ -62,9 +67,9 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
     if (!ref.read(cartProvider).isEmpty) {
       final ok = await confirmAction(
         context,
-        title: 'Ganti isi keranjang?',
-        message: 'Keranjang kasir sekarang akan diganti dengan transaksi ini.',
-        confirmLabel: 'Ganti',
+        title: OfflineStrings.replaceCartTitle,
+        message: OfflineStrings.replaceCartMessage,
+        confirmLabel: OfflineStrings.replaceCartConfirm,
       );
       if (!ok) {
         return;
@@ -73,17 +78,17 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
     ref.read(cartProvider.notifier).load(sale.cart);
     ref.read(offlineQueueProvider.notifier).remove(sale.clientUuid);
     if (mounted) {
-      context.go('/pos');
-      showMessage(context, 'Periksa keranjang lalu bayar ulang. Uang yang sudah diterima tetap dihitung.');
+      context.go(AppRoutes.pos);
+      showMessage(context, OfflineStrings.recheckCartMessage);
     }
   }
 
   Future<void> _delete(QueuedSale sale) async {
     final ok = await confirmAction(
       context,
-      title: 'Hapus transaksi offline?',
-      message: 'Transaksi ${rupiah(sale.total)} tidak akan pernah tercatat di server. Pastikan uangnya sudah dikembalikan atau dicatat ulang.',
-      confirmLabel: 'Hapus',
+      title: OfflineStrings.deleteOfflineSaleTitle,
+      message: OfflineStrings.deleteOfflineSaleMessage(rupiah(sale.total)),
+      confirmLabel: OfflineStrings.deleteConfirm,
       danger: true,
     );
     if (ok) {
@@ -104,9 +109,9 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Mode offline')),
+      appBar: AppBar(title: const Text(OfflineStrings.title)),
       body: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
+        padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s32),
         children: [
           MaxWidth(
             width: 640,
@@ -115,13 +120,13 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
               children: [
                 // Connection Status Hero
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.s16),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    color: isDark ? AppColors.slate800 : Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.r16),
                     border: Border.all(
                       color: reachable
-                          ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                          ? AppColors.emerald500.withValues(alpha: 0.4)
                           : colors.warning.withValues(alpha: 0.4),
                       width: 1.2,
                     ),
@@ -140,16 +145,16 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: (reachable ? const Color(0xFF10B981) : colors.warning).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(12),
+                          color: (reachable ? AppColors.emerald500 : colors.warning).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(AppRadius.r12),
                         ),
                         child: Icon(
-                          reachable ? LucideIcons.cloudCheck : LucideIcons.cloudOff,
-                          size: 22,
-                          color: reachable ? const Color(0xFF059669) : colors.warning,
+                          reachable ? AppIcons.cloudCheck : AppIcons.cloudOff,
+                          size: AppSizes.s22,
+                          color: reachable ? AppColors.emerald600 : colors.warning,
                         ),
                       ),
-                      const SizedBox(width: 14),
+                      const SizedBox(width: AppSizes.s14),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,32 +162,30 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
                             Row(
                               children: [
                                 Text(
-                                  reachable ? 'Terhubung ke Server' : 'Server Tidak Terjangkau',
+                                  reachable ? OfflineStrings.connected : OfflineStrings.notReachable,
                                   style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
                                 ),
-                                const SizedBox(width: 6),
+                                const SizedBox(width: AppSizes.s6),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s1_5),
                                   decoration: BoxDecoration(
-                                    color: (reachable ? const Color(0xFF10B981) : colors.warning).withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(5),
+                                    color: (reachable ? AppColors.emerald500 : colors.warning).withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(AppRadius.r5),
                                   ),
                                   child: Text(
-                                    reachable ? 'Online' : 'Offline',
+                                    reachable ? OfflineStrings.onlineBadge : OfflineStrings.offlineBadge,
                                     style: TextStyle(
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w700,
-                                      color: reachable ? const Color(0xFF059669) : colors.warning,
+                                      color: reachable ? AppColors.emerald600 : colors.warning,
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 3),
+                            const SizedBox(height: AppSizes.s3),
                             Text(
-                              reachable
-                                  ? 'Transaksi kasir langsung tersinkronisasi otomatis ke server.'
-                                  : 'Kasir tetap bisa berjualan. Transaksi disimpan di HP lalu dikirim otomatis saat online.',
+                              reachable ? OfflineStrings.connectedDescription : OfflineStrings.offlineDescription,
                               style: TextStyle(color: muted, fontSize: 12),
                             ),
                           ],
@@ -192,93 +195,93 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSizes.s16),
 
                 // Local Catalog Card
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(AppSpacing.s16),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E293B) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    color: isDark ? AppColors.slate800 : Colors.white,
+                    borderRadius: BorderRadius.circular(AppRadius.r16),
                     border: Border.all(
-                      color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                      color: isDark ? AppColors.slate700 : AppColors.slate200,
                     ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       const Text(
-                        'KATALOG DI PERANGKAT',
+                        OfflineStrings.catalogHeader,
                         style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, letterSpacing: 0.5),
                       ),
-                      const SizedBox(height: 12),
-                      InfoRow('Produk tersimpan', snapshot == null ? 'Belum ada' : thousands(snapshot.products.length), bold: true),
-                      InfoRow('Terakhir diperbarui', snapshot == null ? '-' : dateTime(snapshot.updatedAt)),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: AppSizes.s12),
+                      InfoRow(OfflineStrings.productsStoredLabel, snapshot == null ? OfflineStrings.noProducts : thousands(snapshot.products.length), bold: true),
+                      InfoRow(OfflineStrings.lastUpdatedLabel, snapshot == null ? '-' : dateTime(snapshot.updatedAt)),
+                      const SizedBox(height: AppSizes.s4),
                       Text(
-                        'Diperbarui otomatis tiap 30 menit selama online agar harga dan stok tetap akurat.',
+                        OfflineStrings.catalogAutoUpdateHint,
                         style: TextStyle(color: muted, fontSize: 12),
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: AppSizes.s12),
                       OutlinedButton.icon(
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s10),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r10)),
                         ),
                         onPressed: _downloading ? null : _download,
                         icon: _downloading
-                            ? const SizedBox.square(dimension: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(LucideIcons.download, size: 16),
-                        label: const Text('Perbarui Katalog Sekarang', style: TextStyle(fontWeight: FontWeight.w700)),
+                            ? const SizedBox.square(dimension: AppSizes.s16, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(AppIcons.download, size: AppSizes.s16),
+                        label: const Text(OfflineStrings.refreshCatalogButton, style: TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 20),
+                const SizedBox(height: AppSizes.s20),
 
                 Row(
                   children: [
                     Expanded(
                       child: SectionTitle(
-                        'Antrean Transaksi (${queue.length})',
+                        OfflineStrings.queueHeader(queue.length),
                       ),
                     ),
                     if (queue.isNotEmpty)
                       FilledButton.tonalIcon(
                         style: FilledButton.styleFrom(
                           visualDensity: VisualDensity.compact,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12),
                         ),
                         onPressed: sync.syncing ? null : () => _sync(includeFailed: true),
                         icon: sync.syncing
-                            ? const SizedBox.square(dimension: 12, child: CircularProgressIndicator(strokeWidth: 2))
-                            : const Icon(LucideIcons.send, size: 14),
-                        label: const Text('Kirim Semua', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                            ? const SizedBox.square(dimension: AppSizes.s12, child: CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(AppIcons.send, size: AppSizes.s14),
+                        label: const Text(OfflineStrings.sendAllButton, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                       ),
                   ],
                 ),
                 if (sync.lastSyncAt != null)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-                    child: Text('Percobaan sinkronisasi terakhir ${timeOnly(sync.lastSyncAt!)}', style: TextStyle(color: muted, fontSize: 12)),
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.s4, AppSpacing.s0, AppSpacing.s4, AppSpacing.s8),
+                    child: Text(OfflineStrings.lastSyncAttempt(timeOnly(sync.lastSyncAt!)), style: TextStyle(color: muted, fontSize: 12)),
                   ),
                 if (failed > 0)
                   Container(
-                    margin: const EdgeInsets.only(bottom: 10),
-                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: AppSpacing.s10),
+                    padding: const EdgeInsets.all(AppSpacing.s12),
                     decoration: BoxDecoration(
                       color: colors.danger.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(10),
+                      borderRadius: BorderRadius.circular(AppRadius.r10),
                       border: Border.all(color: colors.danger.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
-                        Icon(LucideIcons.circleAlert, size: 16, color: colors.danger),
-                        const SizedBox(width: 8),
+                        Icon(AppIcons.circleAlert, size: AppSizes.s16, color: colors.danger),
+                        const SizedBox(width: AppSizes.s8),
                         Expanded(
                           child: Text(
-                            '$failed transaksi ditolak server. Buka di keranjang kasir untuk diperbaiki atau hapus.',
+                            OfflineStrings.failedSalesMessage(failed),
                             style: TextStyle(color: colors.danger, fontSize: 12.5, fontWeight: FontWeight.w600),
                           ),
                         ),
@@ -286,7 +289,7 @@ class _OfflineScreenState extends ConsumerState<OfflineScreen> {
                     ),
                   ),
                 if (queue.isEmpty)
-                  const EmptyState(icon: LucideIcons.circleCheck, title: 'Semua transaksi sudah terkirim', description: 'Tidak ada antrean transaksi offline yang tertunda.')
+                  const EmptyState(icon: AppIcons.circleCheck, title: OfflineStrings.allSentTitle, description: OfflineStrings.allSentDescription)
                 else
                   Column(
                     children: [
@@ -327,15 +330,15 @@ class _QueuedSaleCard extends StatelessWidget {
     final isFailed = sale.status == QueuedStatus.failed;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(14),
+      margin: const EdgeInsets.only(bottom: AppSpacing.s8),
+      padding: const EdgeInsets.all(AppSpacing.s14),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
         border: Border.all(
           color: isFailed
               ? colors.danger.withValues(alpha: 0.5)
-              : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+              : (isDark ? AppColors.slate700 : AppColors.slate200),
         ),
       ),
       child: Column(
@@ -350,7 +353,7 @@ class _QueuedSaleCard extends StatelessWidget {
                 ),
               ),
               StatusBadge(
-                label: isFailed ? 'Ditolak Server' : 'Menunggu Kirim',
+                label: isFailed ? OfflineStrings.statusRejected : OfflineStrings.statusWaiting,
                 tone: isFailed ? BadgeTone.danger : BadgeTone.warning,
               ),
               PopupMenuButton<String>(
@@ -358,28 +361,28 @@ class _QueuedSaleCard extends StatelessWidget {
                 iconSize: 18,
                 onSelected: (action) => action == 'cart' ? onOpenInCart() : onDelete(),
                 itemBuilder: (_) => [
-                  if (isFailed) const PopupMenuItem(value: 'cart', child: Text('Buka di keranjang')),
-                  const PopupMenuItem(value: 'delete', child: Text('Hapus transaksi')),
+                  if (isFailed) const PopupMenuItem(value: 'cart', child: Text(OfflineStrings.openInCart)),
+                  const PopupMenuItem(value: 'delete', child: Text(OfflineStrings.deleteTransaction)),
                 ],
               ),
             ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSizes.s4),
           Text(
             [
               dateTime(sale.createdAt),
-              '${quantity(sale.itemCount)} barang',
+              OfflineStrings.itemsCount(quantity(sale.itemCount)),
               if (sale.customerName != null) sale.customerName!,
             ].join(' · '),
             style: TextStyle(color: muted, fontSize: 12),
           ),
           if (sale.error != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSizes.s8),
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(AppSpacing.s8),
               decoration: BoxDecoration(
                 color: colors.danger.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(AppRadius.r6),
               ),
               child: Text(
                 sale.error!,
@@ -415,8 +418,8 @@ class OfflineBannerFrame extends ConsumerWidget {
     final colors = StatusColors.of(context);
     final color = reachable ? colors.info : colors.warning;
     final text = [
-      if (!reachable) 'Offline — menampilkan data terakhir di perangkat',
-      if (waiting > 0) syncing ? 'Mengirim $waiting transaksi…' : '$waiting transaksi menunggu dikirim',
+      if (!reachable) OfflineStrings.bannerOffline,
+      if (waiting > 0) syncing ? OfflineStrings.sendingTransactions(waiting) : OfflineStrings.waitingTransactions(waiting),
     ].join(' · ');
     final dark = theme.brightness == Brightness.dark;
 
@@ -432,12 +435,12 @@ class OfflineBannerFrame extends ConsumerWidget {
                 padding: EdgeInsets.fromLTRB(16, MediaQuery.paddingOf(context).top + 6, 16, 6),
                 child: Row(
                   children: [
-                    Icon(reachable ? LucideIcons.refreshCw : LucideIcons.cloudOff, size: 15, color: color),
-                    const SizedBox(width: 8),
+                    Icon(reachable ? AppIcons.refreshCw : AppIcons.cloudOff, size: AppSizes.s15, color: color),
+                    const SizedBox(width: AppSizes.s8),
                     Expanded(
                       child: Text(text, maxLines: 2, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 12.5)),
                     ),
-                    Icon(LucideIcons.chevronRight, size: 15, color: color),
+                    Icon(AppIcons.chevronRight, size: AppSizes.s15, color: color),
                   ],
                 ),
               ),

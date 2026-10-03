@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
+import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -6,6 +8,7 @@ import '../../../../core/utils/formatters.dart';
 import '../../../../core/widgets/common.dart';
 import '../../../../core/widgets/money_field.dart';
 import '../../../../core/widgets/state_views.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 typedef RecordCash = Future<void> Function({required String type, required int amount, required String reason});
 
@@ -25,7 +28,7 @@ class _CashMovementSheetState extends State<CashMovementSheet> {
   bool _busy = false;
   ApiException? _error;
 
-  bool get _isIn => widget.type == 'in';
+  bool get _isIn => widget.type == CashMovementTypes.cashIn;
 
   @override
   void dispose() {
@@ -44,7 +47,7 @@ class _CashMovementSheetState extends State<CashMovementSheet> {
       await widget.recordCash(type: widget.type, amount: parseRupiah(_amount.text), reason: _reason.text.trim());
       if (mounted) {
         Navigator.pop(context);
-        showMessage(context, _isIn ? 'Kas masuk dicatat.' : 'Kas keluar dicatat.');
+        showMessage(context, _isIn ? ShiftStrings.cashInRecorded : ShiftStrings.cashOutRecorded);
       }
     } on ApiException catch (error) {
       setState(() => _error = error);
@@ -60,22 +63,22 @@ class _CashMovementSheetState extends State<CashMovementSheet> {
     final generalError = _error != null && _error!.fieldError('amount') == null && _error!.fieldError('reason') == null ? _error!.message : null;
 
     return FormSheet(
-      title: _isIn ? 'Catat kas masuk' : 'Catat kas keluar',
+      title: _isIn ? ShiftStrings.recordCashInTitle : ShiftStrings.recordCashOutTitle,
       children: [
-        MoneyField(controller: _amount, label: 'Nominal', autofocus: true, errorText: _error?.fieldError('amount')),
-        const SizedBox(height: 12),
+        MoneyField(controller: _amount, label: ShiftStrings.amountLabel, autofocus: true, errorText: _error?.fieldError('amount')),
+        const SizedBox(height: AppSizes.s12),
         TextField(
           controller: _reason,
           maxLength: 150,
           decoration: InputDecoration(
-            labelText: 'Keperluan',
-            hintText: _isIn ? 'mis. tambah uang kembalian' : 'mis. beli es batu, setor ke pemilik',
+            labelText: ShiftStrings.reasonLabel,
+            hintText: _isIn ? ShiftStrings.cashInReasonHint : ShiftStrings.cashOutReasonHint,
             errorText: _error?.fieldError('reason'),
           ),
         ),
         if (generalError != null) Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),
-        const SizedBox(height: 8),
-        FilledButton(onPressed: _busy ? null : _save, child: Text(_isIn ? 'Simpan Kas Masuk' : 'Simpan Kas Keluar')),
+        const SizedBox(height: AppSizes.s8),
+        FilledButton(onPressed: _busy ? null : _save, child: Text(_isIn ? ShiftStrings.saveCashInButton : ShiftStrings.saveCashOutButton)),
       ],
     );
   }

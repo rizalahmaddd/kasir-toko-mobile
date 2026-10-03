@@ -3,14 +3,18 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:lucide_icons_flutter/lucide_icons.dart';
+import 'package:web_pos_mobile/core/constants/app_icons.dart';
 
+import '../../../core/constants/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
 import '../pos_providers.dart';
+import 'package:web_pos_mobile/core/theme/app_spacing.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
+import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
 class PosSettingsScreen extends ConsumerStatefulWidget {
   const PosSettingsScreen({super.key});
@@ -33,7 +37,7 @@ class _PosSettingsScreenState extends ConsumerState<PosSettingsScreen> {
       ref.invalidate(posConfigProvider);
       unawaited(HapticFeedback.lightImpact());
       if (mounted) {
-        showMessage(context, 'Pengaturan kasir berhasil diperbarui.');
+        showMessage(context, PosStrings.settingsSavedMessage);
       }
     } catch (e) {
       if (mounted) {
@@ -50,14 +54,15 @@ class _PosSettingsScreenState extends ConsumerState<PosSettingsScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final configAsync = ref.watch(posConfigProvider);
+    final displaySettings = ref.watch(posDisplaySettingsProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Pengaturan Kasir'),
+        title: const Text(PosStrings.settingsAppBarTitle),
         actions: [
           if (_saving)
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
+              padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16),
               child: SizedBox(
                 width: 18,
                 height: 18,
@@ -72,36 +77,36 @@ class _PosSettingsScreenState extends ConsumerState<PosSettingsScreen> {
         data: (config) => RefreshIndicator(
           onRefresh: () async => ref.refresh(posConfigProvider.future),
           child: ListView(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(AppSpacing.s16),
             children: [
               Text(
-                'Transaksi & Stok',
+                PosStrings.sectionTransactionStock,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSizes.s8),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
                   child: Column(
                     children: [
                       AppSwitchListTile(
                         value: config.allowNegativeStock,
                         onChanged: _saving ? null : (val) => _update(allowNegativeStock: val),
                         secondary: Icon(
-                          LucideIcons.packageMinus,
+                          AppIcons.packageMinus,
                           color: config.allowNegativeStock ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                         ),
                         title: const Text(
-                          'Bolehkan jual saat stok habis',
+                          PosStrings.allowNegativeStockTitle,
                           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                         ),
                         subtitle: const Padding(
-                          padding: EdgeInsets.only(top: 2),
+                          padding: EdgeInsets.only(top: AppSpacing.s2),
                           child: Text(
-                            'Produk dengan stok sistem 0 atau minus tetap bisa dimasukkan ke keranjang kasir. Cocok jika barang fisik sudah ada tapi belum sempat di-input stok masuk.',
+                            PosStrings.allowNegativeStockSubtitle,
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -111,17 +116,17 @@ class _PosSettingsScreenState extends ConsumerState<PosSettingsScreen> {
                         value: config.allowCredit,
                         onChanged: _saving ? null : (val) => _update(allowCredit: val),
                         secondary: Icon(
-                          LucideIcons.handCoins,
+                          AppIcons.handCoins,
                           color: config.allowCredit ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                         ),
                         title: const Text(
-                          'Bolehkan kasbon (piutang)',
+                          PosStrings.allowCreditTitle,
                           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                         ),
                         subtitle: const Padding(
-                          padding: EdgeInsets.only(top: 2),
+                          padding: EdgeInsets.only(top: AppSpacing.s2),
                           child: Text(
-                            'Izinkan metode pembayaran kasbon / tempo untuk pelanggan terdaftar.',
+                            PosStrings.allowCreditSubtitle,
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -130,35 +135,35 @@ class _PosSettingsScreenState extends ConsumerState<PosSettingsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSizes.s20),
               Text(
-                'Struk & Pencetakan',
+                PosStrings.sectionReceiptPrint,
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: theme.colorScheme.primary,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSizes.s8),
               Card(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
                   child: Column(
                     children: [
                       AppSwitchListTile(
                         value: config.autoPrint,
                         onChanged: _saving ? null : (val) => _update(autoPrint: val),
                         secondary: Icon(
-                          LucideIcons.printer,
+                          AppIcons.printer,
                           color: config.autoPrint ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                         ),
                         title: const Text(
-                          'Cetak struk otomatis',
+                          PosStrings.autoPrintTitle,
                           style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                         ),
                         subtitle: const Padding(
-                          padding: EdgeInsets.only(top: 2),
+                          padding: EdgeInsets.only(top: AppSpacing.s2),
                           child: Text(
-                            'Otomatis kirim perintah cetak ke printer Bluetooth tersambung setelah transaksi selesai.',
+                            PosStrings.autoPrintSubtitle,
                             style: TextStyle(fontSize: 12),
                           ),
                         ),
@@ -167,22 +172,85 @@ class _PosSettingsScreenState extends ConsumerState<PosSettingsScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: AppSizes.s20),
+              Text(
+                PosStrings.sectionDisplayScreen,
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: AppSizes.s8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
+                  child: Column(
+                    children: [
+                      AppSwitchListTile(
+                        value: displaySettings.keepScreenOn,
+                        onChanged: (val) {
+                          unawaited(HapticFeedback.lightImpact());
+                          ref.read(posDisplaySettingsProvider.notifier).setKeepScreenOn(val);
+                        },
+                        secondary: Icon(
+                          AppIcons.sun,
+                          color: displaySettings.keepScreenOn ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        title: const Text(
+                          PosStrings.keepScreenOnTitle,
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        subtitle: const Padding(
+                          padding: EdgeInsets.only(top: AppSpacing.s2),
+                          child: Text(
+                            PosStrings.keepScreenOnSubtitle,
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                      const Divider(height: 16),
+                      AppSwitchListTile(
+                        value: displaySettings.qrFullBrightness,
+                        onChanged: (val) {
+                          unawaited(HapticFeedback.lightImpact());
+                          ref.read(posDisplaySettingsProvider.notifier).setQrFullBrightness(val);
+                        },
+                        secondary: Icon(
+                          AppIcons.qrCode,
+                          color: displaySettings.qrFullBrightness ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                        ),
+                        title: const Text(
+                          PosStrings.qrFullBrightnessTitle,
+                          style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                        ),
+                        subtitle: const Padding(
+                          padding: EdgeInsets.only(top: AppSpacing.s2),
+                          child: Text(
+                            PosStrings.qrFullBrightnessSubtitle,
+                            style: TextStyle(fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppSizes.s20),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(AppSpacing.s12),
                 decoration: BoxDecoration(
                   color: StatusColors.of(context).info.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.r10),
                   border: Border.all(color: StatusColors.of(context).info.withValues(alpha: 0.2)),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(LucideIcons.info, size: 18, color: StatusColors.of(context).info),
-                    const SizedBox(width: 10),
+                    Icon(AppIcons.info, size: AppSizes.s18, color: StatusColors.of(context).info),
+                    const SizedBox(width: AppSizes.s10),
                     Expanded(
                       child: Text(
-                        'Pengaturan ini berlaku secara toko / global dan langsung disinkronkan ke kasir web serta perangkat lain.',
+                        '${PosStrings.settingsGlobalNote}\n\n${PosStrings.settingsLocalNote}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: StatusColors.of(context).info,
                           height: 1.35,

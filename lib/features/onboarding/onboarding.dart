@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_pos_mobile/core/constants/api_endpoints.dart';
 
 import '../../core/network/api_client.dart';
 import '../../core/utils/json.dart';
@@ -101,7 +102,7 @@ class OnboardingRepository {
 
   final ApiClient _api;
 
-  Future<List<StorePreset>> presets() async => ApiClient.list(await _api.get('onboarding/presets')).map(StorePreset.fromJson).toList();
+  Future<List<StorePreset>> presets() async => ApiClient.list(await _api.get(ApiEndpoints.onboardingPresets)).map(StorePreset.fromJson).toList();
 
   Future<PresetResult> apply(
     String storeType, {
@@ -117,11 +118,11 @@ class OnboardingRepository {
     if (settings != null) payload['settings'] = settings;
 
     return PresetResult.fromJson(
-      ApiClient.data(await _api.post('onboarding/apply', data: payload)),
+      ApiClient.data(await _api.post(ApiEndpoints.onboardingApply, data: payload)),
     );
   }
 
-  Future<TenantInfo> skip() async => TenantInfo.fromJson(ApiClient.data(await _api.post('onboarding/skip')));
+  Future<TenantInfo> skip() async => TenantInfo.fromJson(ApiClient.data(await _api.post(ApiEndpoints.onboardingSkip)));
 }
 
 final storePresetsProvider = FutureProvider.autoDispose<List<StorePreset>>((ref) => ref.watch(onboardingRepositoryProvider).presets());

@@ -1,12 +1,14 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/constants/api_endpoints.dart';
+import '../../../core/constants/date_formats.dart';
 import '../../../core/network/api_client.dart';
 import 'sale_models.dart';
 
 final salesRepositoryProvider = Provider<SalesRepository>((ref) => SalesRepository(ref.watch(apiClientProvider)));
 
-final _apiDate = DateFormat('yyyy-MM-dd');
+final _apiDate = DateFormat(AppDateFormat.api);
 
 class SalesRepository {
   SalesRepository(this._api);
@@ -48,10 +50,10 @@ class SalesRepository {
     );
   }
 
-  Future<SaleDetail> show(int id) async => SaleDetail.fromJson(ApiClient.data(await _api.get('sales/$id')));
+  Future<SaleDetail> show(int id) async => SaleDetail.fromJson(ApiClient.data(await _api.get(ApiEndpoints.sale(id))));
 
   Future<SaleDetail?> getCached(int id) async {
-    final copy = await _api.offlineCopy('sales/$id');
+    final copy = await _api.offlineCopy(ApiEndpoints.sale(id));
     if (copy == null) {
       return null;
     }
@@ -104,10 +106,10 @@ class SalesRepository {
     }
   }
 
-  Future<Receipt> receipt(int id) async => Receipt.fromJson(ApiClient.data(await _api.get('sales/$id/receipt')));
+  Future<Receipt> receipt(int id) async => Receipt.fromJson(ApiClient.data(await _api.get(ApiEndpoints.saleReceipt(id))));
 
   Future<Receipt?> getCachedReceipt(int id) async {
-    final copy = await _api.offlineCopy('sales/$id/receipt');
+    final copy = await _api.offlineCopy(ApiEndpoints.saleReceipt(id));
     if (copy == null) {
       return null;
     }
@@ -119,8 +121,8 @@ class SalesRepository {
   }
 
   Future<SaleDetail> voidSale(int id, String reason) async {
-    final body = await _api.post('sales/$id/void', data: {'reason': reason});
-    await _api.updateCached('sales/$id', body);
+    final body = await _api.post(ApiEndpoints.saleVoid(id), data: {'reason': reason});
+    await _api.updateCached(ApiEndpoints.sale(id), body);
     return SaleDetail.fromJson(ApiClient.data(body));
   }
 }
