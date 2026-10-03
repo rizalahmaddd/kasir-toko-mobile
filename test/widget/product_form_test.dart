@@ -67,7 +67,7 @@ void main() {
           allCategoriesProvider.overrideWith((ref) async => [
             const CategoryRecord(id: 1, name: 'Minuman'),
           ]),
-          productDetailProvider(10).overrideWith((ref) async => sample),
+          productDetailProvider(10).overrideWith(() => _FakeProductDetailNotifier(10, sample)),
         ],
         child: MaterialApp(
           theme: AppTheme.dark(),
@@ -83,4 +83,15 @@ void main() {
     expect(find.text('SKU: PRD-001'), findsOneWidget);
     expect(find.text('Simpan Perubahan'), findsOneWidget);
   });
+}
+
+class _FakeProductDetailNotifier extends ProductDetailNotifier {
+  _FakeProductDetailNotifier(super.arg, this.sample);
+  final ProductRecord sample;
+
+  @override
+  Future<ProductRecord?> loadCache(int id) async => sample;
+
+  @override
+  Future<ProductRecord> fetchRemote(int id) async => sample;
 }

@@ -85,9 +85,10 @@ class ShiftDetailScreen extends ConsumerWidget {
     final shift = ref.watch(shiftDetailProvider(shiftId));
     final repository = ref.read(shiftRepositoryProvider);
 
-    void reload() => ref
-      ..invalidate(shiftDetailProvider(shiftId))
-      ..invalidate(shiftSalesProvider(shiftId));
+    Future<void> reload() => Future.wait([
+      ref.read(shiftDetailProvider(shiftId).notifier).refresh(),
+      ref.read(shiftSalesProvider(shiftId).notifier).refresh(),
+    ]);
     void changed() => ref.read(dataChangesProvider).after({DataChange.shifts});
 
     return Scaffold(

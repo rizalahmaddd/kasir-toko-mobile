@@ -76,8 +76,11 @@ class OfflineCache {
     return hash.toUnsigned(64).toRadixString(16);
   }
 
+  final Map<String, dynamic> _memoryResponses = {};
+
   /// Keeps the body of a successful GET so the same screen can still open without the server.
   Future<void> putResponse(String key, Object? body) async {
+    _memoryResponses[key] = body;
     try {
       final dir = await _responsesDir();
       await dir.create(recursive: true);
@@ -92,15 +95,34 @@ class OfflineCache {
   }
 
   Future<dynamic> getResponse(String key) async {
+    if (_memoryResponses.containsKey(key)) {
+      return _memoryResponses[key];
+    }
     try {
       final file = File('${(await _responsesDir()).path}/${_hash(key)}.json');
       if (!await file.exists()) {
         return null;
       }
       final entry = jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      return entry['server'] == _server && entry['key'] == key ? entry['value'] : null;
+      final val = entry['server'] == _server && entry['key'] == key ? entry['value'] : null;
+      if (val != null) {
+        _memoryResponses[key] = val;
+      }
+      return val;
     } on Object {
       return null;
+    }
+  }
+
+  Future<void> removeResponse(String key) async {
+    _memoryResponses.remove(key);
+    try {
+      final file = File('${(await _responsesDir()).path}/${_hash(key)}.json');
+      if (await file.exists()) {
+        await file.delete();
+      }
+    } on Object {
+      // Ignored: file might not exist or cannot be deleted
     }
   }
 
@@ -117,6 +139,7 @@ class OfflineCache {
   }
 
   Future<void> clear() async {
+    _memoryResponses.clear();
     for (final key in _prefs.getKeys().where((key) => key.startsWith(_prefix)).toList()) {
       await _prefs.remove(key);
     }

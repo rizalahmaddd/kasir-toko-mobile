@@ -111,6 +111,22 @@ class ApiClient {
   Future<dynamic> offlineCopy(String path, {Map<String, dynamic>? query}) async =>
       _keepsCopy(path) ? await _cache?.call().getResponse(_cacheKey(path, _clean(query))) : null;
 
+  /// Updates the cached response for an endpoint so subsequent SWR reads reflect changes instantly.
+  Future<void> updateCached(String path, Object? body, {Map<String, dynamic>? query}) async {
+    if (_keepsCopy(path)) {
+      final key = _cacheKey(path, _clean(query));
+      await _cache?.call().putResponse(key, body);
+    }
+  }
+
+  /// Removes cached response for an endpoint upon deletion or cache invalidation.
+  Future<void> removeCached(String path, {Map<String, dynamic>? query}) async {
+    if (_keepsCopy(path)) {
+      final key = _cacheKey(path, _clean(query));
+      await _cache?.call().removeResponse(key);
+    }
+  }
+
   // pos/* already works offline from the catalog snapshot and its own cache (a stale copy of
   // pos/shift would hide a shift opened since); a QRIS code or login state must never be replayed.
   static bool _keepsCopy(String path) => path == 'pos/customers' || (!path.startsWith('pos/') && !path.startsWith('auth/') && path != 'search');

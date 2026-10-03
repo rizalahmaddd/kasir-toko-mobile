@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/offline/cached_notifier.dart';
 import '../../core/paging/paged.dart';
 import '../../core/utils/json.dart';
 
@@ -115,11 +116,41 @@ class ReportsRepository {
   Future<SalesSummaryReport> summary(DateTimeRange range) async =>
       SalesSummaryReport(ApiClient.data(await _api.get('reports/sales/summary', query: _range(range))));
 
+  Future<SalesSummaryReport?> getCachedSummary(DateTimeRange range) async {
+    final copy = await _api.offlineCopy('reports/sales/summary', query: _range(range));
+    if (copy == null) return null;
+    try {
+      return SalesSummaryReport(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<DailyReport> daily(DateTimeRange range) async => DailyReport(ApiClient.data(await _api.get('reports/sales/daily', query: _range(range))));
+
+  Future<DailyReport?> getCachedDaily(DateTimeRange range) async {
+    final copy = await _api.offlineCopy('reports/sales/daily', query: _range(range));
+    if (copy == null) return null;
+    try {
+      return DailyReport(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<ProductReport> products(DateTimeRange range, {required String sort, String? search}) async => ProductReport(
         ApiClient.data(await _api.get('reports/sales/products', query: {..._range(range), 'sort': sort, 'direction': 'desc', 'search': search})),
       );
+
+  Future<ProductReport?> getCachedProducts(DateTimeRange range, {required String sort, String? search}) async {
+    final copy = await _api.offlineCopy('reports/sales/products', query: {..._range(range), 'sort': sort, 'direction': 'desc', 'search': search});
+    if (copy == null) return null;
+    try {
+      return ProductReport(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<Paginated<Activity>> activity({String? search, String? logName, int page = 1}) async => Paginated.fromJson(
         await _api.get('reports/activity-log', query: {'search': search, 'log_name': logName, 'page': page, 'per_page': 30}),
@@ -137,20 +168,59 @@ final reportRangeProvider = NotifierProvider<QueryNotifier<DateTimeRange>, DateT
   return QueryNotifier(DateTimeRange(start: DateTime(today.year, today.month), end: today));
 });
 
-final salesSummaryProvider = FutureProvider.autoDispose<SalesSummaryReport>(
-  (ref) => ref.watch(reportsRepositoryProvider).summary(ref.watch(reportRangeProvider)),
-);
+final salesSummaryProvider = AsyncNotifierProvider.autoDispose<SalesSummaryNotifier, SalesSummaryReport>(SalesSummaryNotifier.new);
 
-final dailyReportProvider = FutureProvider.autoDispose<DailyReport>((ref) => ref.watch(reportsRepositoryProvider).daily(ref.watch(reportRangeProvider)));
+class SalesSummaryNotifier extends CachedNotifier<SalesSummaryReport> {
+  @override
+  Future<SalesSummaryReport?> loadCache() {
+    final range = ref.watch(reportRangeProvider);
+    return ref.read(reportsRepositoryProvider).getCachedSummary(range);
+  }
+
+  @override
+  Future<SalesSummaryReport> fetchRemote() {
+    final range = ref.watch(reportRangeProvider);
+    return ref.read(reportsRepositoryProvider).summary(range);
+  }
+}
+
+final dailyReportProvider = AsyncNotifierProvider.autoDispose<DailyReportNotifier, DailyReport>(DailyReportNotifier.new);
+
+class DailyReportNotifier extends CachedNotifier<DailyReport> {
+  @override
+  Future<DailyReport?> loadCache() {
+    final range = ref.watch(reportRangeProvider);
+    return ref.read(reportsRepositoryProvider).getCachedDaily(range);
+  }
+
+  @override
+  Future<DailyReport> fetchRemote() {
+    final range = ref.watch(reportRangeProvider);
+    return ref.read(reportsRepositoryProvider).daily(range);
+  }
+}
 
 typedef ProductReportQuery = ({String sort, String search});
 
 final productReportQueryProvider = NotifierProvider<QueryNotifier<ProductReportQuery>, ProductReportQuery>(() => QueryNotifier((sort: 'revenue', search: '')));
 
-final productReportProvider = FutureProvider.autoDispose<ProductReport>((ref) {
-  final query = ref.watch(productReportQueryProvider);
-  return ref.watch(reportsRepositoryProvider).products(ref.watch(reportRangeProvider), sort: query.sort, search: query.search);
-});
+final productReportProvider = AsyncNotifierProvider.autoDispose<ProductReportNotifier, ProductReport>(ProductReportNotifier.new);
+
+class ProductReportNotifier extends CachedNotifier<ProductReport> {
+  @override
+  Future<ProductReport?> loadCache() {
+    final range = ref.watch(reportRangeProvider);
+    final query = ref.watch(productReportQueryProvider);
+    return ref.read(reportsRepositoryProvider).getCachedProducts(range, sort: query.sort, search: query.search);
+  }
+
+  @override
+  Future<ProductReport> fetchRemote() {
+    final range = ref.watch(reportRangeProvider);
+    final query = ref.watch(productReportQueryProvider);
+    return ref.read(reportsRepositoryProvider).products(range, sort: query.sort, search: query.search);
+  }
+}
 
 typedef ActivityQuery = ({String search, String? logName});
 

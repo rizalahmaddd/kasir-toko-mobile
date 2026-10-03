@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/offline/cached_notifier.dart';
 import 'data/sale_models.dart';
 import 'data/sales_repository.dart';
 
@@ -90,4 +91,14 @@ Future<SalesPage> fetchSales(SalesRepository repository, SalesFilter filter, int
       page: page,
     );
 
-final saleDetailProvider = FutureProvider.autoDispose.family<SaleDetail, int>((ref, id) => ref.watch(salesRepositoryProvider).show(id));
+final saleDetailProvider = AsyncNotifierProvider.autoDispose.family<SaleDetailNotifier, SaleDetail, int>(SaleDetailNotifier.new);
+
+class SaleDetailNotifier extends CachedFamilyNotifier<SaleDetail, int> {
+  SaleDetailNotifier(super.arg);
+
+  @override
+  Future<SaleDetail?> loadCache(int id) => ref.read(salesRepositoryProvider).getCached(id);
+
+  @override
+  Future<SaleDetail> fetchRemote(int id) => ref.read(salesRepositoryProvider).show(id);
+}

@@ -59,13 +59,35 @@ class ProductsRepository {
         (snapshot) => snapshot.record(id),
       );
 
+  Future<ProductRecord?> getCached(int id) async {
+    final snapshot = await _snapshot?.call();
+    final localRecord = snapshot?.record(id);
+    if (localRecord != null) {
+      return localRecord;
+    }
+    final copy = await _api.offlineCopy('master-data/products/$id');
+    if (copy == null) {
+      return null;
+    }
+    try {
+      return ProductRecord.fromJson(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<ProductRecord> saveProduct(ProductInput input, {int? id}) async {
     final body = id == null ? await _api.post('master-data/products', data: input.toJson()) : await _api.put('master-data/products/$id', data: input.toJson());
-
+    if (id != null) {
+      await _api.updateCached('master-data/products/$id', body);
+    }
     return ProductRecord.fromJson(ApiClient.data(body));
   }
 
-  Future<void> deleteProduct(int id) => _api.delete('master-data/products/$id');
+  Future<void> deleteProduct(int id) async {
+    await _api.delete('master-data/products/$id');
+    await _api.removeCached('master-data/products/$id');
+  }
 
   Future<ProductRecord> uploadImage(int id, String filePath) async =>
       ProductRecord.fromJson(ApiClient.data(await _api.upload('master-data/products/$id/image', field: 'image', filePath: filePath)));
@@ -102,6 +124,23 @@ class ProductsRepository {
         (body) => StockSummary.fromJson(ApiClient.data(body)),
         (snapshot) => snapshot.stockSummary(),
       );
+
+  Future<StockSummary?> getCachedStockSummary() async {
+    final snapshot = await _snapshot?.call();
+    final localSummary = snapshot?.stockSummary();
+    if (localSummary != null) {
+      return localSummary;
+    }
+    final copy = await _api.offlineCopy('inventory/stock/summary');
+    if (copy == null) {
+      return null;
+    }
+    try {
+      return StockSummary.fromJson(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<Paginated<StockMovement>> movements({int? productId, String? type, String? search, int page = 1}) async {
     final body = await _api.get(

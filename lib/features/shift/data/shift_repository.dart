@@ -43,13 +43,38 @@ class ShiftRepository {
 
   Future<Shift> show(int id) async => Shift.fromJson(ApiClient.data(await _api.get('shifts/$id')));
 
+  Future<Shift?> getCached(int id) async {
+    final copy = await _api.offlineCopy('shifts/$id');
+    if (copy == null) {
+      return null;
+    }
+    try {
+      return Shift.fromJson(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<List<SaleSummary>> sales(int id) async => ApiClient.list(await _api.get('shifts/$id/sales')).map(SaleSummary.fromJson).toList();
+
+  Future<List<SaleSummary>?> getCachedSales(int id) async {
+    final copy = await _api.offlineCopy('shifts/$id/sales');
+    if (copy == null) {
+      return null;
+    }
+    try {
+      return ApiClient.list(copy).map(SaleSummary.fromJson).toList();
+    } catch (_) {
+      return null;
+    }
+  }
 
   Future<void> recordCashFor(int shiftId, {required String type, required int amount, required String reason}) =>
       _api.post('shifts/$shiftId/cash-movements', data: {'type': type, 'amount': amount, 'reason': reason});
 
   Future<Shift> close(int shiftId, {required int countedCash, String? note}) async {
     final data = ApiClient.data(await _api.post('shifts/$shiftId/close', data: {'counted_cash': countedCash, 'closing_note': note}));
+    await _api.updateCached('shifts/$shiftId', {'data': data});
     final cached = _cache?.get('current_shift');
     if (cached is Map && cached['id'] == shiftId) {
       await _cache?.put('current_shift', null);

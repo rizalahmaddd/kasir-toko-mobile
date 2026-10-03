@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/offline/cached_notifier.dart';
 import '../../core/utils/json.dart';
 import '../products/data/product_models.dart';
 import '../sales/data/sale_models.dart';
@@ -27,7 +28,25 @@ class DashboardData {
   final List<SaleSummary>? recentSales;
 }
 
-final dashboardProvider = FutureProvider.autoDispose<DashboardData>((ref) async {
-  final body = await ref.watch(apiClientProvider).get('dashboard');
-  return DashboardData(ApiClient.data(body));
-});
+final dashboardProvider = AsyncNotifierProvider.autoDispose<DashboardNotifier, DashboardData>(DashboardNotifier.new);
+
+class DashboardNotifier extends CachedNotifier<DashboardData> {
+  @override
+  Future<DashboardData?> loadCache() async {
+    final copy = await ref.read(apiClientProvider).offlineCopy('dashboard');
+    if (copy == null) {
+      return null;
+    }
+    try {
+      return DashboardData(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<DashboardData> fetchRemote() async {
+    final body = await ref.read(apiClientProvider).get('dashboard');
+    return DashboardData(ApiClient.data(body));
+  }
+}

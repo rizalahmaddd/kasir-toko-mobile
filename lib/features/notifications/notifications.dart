@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/offline/cached_notifier.dart';
 import '../../core/utils/json.dart';
 
 class AppNotification {
@@ -50,6 +51,16 @@ class NotificationsRepository {
 
   Future<List<AppNotification>> list() async => ApiClient.list(await _api.get('notifications')).map(AppNotification.new).toList();
 
+  Future<List<AppNotification>?> getCachedList() async {
+    final copy = await _api.offlineCopy('notifications');
+    if (copy == null) return null;
+    try {
+      return ApiClient.list(copy).map(AppNotification.new).toList();
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<int> unreadCount() async => asInt(ApiClient.data(await _api.get('notifications/unread-count'))['unread_count']);
 
   Future<void> markRead(String id) => _api.post('notifications/$id/read');
@@ -59,7 +70,15 @@ class NotificationsRepository {
   Future<List<SearchGroup>> search(String term) async => ApiClient.list(await _api.get('search', query: {'q': term})).map(SearchGroup.new).toList();
 }
 
-final notificationsProvider = FutureProvider.autoDispose<List<AppNotification>>((ref) => ref.watch(notificationsRepositoryProvider).list());
+final notificationsProvider = AsyncNotifierProvider.autoDispose<NotificationsNotifier, List<AppNotification>>(NotificationsNotifier.new);
+
+class NotificationsNotifier extends CachedNotifier<List<AppNotification>> {
+  @override
+  Future<List<AppNotification>?> loadCache() => ref.read(notificationsRepositoryProvider).getCachedList();
+
+  @override
+  Future<List<AppNotification>> fetchRemote() => ref.read(notificationsRepositoryProvider).list();
+}
 
 final unreadCountProvider = FutureProvider<int>((ref) => ref.watch(notificationsRepositoryProvider).unreadCount());
 

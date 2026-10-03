@@ -7,13 +7,24 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/offline/cached_notifier.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../printing/presentation/printer_screen.dart';
 import '../../printing/printer.dart';
 import '../data/sale_models.dart';
 import '../data/sales_repository.dart';
 
-final receiptProvider = FutureProvider.autoDispose.family<Receipt, int>((ref, saleId) => ref.watch(salesRepositoryProvider).receipt(saleId));
+final receiptProvider = AsyncNotifierProvider.autoDispose.family<ReceiptNotifier, Receipt, int>(ReceiptNotifier.new);
+
+class ReceiptNotifier extends CachedFamilyNotifier<Receipt, int> {
+  ReceiptNotifier(super.arg);
+
+  @override
+  Future<Receipt?> loadCache(int id) => ref.read(salesRepositoryProvider).getCachedReceipt(id);
+
+  @override
+  Future<Receipt> fetchRemote(int id) => ref.read(salesRepositoryProvider).receipt(id);
+}
 
 Future<void> openWhatsApp(BuildContext context, String? url) async {
   final uri = url == null ? null : Uri.tryParse(url);

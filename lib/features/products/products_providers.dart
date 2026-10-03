@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/network/api_client.dart';
+import '../../core/offline/cached_notifier.dart';
 import '../../core/paging/paged.dart';
 import 'data/product_models.dart';
 import 'data/products_repository.dart';
@@ -28,7 +29,17 @@ class ProductsNotifier extends PagedNotifier<ProductRecord> {
   }
 }
 
-final productDetailProvider = FutureProvider.autoDispose.family<ProductRecord, int>((ref, id) => ref.watch(productsRepositoryProvider).product(id));
+final productDetailProvider = AsyncNotifierProvider.autoDispose.family<ProductDetailNotifier, ProductRecord, int>(ProductDetailNotifier.new);
+
+class ProductDetailNotifier extends CachedFamilyNotifier<ProductRecord, int> {
+  ProductDetailNotifier(super.arg);
+
+  @override
+  Future<ProductRecord?> loadCache(int id) => ref.read(productsRepositoryProvider).getCached(id);
+
+  @override
+  Future<ProductRecord> fetchRemote(int id) => ref.read(productsRepositoryProvider).product(id);
+}
 
 /// Every category, for pickers and filter chips.
 final allCategoriesProvider = FutureProvider<List<CategoryRecord>>((ref) async {
@@ -62,7 +73,15 @@ class StockNotifier extends PagedNotifier<ProductRecord> {
   }
 }
 
-final stockSummaryProvider = FutureProvider.autoDispose<StockSummary>((ref) => ref.watch(productsRepositoryProvider).stockSummary());
+final stockSummaryProvider = AsyncNotifierProvider.autoDispose<StockSummaryNotifier, StockSummary>(StockSummaryNotifier.new);
+
+class StockSummaryNotifier extends CachedNotifier<StockSummary> {
+  @override
+  Future<StockSummary?> loadCache() => ref.read(productsRepositoryProvider).getCachedStockSummary();
+
+  @override
+  Future<StockSummary> fetchRemote() => ref.read(productsRepositoryProvider).stockSummary();
+}
 
 typedef MovementsQuery = ({int? productId, String? type, String search});
 

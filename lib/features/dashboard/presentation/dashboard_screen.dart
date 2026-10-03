@@ -177,8 +177,7 @@ class DashboardScreen extends ConsumerWidget {
               if (user?.canSell ?? false) {
                 await ref.read(currentShiftProvider.notifier).refresh();
               }
-              ref.invalidate(dashboardProvider);
-              await ref.read(dashboardProvider.future);
+              await ref.read(dashboardProvider.notifier).refresh();
             },
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),

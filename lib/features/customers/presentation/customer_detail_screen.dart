@@ -46,10 +46,11 @@ class CustomerDetailScreen extends ConsumerWidget {
           final wa = whatsappNumber(customer.phone);
 
           return RefreshIndicator(
-            onRefresh: () {
-              ref.invalidate(customerSalesProvider(customerId));
-              return ref.refresh(customerProvider(customerId).future);
-            },
+            onRefresh: () => Future.wait([
+              ref.read(customerProvider(customerId).notifier).refresh(),
+              ref.read(customerSalesProvider(customerId).notifier).refresh(),
+              ref.read(customerReceivablesProvider(customerId).notifier).refresh(),
+            ]),
             child: ListView(
               padding: const EdgeInsets.all(16),
               children: [

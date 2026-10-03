@@ -76,13 +76,31 @@ class CustomersRepository {
 
   Future<Customer> show(int id) async => Customer.fromJson(ApiClient.data(await _api.get('master-data/customers/$id')));
 
+  Future<Customer?> getCached(int id) async {
+    final copy = await _api.offlineCopy('master-data/customers/$id');
+    if (copy == null) {
+      return null;
+    }
+    try {
+      return Customer.fromJson(ApiClient.data(copy));
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<Customer> save(Customer customer, {int? id}) async {
     final body = id == null
         ? await _api.post('master-data/customers', data: customer.toJson())
         : await _api.put('master-data/customers/$id', data: customer.toJson());
 
+    if (id != null) {
+      await _api.updateCached('master-data/customers/$id', body);
+    }
     return Customer.fromJson(ApiClient.data(body));
   }
 
-  Future<void> delete(int id) => _api.delete('master-data/customers/$id');
+  Future<void> delete(int id) async {
+    await _api.delete('master-data/customers/$id');
+    await _api.removeCached('master-data/customers/$id');
+  }
 }
