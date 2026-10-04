@@ -18,6 +18,7 @@ jobs:
     name: Build & Release Android (APK & AAB)
     runs-on: ubuntu-latest
     environment: production
+    timeout-minutes: 60
 
     steps:
       - name: Checkout repository
@@ -69,9 +70,11 @@ jobs:
           storeFile=${GITHUB_WORKSPACE}/android/app/upload.jks
           EOF
 
-      - name: Build Split APKs & App Bundle (AAB)
+      - name: Build Android App Bundle (AAB)
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3584m -Dorg.gradle.vfs.watch=false"
         run: |
-          TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.1}"
           RAW_VERSION="${TAG_NAME#v}"
           if [[ "$RAW_VERSION" =~ ^([^+]+)\+(.+)$ ]]; then
             VERSION_NAME="${BASH_REMATCH[1]}"
@@ -81,13 +84,30 @@ jobs:
             BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
           fi
 
-          echo "Building Android Release for Version: $VERSION_NAME, Build: $BUILD_NUMBER (HOSTED=true)"
-          
-          # 1. Build Split APKs
+          echo "Building AAB for Version: $VERSION_NAME, Build: $BUILD_NUMBER (HOSTED=true)"
+          flutter build appbundle --release --dart-define=HOSTED=true --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+
+          # Flush Gradle daemon memory before next build
+          (cd android && ./gradlew --stop) || true
+
+      - name: Build Split APKs
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3584m -Dorg.gradle.vfs.watch=false"
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.1}"
+          RAW_VERSION="${TAG_NAME#v}"
+          if [[ "$RAW_VERSION" =~ ^([^+]+)\+(.+)$ ]]; then
+            VERSION_NAME="${BASH_REMATCH[1]}"
+            BUILD_NUMBER="${BASH_REMATCH[2]}"
+          else
+            VERSION_NAME="$RAW_VERSION"
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "Building Split APKs for Version: $VERSION_NAME, Build: $BUILD_NUMBER (HOSTED=true)"
           flutter build apk --release --split-per-abi --dart-define=HOSTED=true --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
 
-          # 2. Build Android App Bundle (.aab) for Google Play Store
-          flutter build appbundle --release --dart-define=HOSTED=true --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+          (cd android && ./gradlew --stop) || true
 
       - name: Rename and Package Artifacts
         run: |
@@ -155,7 +175,7 @@ jobs:
           gh release delete "$TAG_NAME" --yes 2>/dev/null || true
 
           echo "Creating new GitHub release for $TAG_NAME..."
-          gh release create "$TAG_NAME" release-artifacts/* \
+          gh release create "$TAG_NAME" release-artifacts/* --clobber \
             --title "Kasir Toko Mobile $TAG_NAME" \
             --notes "### Release Kasir Toko Mobile \`$TAG_NAME\`
 
