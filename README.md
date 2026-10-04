@@ -1,5 +1,12 @@
 # Kasir Toko Mobile
 
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-02569B?logo=flutter&logoColor=white)](https://flutter.dev)
+[![Dart](https://img.shields.io/badge/Dart-3.x-0175C2?logo=dart&logoColor=white)](https://dart.dev)
+[![State Management](https://img.shields.io/badge/State_Management-Riverpod-8A2BE2)](https://riverpod.dev)
+[![HTTP Client](https://img.shields.io/badge/HTTP_Client-Dio-00599C)](https://pub.dev/packages/dio)
+[![Thermal Printer](https://img.shields.io/badge/Thermal_Printer-ESC%2FPOS-1E88E5?logo=bluetooth&logoColor=white)](https://pub.dev/packages/esc_pos_utils_plus)
+[![Tests](https://img.shields.io/badge/Tests-112_passed-success?logo=flutter&logoColor=white)](#menjalankan-test)
+
 Aplikasi kasir Flutter untuk HP dan tablet, client dari REST API v1 [Kasir Toko (web-pos)](../kasir-toko). Dokumentasi API tersedia di `/docs/api` pada server web.
 
 - **Package ID / Application ID (Android)**: `com.jagodev.kasirtoko`
@@ -151,3 +158,26 @@ lib/
     home/         Navigasi bottom bar, drawer menu, dan akun toko
 promo/            Generator dan aset video promosi vertikal 60s (HTML/GSAP/Playwright + soundtrack)
 ```
+
+---
+
+## ☕ Dukung & Donasi (Support / Donation)
+
+Jika aplikasi ini bermanfaat bagi usaha atau proyek Anda, Anda dapat memberikan dukungan dan apresiasi pengembangan melalui **QRIS**:
+
+<p align="center">
+  <img src="docs/qris.png" width="280" alt="QRIS Donasi - RZ Printing" />
+  <br>
+  <em>Scan QRIS menggunakan BCA, Mandiri, BRI, BNI, GoPay, OVO, DANA, ShopeePay, atau aplikasi mobile banking lainnya.</em>
+</p>
+
+---
+
+## 📬 Kontak & Pengembang
+
+Dikembangkan oleh **rizalahmaddd**:
+- **WhatsApp**: [+62 857-7777-5477](https://wa.me/6285777775477)
+- **GitHub**: [@rizalahmaddd](https://github.com/rizalahmaddd)
+- **Lokasi**: Kota Malang, Jawa Timur, Indonesia
+
+Untuk diskusi, pertanyaan teknis Flutter, atau integrasi POS, silakan hubungi kontak di atas.
