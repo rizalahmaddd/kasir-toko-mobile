@@ -7,7 +7,7 @@
 [![Thermal Printer](https://img.shields.io/badge/Thermal_Printer-ESC%2FPOS-1E88E5?logo=bluetooth&logoColor=white)](https://pub.dev/packages/esc_pos_utils_plus)
 [![Tests](https://img.shields.io/badge/Tests-112_passed-success?logo=flutter&logoColor=white)](#-rilis--pengujian)
 
-Aplikasi kasir mobile modern berbasis **Flutter** untuk smartphone dan tablet Android & iOS, terintegrasi penuh dengan backend SaaS [**Kasir Toko (Web POS)**](../kasir-toko). Mendukung mode cloud SaaS (hosted) maupun server sendiri (self-hosted).
+Aplikasi kasir mobile modern berbasis **Flutter** untuk smartphone dan tablet Android & iOS, terintegrasi penuh dengan backend SaaS [**Kasir Toko (Web POS)**](https://github.com/rizalahmaddd/kasir-toko). Mendukung mode cloud SaaS (hosted) maupun server sendiri (self-hosted).
 
 ---
 
@@ -45,7 +45,7 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000
   ```
 - 🧪 **Pengujian**: `flutter test --dart-define=HOSTED=true` *(112 unit & widget tests passed)*
 - 🎥 **Video Promosi Vertikal (promo/)**: Video promosi 60s siap tayang di `promo/kasir-toko-promo.mp4`
-- 🌐 **Sistem Backend Web POS**: [Kasir Toko (Web POS)](../kasir-toko)
+- 🌐 **Sistem Backend Web POS**: [Kasir Toko (Web POS)](https://github.com/rizalahmaddd/kasir-toko)
 
 ---
 
