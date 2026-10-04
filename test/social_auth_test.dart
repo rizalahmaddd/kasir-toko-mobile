@@ -14,6 +14,7 @@ void main() {
       expect(config.googleClientId, isNull);
       expect(config.appleEnabled, isFalse);
       expect(config.appleBundleId, isNull);
+      expect(config.otpEnabled, isFalse);
     });
 
     test('parses configured providers correctly', () {
@@ -26,11 +27,15 @@ void main() {
           'enabled': true,
           'bundle_id': 'com.kasir.pos',
         },
+        'whatsapp_otp': {
+          'enabled': true,
+        },
       });
       expect(config.googleEnabled, isTrue);
       expect(config.googleClientId, 'xyz-google.apps.googleusercontent.com');
       expect(config.appleEnabled, isTrue);
       expect(config.appleBundleId, 'com.kasir.pos');
+      expect(config.otpEnabled, isTrue);
     });
   });
 

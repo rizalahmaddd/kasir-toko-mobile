@@ -112,8 +112,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     }
 
     final auth = ref.read(authControllerProvider.notifier);
+    final authConfig = ref.read(authConfigProvider).value;
+    final otpAvailable = authConfig?.otpEnabled ?? false;
+    final activeOtpMode = _otpMode && otpAvailable;
 
-    if (!_otpMode) {
+    if (!activeOtpMode) {
       return _run(() => auth.login(login: _login.text.trim(), password: _password.text));
     }
     if (_otpToken == null) {
@@ -139,7 +142,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final colors = StatusColors.of(context);
     final fieldKeys = ['login', 'password', 'otp', 'otp_token'];
     final generalError = _error != null && fieldKeys.every((key) => _error!.fieldError(key) == null) ? _error!.message : null;
-    final waitingCode = _otpMode && _otpToken != null;
+    final authConfig = ref.watch(authConfigProvider).value;
+    final otpAvailable = authConfig?.otpEnabled ?? false;
+    final activeOtpMode = _otpMode && otpAvailable;
+    final waitingCode = activeOtpMode && _otpToken != null;
 
     return Scaffold(
       backgroundColor: isDark ? AppColors.slate950 : AppColors.slate50,
@@ -231,7 +237,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                           // Title and Subtitle with crisp typography
                           Text(
-                            _otpMode ? AuthStrings.loginTitleOtp : AuthStrings.loginTitlePassword,
+                            activeOtpMode ? AuthStrings.loginTitleOtp : AuthStrings.loginTitlePassword,
                             style: theme.textTheme.headlineSmall?.copyWith(
                               fontWeight: FontWeight.w800,
                               letterSpacing: -0.5,
@@ -240,7 +246,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                           const SizedBox(height: AppSizes.s4),
                           Text(
-                            _otpMode ? AuthStrings.loginSubtitleOtp : AuthStrings.loginSubtitlePassword,
+                            activeOtpMode ? AuthStrings.loginSubtitleOtp : AuthStrings.loginSubtitlePassword,
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color: isDark ? AppColors.slate400 : AppColors.slate500,
                               fontSize: 13,
@@ -248,15 +254,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: AppSizes.s18),
+                          if (otpAvailable) ...[
+                            const SizedBox(height: AppSizes.s18),
 
-                          // Clean Segmented Method Switcher (Password | WhatsApp OTP)
-                          _AuthModeSelector(
-                            otpMode: _otpMode,
-                            isDark: isDark,
-                            disabled: waitingCode || _busy,
-                            onChanged: _switchMode,
-                          ),
+                            // Clean Segmented Method Switcher (Password | WhatsApp OTP)
+                            _AuthModeSelector(
+                              otpMode: _otpMode,
+                              isDark: isDark,
+                              disabled: waitingCode || _busy,
+                              onChanged: _switchMode,
+                            ),
+                          ],
 
                           const SizedBox(height: AppSizes.s20),
 
@@ -265,13 +273,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             controller: _login,
                             autocorrect: false,
                             enabled: !waitingCode && !_busy,
-                            textInputAction: _otpMode ? TextInputAction.done : TextInputAction.next,
-                            onFieldSubmitted: _otpMode && !waitingCode ? (_) => _submit() : null,
+                            textInputAction: activeOtpMode ? TextInputAction.done : TextInputAction.next,
+                            onFieldSubmitted: activeOtpMode && !waitingCode ? (_) => _submit() : null,
                             decoration: InputDecoration(
                               labelText: AuthStrings.loginIdentifierLabel,
-                              hintText: _otpMode ? 'Contoh: 08123456789' : null,
+                              hintText: activeOtpMode ? 'Contoh: 08123456789' : null,
                               prefixIcon: Icon(
-                                _otpMode ? AppIcons.phone : AppIcons.user,
+                                activeOtpMode ? AppIcons.phone : AppIcons.user,
                                 size: AppSizes.s18,
                               ),
                               errorText: _error?.fieldError('login'),
@@ -280,7 +288,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
 
                           // Password Field (Password Mode)
-                          if (!_otpMode) ...[
+                          if (!activeOtpMode) ...[
                             const SizedBox(height: AppSizes.s14),
                             TextFormField(
                               controller: _password,
@@ -411,7 +419,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           _PrimarySubmitButton(
                             busy: _busy,
                             onPressed: _busy ? null : _submit,
-                            label: !_otpMode
+                            label: !activeOtpMode
                                 ? AuthStrings.submitLogin
                                 : (waitingCode ? AuthStrings.submitVerify : AuthStrings.submitSendOtp),
                           ),
