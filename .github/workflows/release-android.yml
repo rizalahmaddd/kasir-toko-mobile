@@ -175,7 +175,7 @@ jobs:
           gh release delete "$TAG_NAME" --yes 2>/dev/null || true
 
           echo "Creating new GitHub release for $TAG_NAME..."
-          gh release create "$TAG_NAME" release-artifacts/* --clobber \
+          gh release create "$TAG_NAME" release-artifacts/* \
             --title "Kasir Toko Mobile $TAG_NAME" \
             --notes "### Release Kasir Toko Mobile \`$TAG_NAME\`
 
