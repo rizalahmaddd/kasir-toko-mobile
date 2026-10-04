@@ -18,7 +18,7 @@ Satu build dapat digunakan dalam dua mode:
   - Login username/email/nomor HP + password atau OTP WhatsApp.
   - Social Login: **Google Sign-In** dan **Sign in with Apple**.
   - Pendaftaran toko baru (pada build hosted).
-  - Profil, ganti password, dan opsi keluar dari seluruh perangkat.
+  - Profil, ganti password, opsi keluar dari seluruh perangkat, dan penghapusan akun mandiri (kepatuhan Play Store / App Store).
 - **Layar Kasir**:
   - Katalog produk dengan filter kategori dan pilihan kepadatan kartu (standar / kompak).
   - Pencarian nama, SKU, dan barcode.
@@ -113,6 +113,23 @@ E2E_SERVER=http://127.0.0.1:8000 flutter test test/e2e
 
 ---
 
+## Materi Promosi & Video Vertikal (`promo/`)
+
+Repositori memuat generator dan aset video promosi vertikal 60 detik (format 9:16 / 1080x1920) siap pakai untuk kampanye media sosial (TikTok, Instagram Reels, YouTube Shorts):
+
+- **Visual & Animasi**: Dibangun menggunakan HTML, GSAP, dan di-render per frame menggunakan Playwright, menampilkan tema dark emerald aplikasi dan 12 fitur unggulan kasir.
+- **Audio & Musik**: Soundtrack sintetis 128 BPM dengan efek suara (SFX) yang tersinkronisasi presisi per adegan.
+- **File Video Jadi**: `promo/kasir-toko-promo.mp4` siap dipublikasikan.
+- **Preview & Re-render**:
+  ```bash
+  cd promo
+  npm install
+  npm run preview  # Menjalankan preview lokal interaktif di browser
+  npm run render   # Merender ulang video MP4 frame-by-frame
+  ```
+
+---
+
 ## Struktur Direktori
 
 ```
@@ -132,4 +149,5 @@ lib/
     dashboard/    Ringkasan performa penjualan dan status operasional
     notifications/Pusat notifikasi dan pencarian global
     home/         Navigasi bottom bar, drawer menu, dan akun toko
+promo/            Generator dan aset video promosi vertikal 60s (HTML/GSAP/Playwright + soundtrack)
 ```
