@@ -1,0 +1,188 @@
+name: Release Android (APK & AAB)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & Release Android (APK & AAB)
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Pub dependencies
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.pub-cache
+          key: ${{ runner.os }}-pub-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-pub-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run unit & widget tests
+        run: flutter test --no-pub --dart-define=HOSTED=true
+
+      - name: Configure Keystore & Signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: |
+          mkdir -p android/app
+          echo "$KEYSTORE_BASE64" | base64 --decode > android/app/upload.jks
+          cat <<EOF > android/key.properties
+          storePassword=$STORE_PASSWORD
+          keyPassword=$KEY_PASSWORD
+          keyAlias=$KEY_ALIAS
+          storeFile=${GITHUB_WORKSPACE}/android/app/upload.jks
+          EOF
+
+      - name: Build Android App Bundle (AAB)
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3584m -Dorg.gradle.vfs.watch=false"
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.1}"
+          RAW_VERSION="${TAG_NAME#v}"
+          if [[ "$RAW_VERSION" =~ ^([^+]+)\+(.+)$ ]]; then
+            VERSION_NAME="${BASH_REMATCH[1]}"
+            BUILD_NUMBER="${BASH_REMATCH[2]}"
+          else
+            VERSION_NAME="$RAW_VERSION"
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "Building AAB for Version: $VERSION_NAME, Build: $BUILD_NUMBER (HOSTED=true)"
+          flutter build appbundle --release --dart-define=HOSTED=true --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+
+          # Flush Gradle daemon memory before next build
+          (cd android && ./gradlew --stop) || true
+
+      - name: Build Split APKs
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx3584m -Dorg.gradle.vfs.watch=false"
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.1}"
+          RAW_VERSION="${TAG_NAME#v}"
+          if [[ "$RAW_VERSION" =~ ^([^+]+)\+(.+)$ ]]; then
+            VERSION_NAME="${BASH_REMATCH[1]}"
+            BUILD_NUMBER="${BASH_REMATCH[2]}"
+          else
+            VERSION_NAME="$RAW_VERSION"
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          fi
+
+          echo "Building Split APKs for Version: $VERSION_NAME, Build: $BUILD_NUMBER (HOSTED=true)"
+          flutter build apk --release --split-per-abi --dart-define=HOSTED=true --build-name="$VERSION_NAME" --build-number="$BUILD_NUMBER"
+
+          (cd android && ./gradlew --stop) || true
+
+      - name: Rename and Package Artifacts
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME:-v1.0.0}"
+          mkdir -p release-artifacts
+
+          # Package Split APKs
+          for apk in build/app/outputs/flutter-apk/app-*-release.apk; do
+            [ -f "$apk" ] || continue
+            filename=$(basename "$apk")
+            abi=$(echo "$filename" | sed -E 's/^app-(.*)-release\.apk$/\1/')
+            target_name="kasirtoko-${TAG_NAME}-${abi}.apk"
+            cp "$apk" "release-artifacts/${target_name}"
+            echo "Packaged APK: $filename -> $target_name"
+          done
+
+          # Package Android App Bundle (.aab)
+          aab="build/app/outputs/bundle/release/app-release.aab"
+          if [ -f "$aab" ]; then
+            target_aab="kasirtoko-${TAG_NAME}.aab"
+            cp "$aab" "release-artifacts/${target_aab}"
+            echo "Packaged AAB: $aab -> $target_aab"
+          else
+            echo "Error: $aab not found!"
+            exit 1
+          fi
+
+          cd release-artifacts
+          sha256sum * > checksums.txt
+          echo "Generated Checksums:"
+          cat checksums.txt
+          cd ..
+
+      - name: Clean sensitive credentials
+        if: always()
+        run: |
+          rm -f android/app/upload.jks android/key.properties
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: kasirtoko-${{ github.ref_name }}-android
+          path: release-artifacts/*
+          if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG_NAME="${GITHUB_REF_NAME}"
+          if [ -z "$TAG_NAME" ] || [ "$TAG_NAME" = "develop" ] || [ "$TAG_NAME" = "main" ]; then
+            TAG_NAME="v1.0.1"
+          fi
+
+          echo "Maintaining single release: deleting older GitHub releases..."
+          for old_tag in $(gh release list --limit 100 --json tagName -q '.[].tagName'); do
+            if [ "$old_tag" != "$TAG_NAME" ]; then
+              echo "Deleting previous release: $old_tag"
+              gh release delete "$old_tag" --yes || true
+            fi
+          done
+
+          # If release for current tag already exists, delete it first to ensure clean recreation
+          gh release delete "$TAG_NAME" --yes 2>/dev/null || true
+
+          echo "Creating new GitHub release for $TAG_NAME..."
+          gh release create "$TAG_NAME" release-artifacts/* \
+            --title "Kasir Toko Mobile $TAG_NAME" \
+            --notes "### Release Kasir Toko Mobile \`$TAG_NAME\`
+
+          Aset rilis ini mencakup file **Android App Bundle (.aab)** resmi untuk Google Play Store serta **Split APK** untuk instalasi langsung:
+          - **\`kasirtoko-${TAG_NAME}.aab\`**: Android App Bundle resmi untuk upload ke Google Play Console.
+          - **\`kasirtoko-${TAG_NAME}-arm64-v8a.apk\`**: Mayoritas smartphone Android modern (64-bit).
+          - **\`kasirtoko-${TAG_NAME}-armeabi-v7a.apk\`**: Smartphone Android generasi lama (32-bit).
+          - **\`kasirtoko-${TAG_NAME}-x86_64.apk\`**: Emulator & perangkat Chromebook/Intel/AMD 64-bit.
+
+          Checksum integritas SHA-256 tersedia di file \`checksums.txt\`."
