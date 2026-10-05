@@ -37,6 +37,9 @@ import 'features/reports/presentation/activity_log_screen.dart';
 import 'features/reports/presentation/sales_report_screen.dart';
 import 'features/sales/presentation/sale_detail_screen.dart';
 import 'features/sales/presentation/sales_screen.dart';
+import 'features/orders/presentation/order_detail_screen.dart';
+import 'features/orders/presentation/order_form_screen.dart';
+import 'features/orders/presentation/orders_screen.dart';
 import 'features/pharmacy/presentation/prescription_detail_screen.dart';
 import 'features/pharmacy/presentation/prescription_form_screen.dart';
 import 'features/pharmacy/presentation/prescriptions_screen.dart';
@@ -91,6 +94,9 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under(AppRoutes.posSettings)) {
     return user.canManagePosSettings;
+  }
+  if (under(AppRoutes.orders) || under(AppRoutes.order)) {
+    return user.canManageOrders;
   }
   if (location == AppRoutes.prescriptionNew) {
     return user.canManagePrescriptions;
@@ -188,6 +194,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page(AppRoutes.outlets, (_) => const OutletsScreen()),
       _page(AppRoutes.outletSettingsPattern, (state) => OutletSettingsScreen(outletId: _id(state))),
       _page(AppRoutes.offline, (_) => const OfflineScreen()),
+      _page(AppRoutes.orders, (_) => const OrdersScreen()),
+      _page(AppRoutes.orderNew, (_) => const OrderFormScreen()),
+      _page(AppRoutes.orderPattern, (state) => OrderDetailScreen(orderId: _id(state))),
       _page(AppRoutes.prescriptions, (_) => const PrescriptionsScreen()),
       _page(AppRoutes.prescriptionNew, (_) => const PrescriptionFormScreen()),
       _page(AppRoutes.prescriptionPattern, (state) => PrescriptionDetailScreen(prescriptionId: _id(state))),

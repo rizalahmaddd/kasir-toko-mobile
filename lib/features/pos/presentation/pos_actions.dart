@@ -12,9 +12,30 @@ import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
 import '../pos_providers.dart';
 import 'widgets/modifier_picker_sheet.dart';
+import 'widgets/serial_picker_sheet.dart';
+import 'widgets/variant_picker_sheet.dart';
 
 /// Menu dengan grup pilihan tambahan membuka pemilih dulu; batal berarti tidak ada yang ditambahkan.
 Future<void> addToCart(BuildContext context, WidgetRef ref, Product product, {double quantity = 1, int? unitId}) async {
+  final config = ref.read(posConfigProvider).value;
+  if ((config?.variantsEnabled ?? false) && product.variants.isNotEmpty) {
+    final variant = await VariantPickerSheet.show(context, product, allowNegativeStock: config?.allowNegativeStock ?? false);
+    if (variant == null || !context.mounted) {
+      return;
+    }
+    product = product.variantProduct(variant);
+  }
+
+  var serials = const <String>[];
+  if ((config?.serialsEnabled ?? false) && product.trackSerial) {
+    final taken = ref.read(cartProvider).items.where((item) => item.productId == product.id).expand((item) => item.serials).toSet();
+    final picked = await SerialPickerSheet.show(context, productId: product.id, title: product.name, selected: [?product.matchedSerial], exclude: taken);
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    serials = picked;
+  }
+
   var modifiers = const <SelectedModifier>[];
   if ((ref.read(posConfigProvider).value?.modifiersEnabled ?? false) && product.modifierGroups.isNotEmpty) {
     final picked = await ModifierPickerSheet.show(context, title: product.name, groups: product.modifierGroups);
@@ -24,7 +45,7 @@ Future<void> addToCart(BuildContext context, WidgetRef ref, Product product, {do
     modifiers = picked;
   }
 
-  final warning = ref.read(cartProvider.notifier).add(product, quantity: quantity, unitId: unitId, modifiers: modifiers);
+final warning = ref.read(cartProvider.notifier).add(product, quantity: quantity, unitId: unitId, modifiers: modifiers, serials: serials);
 
   if (warning != null) {
     final allowNegative = ref.read(posConfigProvider).value?.allowNegativeStock ?? false;
@@ -83,5 +104,18 @@ Future<void> addByCode(BuildContext context, WidgetRef ref, String code) async {
       unawaited(HapticFeedback.heavyImpact());
       showMessage(context, error.statusCode == 404 ? PosStrings.codeNotFound(trimmed) : error.message, isError: true);
     }
+  }
+}
+
+/// Pilih ulang nomor seri baris keranjang; jumlah baris mengikuti banyaknya nomor seri.
+Future<void> editLineSerials(BuildContext context, WidgetRef ref, CartItem item) async {
+  final taken = ref.read(cartProvider).items.where((other) => other.productId == item.productId && other.key != item.key).expand((other) => other.serials).toSet();
+  final picked = await SerialPickerSheet.show(context, productId: item.productId, title: item.name, selected: item.serials, exclude: taken);
+  if (picked == null || !context.mounted) {
+    return;
+  }
+  final warning = ref.read(cartProvider.notifier).setSerials(item.key, picked);
+  if (warning != null) {
+    showMessage(context, warning, isError: true);
   }
 }

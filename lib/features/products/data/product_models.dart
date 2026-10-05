@@ -45,6 +45,10 @@ class ProductRecord {
     this.trackBatch = false,
     this.units = const [],
     this.priceTiers = const [],
+    this.trackSerial = false,
+    this.warrantyDays,
+    this.variantOptions = const [],
+    this.parentId,
   }) : basePrice = basePrice ?? price;
 
   factory ProductRecord.fromJson(Map<String, dynamic> json) => ProductRecord(
@@ -74,7 +78,13 @@ class ProductRecord {
     requiresPrescription: json['requires_prescription'] as bool? ?? false,
     trackBatch: json['track_batch'] as bool? ?? false,
     units: asList(json['units']).map(ProductUnitRecord.fromJson).toList(),
-    priceTiers: asList(json['price_tiers']).map(PriceTier.fromJson).toList(),
+priceTiers: asList(json['price_tiers']).map(PriceTier.fromJson).toList(),
+    trackSerial: json['track_serial'] as bool? ?? false,
+    warrantyDays: json['warranty_days'] == null ? null : asInt(json['warranty_days']),
+    variantOptions: [
+      for (final option in asList(json['variant_options'])) (name: option['name'] as String? ?? '', values: (option['values'] as List? ?? const []).map((v) => '$v').toList()),
+    ],
+    parentId: json['parent_id'] == null ? null : asInt(json['parent_id']),
   );
 
   final int id;
@@ -107,6 +117,12 @@ class ProductRecord {
   final bool trackBatch;
   final List<ProductUnitRecord> units;
   final List<PriceTier> priceTiers;
+  final bool trackSerial;
+  final int? warrantyDays;
+
+  /// Pilihan varian di produk induk, mis. Ukuran: S, M, L.
+  final List<({String name, List<String> values})> variantOptions;
+  final int? parentId;
 
   bool get isOutOfStock => trackStock && stock <= 0;
   int get margin => price - costPrice;

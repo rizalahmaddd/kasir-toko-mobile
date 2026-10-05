@@ -16,6 +16,7 @@ import '../../offline/presentation/offline_checkout_success.dart';
 import '../../sales/data/sale_models.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
+import 'pos_actions.dart';
 import '../data/pos_repository.dart';
 import '../pos_providers.dart';
 import 'checkout_success.dart';
@@ -86,6 +87,13 @@ class CartPanel extends ConsumerWidget {
     if (usesPrescriptions && cart.needsPrescription && !cart.hasPrescription) {
       showMessage(context, PosStrings.prescriptionRequiredBeforePay, isError: true);
       await PrescriptionPickerSheet.show(context);
+      return;
+    }
+
+    final missingSerial = cart.items.where((item) => item.needsSerials).firstOrNull;
+    if (missingSerial != null) {
+      showMessage(context, PosStrings.serialMissing(missingSerial.name), isError: true);
+      await editLineSerials(context, ref, missingSerial);
       return;
     }
 
@@ -208,6 +216,17 @@ class CartPanel extends ConsumerWidget {
           ),
         ),
         if (config?.orderTypeEnabled ?? false) _OrderTypeBar(cart: cart, config: config!),
+        if (cart.customerOrder != null)
+          ListTile(
+            dense: true,
+            leading: const Icon(AppIcons.clipboardList),
+            title: Text(PosStrings.orderSettling(cart.customerOrder!.number, rupiah(cart.customerOrder!.deposit))),
+            trailing: IconButton(
+              tooltip: PosStrings.orderUnlink,
+              icon: const Icon(AppIcons.x, size: AppSizes.s18),
+              onPressed: () => ref.read(cartProvider.notifier).clearCustomerOrder(),
+            ),
+          ),
         if ((ref.watch(currentUserProvider)?.usesPrescriptions ?? false) && (cart.needsPrescription || cart.hasPrescription)) _PrescriptionBar(cart: cart),
         if (!cart.isEmpty)
           Container(

@@ -100,6 +100,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               badgeColor: null,
               isPro: true,
             ),
+          if (user.canManageOrders)
+            (
+              icon: AppIcons.clipboardList,
+              label: HomeStrings.menuOrdersLabel,
+              path: AppRoutes.orders,
+              caption: HomeStrings.menuOrdersCaption,
+              color: AppColors.sky600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
           if (user.canViewPrescriptions)
             (
               icon: AppIcons.fileHeart,

@@ -35,6 +35,20 @@ class UnitDraft {
   }
 }
 
+class VariantOptionDraft {
+  VariantOptionDraft({String name = '', String values = ''})
+      : name = TextEditingController(text: name),
+        values = TextEditingController(text: values);
+
+  final TextEditingController name;
+  final TextEditingController values;
+
+  void dispose() {
+    name.dispose();
+    values.dispose();
+  }
+}
+
 class TierDraft {
   TierDraft({String min = '', String price = ''}) : min = TextEditingController(text: min), price = TextEditingController(text: price);
 
@@ -65,7 +79,11 @@ class ProductBusinessDraft {
             isDefault: unit.isDefault,
           ),
       ],
-      tiers = [for (final tier in product?.priceTiers ?? const <PriceTier>[]) TierDraft(min: editableQuantity(tier.min), price: thousands(tier.price))];
+tiers = [for (final tier in product?.priceTiers ?? const <PriceTier>[]) TierDraft(min: editableQuantity(tier.min), price: thousands(tier.price))],
+        trackSerial = product?.trackSerial ?? false,
+        warrantyDays = TextEditingController(text: product?.warrantyDays?.toString() ?? ''),
+        isVariant = product?.parentId != null,
+        variantOptions = [for (final option in product?.variantOptions ?? const <({String name, List<String> values})>[]) VariantOptionDraft(name: option.name, values: option.values.join(', '))];
 
   final Map<String, String> attributes;
   String? drugClass;
@@ -73,6 +91,12 @@ class ProductBusinessDraft {
   bool trackBatch;
   final List<UnitDraft> units;
   final List<TierDraft> tiers;
+  bool trackSerial;
+  final TextEditingController warrantyDays;
+
+  /// Produk ini sendiri adalah SKU anak, jadi tidak bisa punya varian lagi.
+  final bool isVariant;
+  final List<VariantOptionDraft> variantOptions;
   final batchNumber = TextEditingController();
   DateTime? expiresAt;
 
@@ -83,6 +107,10 @@ class ProductBusinessDraft {
     }
     for (final tier in tiers) {
       tier.dispose();
+    }
+    warrantyDays.dispose();
+    for (final option in variantOptions) {
+      option.dispose();
     }
   }
 
@@ -95,6 +123,15 @@ class ProductBusinessDraft {
       if (user?.usesBatches ?? false) 'track_batch': trackBatch && trackStock,
       if ((user?.usesBatches ?? false) && isNew && trackBatch && batchNumber.text.trim().isNotEmpty) 'batch_number': batchNumber.text.trim(),
       if ((user?.usesBatches ?? false) && isNew && trackBatch && expiresAt != null) 'expires_at': expiresAt!.toIso8601String().substring(0, 10),
+      if (user?.usesSerials ?? false) ...{
+        'track_serial': trackSerial && trackStock,
+        'warranty_days': int.tryParse(warrantyDays.text.trim()),
+      },
+      if ((user?.usesVariants ?? false) && !isVariant)
+        'variant_options': [
+          for (final option in variantOptions)
+            if (option.name.text.trim().isNotEmpty) {'name': option.name.text.trim(), 'values': option.values.text.split(',').map((v) => v.trim()).where((v) => v.isNotEmpty).toList()},
+        ],
       if (user?.usesTieredPrice ?? false)
         'price_tiers': [
           for (final tier in tiers)
@@ -155,8 +192,10 @@ class _ProductBusinessSectionState extends ConsumerState<ProductBusinessSection>
     final showBatch = (user?.usesBatches ?? false) && widget.trackStock;
     final showUnits = user?.usesMultiUnit ?? false;
     final showTiers = user?.usesTieredPrice ?? false;
+    final showSerial = user?.usesSerials ?? false;
+    final showVariants = (user?.usesVariants ?? false) && !_draft.isVariant;
 
-    if (!showAttributes && !showPharmacy && !showBatch && !showUnits && !showTiers) {
+    if (!showAttributes && !showPharmacy && !showBatch && !showUnits && !showTiers && !showSerial && !showVariants) {
       return const SizedBox.shrink();
     }
 
@@ -215,6 +254,49 @@ class _ProductBusinessSectionState extends ConsumerState<ProductBusinessSection>
                 ),
               ],
             ),
+        ],
+        if (showSerial) ...[
+          AppSwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text(BusinessStrings.trackSerial),
+            subtitle: const Text(BusinessStrings.trackSerialHint),
+            value: _draft.trackSerial && widget.trackStock,
+            onChanged: widget.trackStock ? (value) => setState(() => _draft.trackSerial = value) : null,
+          ),
+          TextField(
+            controller: _draft.warrantyDays,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            decoration: InputDecoration(labelText: BusinessStrings.warrantyDays, errorText: error?.call('warranty_days')),
+          ),
+          const SizedBox(height: AppSizes.s12),
+        ],
+        if (showVariants) ...[
+          SectionTitle(
+            BusinessStrings.variantsTitle,
+            trailing: TextButton.icon(
+              onPressed: _draft.variantOptions.length >= 3 ? null : () => setState(() => _draft.variantOptions.add(VariantOptionDraft())),
+              icon: const Icon(AppIcons.plus, size: AppSizes.s16),
+              label: const Text(BusinessStrings.addVariantOption),
+            ),
+          ),
+          Text(BusinessStrings.variantsHint, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          for (final (index, option) in _draft.variantOptions.indexed)
+            Padding(
+              key: ObjectKey(option),
+              padding: const EdgeInsets.only(top: AppSpacing.s8),
+              child: Row(
+                children: [
+                  SizedBox(width: 110, child: TextField(controller: option.name, decoration: const InputDecoration(labelText: BusinessStrings.variantName))),
+                  const SizedBox(width: AppSizes.s12),
+                  Expanded(
+                    child: TextField(controller: option.values, decoration: InputDecoration(labelText: BusinessStrings.variantValues, errorText: error?.call('variant_options.$index.name'))),
+                  ),
+                  IconButton(onPressed: () => setState(() => _draft.variantOptions.removeAt(index).dispose()), icon: const Icon(AppIcons.trash2, size: AppSizes.s18)),
+                ],
+              ),
+            ),
+          const SizedBox(height: AppSizes.s12),
         ],
         if (showTiers) ...[
           SectionTitle(

@@ -75,12 +75,14 @@ class CartController extends Notifier<Cart> {
 
   /// Returns a warning to show the cashier, or null when the item was added as asked. Tanpa [unitId]
   /// dipakai satuan hasil scan barcode, lalu satuan default kasir, lalu satuan dasar.
-  String? add(Product product, {double quantity = 1, int? unitId, List<SelectedModifier> modifiers = const []}) {
+  /// Produk bernomor seri ditambahkan bersama nomor serinya; jumlah baris = banyaknya nomor seri.
+  String? add(Product product, {double quantity = 1, int? unitId, List<SelectedModifier> modifiers = const [], List<String> serials = const []}) {
     final unit = _multiUnit ? (product.unitById(unitId) ?? product.unitById(product.matchedUnitId) ?? (unitId == null ? product.defaultUnit : null)) : null;
     final key = '${product.id}:${unit?.id ?? 0}:${(modifiers.map((m) => m.id).toList()..sort()).join('-')}';
     final index = state.items.indexWhere((item) => item.key == key && (item.note == null || item.note!.isEmpty) && item.discount == 0);
     final current = index == -1 ? 0.0 : state.items[index].quantity;
-    final wanted = current + quantity;
+    final mergedSerials = {...(index == -1 ? const <String>[] : state.items[index].serials), ...serials}.toList();
+    final wanted = product.trackSerial && serials.isNotEmpty ? mergedSerials.length.toDouble() : current + quantity;
     final factor = unit?.factor ?? 1;
     final wantedBase = _otherBase(product.id, key) + wanted * factor;
 
@@ -96,12 +98,13 @@ class CartController extends Notifier<Cart> {
         0,
         CartItem.fromProduct(
           product,
-          quantity: quantity,
+          quantity: wanted,
           unit: unit,
           withUnits: _multiUnit,
           modifiers: modifiers,
           withTiers: _config?.tieredPriceEnabled ?? false,
           withModifiers: _config?.modifiersEnabled ?? false,
+          serials: mergedSerials,
         ),
       );
     } else {
@@ -112,6 +115,7 @@ class CartController extends Notifier<Cart> {
         imageUrl: product.imageUrl,
         basePrice: product.price,
         tiers: (_config?.tieredPriceEnabled ?? false) ? product.tiers : const [],
+        serials: mergedSerials,
       );
     }
     state = state.copyWith(items: items);
@@ -138,7 +142,7 @@ class CartController extends Notifier<Cart> {
       return error;
     }
 
-    _replace(key, (item) => item.copyWith(quantity: quantity));
+    _replace(key, (item) => item.copyWith(quantity: quantity, serials: item.serials.length > quantity ? item.serials.take(quantity.round()).toList() : null));
     return null;
   }
 
@@ -158,6 +162,46 @@ class CartController extends Notifier<Cart> {
 
       return base.copyWith(quantity: quantity, discount: discount, note: note, clearNote: note == null || note.isEmpty);
     });
+  }
+
+  /// Jumlah baris mengikuti nomor seri yang dipilih. Null bila stok mengizinkan, selain itu pesan untuk kasir.
+  String? setSerials(String key, List<String> serials) {
+    final item = state.items.firstWhere((item) => item.key == key);
+    final problem = stockProblem(item, serials.length.toDouble(), item.factor);
+    if (problem != null) {
+      return problem;
+    }
+    if (serials.isEmpty) {
+      remove(key);
+      return null;
+    }
+
+    _replace(key, (item) => item.copyWith(serials: serials, quantity: serials.length.toDouble()));
+    return null;
+  }
+
+  /// Muat barang pesanan untuk dilunasi; uang mukanya dipotong dari total saat checkout.
+  void loadOrder(LinkedOrder order, List<({Product product, double quantity, String? note})> lines, {CustomerOption? customer}) {
+    state = Cart(
+      clientUuid: _uuid.v4(),
+      orderType: _defaultOrderType,
+      customer: customer,
+      customerOrder: order,
+      items: [
+        for (final line in lines)
+          CartItem.fromProduct(
+            line.product,
+            quantity: line.quantity,
+            withUnits: _multiUnit,
+            withTiers: _config?.tieredPriceEnabled ?? false,
+            withModifiers: false,
+          ).copyWith(note: line.note),
+      ],
+    );
+  }
+
+  void clearCustomerOrder() {
+    state = state.copyWith(clearCustomerOrder: true);
   }
 
   void setModifiers(String key, List<SelectedModifier> modifiers) {
@@ -300,6 +344,11 @@ class CartController extends Notifier<Cart> {
                 item,
           ],
         );
+      case 'serial_unavailable':
+        final serials = (context['serials'] as List? ?? const []).map((s) => '$s').toSet();
+        state = state.copyWith(items: [for (final item in state.items) item.copyWith(serials: item.serials.where((s) => !serials.contains(s)).toList())]);
+      case 'order_closed':
+        state = state.copyWith(clearCustomerOrder: true);
       case 'modifier_unavailable':
         final ids = (context['modifier_ids'] as List? ?? const []).map((id) => (id as num).toInt()).toSet();
         state = state.copyWith(items: [for (final item in state.items) item.copyWith(modifiers: item.modifiers.where((m) => !ids.contains(m.id)).toList())]);

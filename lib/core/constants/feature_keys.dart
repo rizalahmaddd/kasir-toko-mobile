@@ -18,6 +18,10 @@ abstract final class FeatureKeys {
   static const orderType = 'business.order-type';
   static const batchExpiry = 'business.batch-expiry';
   static const prescription = 'business.prescription';
+  static const variants = 'business.variants';
+  static const serialNumber = 'business.serial-number';
+  static const preOrder = 'business.pre-order';
+  static const deliveryNote = 'business.delivery-note';
 }
 
 /// Nama izin (permission) yang dipakai aturan akses.
@@ -36,4 +40,5 @@ abstract final class PermissionKeys {
   static const prescriptionView = 'pharmacy.prescription.view';
   static const prescriptionManage = 'pharmacy.prescription.manage';
   static const prescriptionVerify = 'pharmacy.prescription.verify';
+  static const ordersManage = 'orders.manage';
 }

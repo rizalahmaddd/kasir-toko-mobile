@@ -247,6 +247,8 @@ abstract final class HomeStrings {
   static const menuSectionSales = 'Penjualan';
   static const menuPrescriptionsLabel = 'Resep';
   static const menuPrescriptionsCaption = 'Resep dokter & verifikasi apoteker';
+  static const menuOrdersLabel = 'Pesanan & Servis';
+  static const menuOrdersCaption = 'Pre-order, DP, dan tiket servis';
   static const menuSectionProductsStock = 'Produk & Stok';
   static const menuSectionReportsActivity = 'Laporan & Aktivitas';
   static const menuSectionSettingsOthers = 'Pengaturan & Lainnya';
@@ -513,6 +515,20 @@ abstract final class PosStrings {
   static String tableLabel(String table) => 'Meja $table';
 
   static const modifierSheetSubtitle = 'Pilih varian pesanan. Harga tambahan dihitung per porsi.';
+  static const variantSheetSubtitle = 'Pilih varian yang dibeli. Stok dihitung per varian.';
+  static String variantStock(String stock) => 'Stok $stock';
+  static const variantUntracked = 'Stok tidak dilacak';
+  static const serialSheetSubtitle = 'Pilih unit yang diserahkan. Jumlah barang mengikuti banyaknya nomor seri.';
+  static const serialManualHint = 'Scan / ketik nomor seri';
+  static const serialAdd = 'Tambah';
+  static const serialNoneAvailable = 'Tidak ada nomor seri tersedia di outlet ini. Ketik nomor serinya bila sedang offline.';
+  static const serialPickOne = 'Pilih atau scan minimal satu nomor seri.';
+  static String serialUse(int count) => 'Pakai $count unit';
+  static const serialPick = 'Pilih nomor seri';
+  static String serialMissing(String name) => 'Pilih nomor seri $name sebanyak jumlahnya.';
+  static String orderSettling(String number, String deposit) => 'Pelunasan $number · DP $deposit';
+  static String amountDueLabel(String deposit) => 'Sisa bayar (DP $deposit sudah diterima)';
+  static const orderUnlink = 'Lepas pesanan';
   static const modifierAdd = 'Tambah ke Keranjang';
   static String modifierAddWithPrice(String extra) => 'Tambah (+$extra)';
   static const modifierSave = 'Simpan Pilihan';
@@ -955,6 +971,18 @@ abstract final class ProductStrings {
 }
 
 abstract final class SalesStrings {
+  static const orderLabel = 'Pesanan';
+  static const customerOrderLabel = 'Pelunasan pesanan';
+  static const deliveryNotesTitle = 'Surat jalan';
+  static const delivered = 'DITERIMA';
+  static const sent = 'DIKIRIM';
+  static const markDelivered = 'Tandai diterima';
+  static const createDeliveryNote = 'Buat Surat Jalan';
+  static const recipient = 'Penerima';
+  static const recipientPhone = 'Telepon penerima';
+  static const deliveryAddress = 'Alamat kirim';
+  static const deliveryProject = 'Proyek / keterangan';
+  static const deliveryNoteCreated = 'Surat jalan dibuat. Cetak dari web bila perlu.';
   // Status & badge
   static const allStatuses = 'Semua Status';
   static const statusCompleted = 'Selesai';
@@ -1745,6 +1773,16 @@ abstract final class BusinessStrings {
   static const expiresAtPick = 'Pilih tanggal';
   static const unitsTitle = 'Satuan jual lain';
   static const tiersTitle = 'Harga grosir';
+  static const serialsField = 'Nomor seri / IMEI';
+  static const serialsHint = 'Satu per baris, sebanyak jumlah unit';
+  static const trackSerial = 'Catat nomor seri / IMEI';
+  static const trackSerialHint = 'Tiap unit dicatat nomor serinya saat stok masuk dan dipilih kasir saat dijual.';
+  static const warrantyDays = 'Garansi (hari)';
+  static const variantsTitle = 'Varian (ukuran, warna, dll.)';
+  static const variantsHint = 'Setiap kombinasi jadi SKU sendiri. Produk ini jadi induk dan tidak dijual langsung.';
+  static const addVariantOption = 'Tambah pilihan';
+  static const variantName = 'Nama pilihan';
+  static const variantValues = 'Nilai (pisah koma)';
   static String tiersHint(String unit) => 'Harga per $unit turun otomatis di kasir saat jumlah beli mencapai batasnya.';
   static const addTier = 'Tambah tingkat';
   static String tierMin(String unit) => 'Mulai beli ($unit)';
@@ -1764,4 +1802,62 @@ abstract final class BusinessStrings {
   static const capabilitiesTitle = 'Fitur khusus usaha';
   static const capabilitiesHint = 'Bisa dinyalakan atau dimatikan lagi kapan saja di Pengaturan Fitur (web).';
   static const recommended = 'DISARANKAN';
+}
+
+abstract final class OrderStrings {
+  static const screenTitle = 'Pesanan & Servis';
+  static const newTitle = 'Pesanan Baru';
+  static const searchHint = 'Cari nomor, nama, telepon, atau IMEI';
+  static const statusFilter = 'Status';
+  static const statusOpen = 'Belum selesai';
+  static const statusReady = 'Siap diambil';
+  static const statusDone = 'Selesai';
+  static const statusCancelled = 'Dibatalkan';
+  static const statusAll = 'Semua';
+  static const statusLabels = {'new': 'Diterima', 'in_progress': 'Dikerjakan', 'ready': 'Siap Diambil'};
+  static const empty = 'Belum ada pesanan';
+  static const emptyHint = 'Catat pesanan kue, barang pre-order, atau HP yang diservis. Uang muka langsung masuk laci shift Anda.';
+  static String pickup(String at) => 'Ambil $at';
+  static String depositShort(String amount) => 'DP $amount';
+  static const customer = 'Pelanggan';
+  static const customerName = 'Nama pemesan';
+  static const phone = 'Telepon';
+  static const pickupLabel = 'Tanggal & jam ambil';
+  static const estimatedDone = 'Perkiraan selesai';
+  static const device = 'Perangkat';
+  static const complaint = 'Keluhan';
+  static const notes = 'Catatan';
+  static const notesHint = 'Desain, warna, tulisan, atau permintaan khusus';
+  static const items = 'Barang / biaya';
+  static const freeLine = 'Tanpa produk';
+  static const addProduct = 'Tambah produk';
+  static const itemName = 'Nama barang / jasa';
+  static const qty = 'Jumlah';
+  static const price = 'Harga';
+  static const lineNote = 'Catatan baris';
+  static const payment = 'Pembayaran';
+  static const estimate = 'Perkiraan total';
+  static const deposit = 'Uang muka (DP)';
+  static const remaining = 'Sisa (perkiraan)';
+  static const amount = 'Nominal';
+  static const method = 'Metode';
+  static const typeOrder = 'Pesanan';
+  static const typeService = 'Servis';
+  static const errName = 'Isi nama pemesan.';
+  static const errItems = 'Tambahkan minimal satu barang pesanan.';
+  static const save = 'Simpan Pesanan';
+  static const saving = 'Menyimpan…';
+  static const saved = 'Pesanan disimpan.';
+  static const settle = 'Lunasi di Kasir';
+  static const payTitle = 'Terima Uang Muka';
+  static const saveDeposit = 'Simpan';
+  static const depositSaved = 'Uang muka dicatat.';
+  static const statusChanged = 'Status diubah.';
+  static const cancelTitle = 'Batalkan Pesanan';
+  static const cancelReason = 'Alasan pembatalan';
+  static String refund(String amount) => 'Kembalikan uang muka ($amount)';
+  static const cancelled = 'Pesanan dibatalkan.';
+  static const back = 'Kembali';
+  static String loadedToCart(String number) => 'Pesanan $number dimuat ke kasir. DP dipotong dari total.';
+  static String loadedWithSkipped(String names) => 'Tidak dimuat (bukan produk aktif): $names. Tambahkan manual bila perlu.';
 }

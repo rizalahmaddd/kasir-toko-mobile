@@ -40,6 +40,10 @@ class PosConfig {
     this.orderTypeEnabled = false,
     this.modifiersEnabled = false,
     this.tieredPriceEnabled = false,
+    this.variantsEnabled = false,
+    this.serialsEnabled = false,
+    this.preOrderEnabled = false,
+    this.deliveryNoteEnabled = false,
   });
 
   factory PosConfig.fromJson(Map<String, dynamic> json) => PosConfig(
@@ -61,8 +65,12 @@ class PosConfig {
     serviceChargeDineInOnly: json['service_charge_dine_in_only'] as bool? ?? false,
     orderTypeEnabled: json['order_type_enabled'] as bool? ?? false,
     modifiersEnabled: json['modifiers_enabled'] as bool? ?? false,
-    tieredPriceEnabled: json['tiered_price_enabled'] as bool? ?? false,
-  );
+tieredPriceEnabled: json['tiered_price_enabled'] as bool? ?? false,
+        variantsEnabled: json['variants_enabled'] as bool? ?? false,
+        serialsEnabled: json['serials_enabled'] as bool? ?? false,
+        preOrderEnabled: json['pre_order_enabled'] as bool? ?? false,
+        deliveryNoteEnabled: json['delivery_note_enabled'] as bool? ?? false,
+      );
 
   final double taxRate;
   final String taxLabel;
@@ -83,6 +91,10 @@ class PosConfig {
   final bool orderTypeEnabled;
   final bool modifiersEnabled;
   final bool tieredPriceEnabled;
+  final bool variantsEnabled;
+  final bool serialsEnabled;
+  final bool preOrderEnabled;
+  final bool deliveryNoteEnabled;
 
   /// Persen service charge untuk tipe pesanan ini (0 bila tidak dipungut).
   double serviceRateFor(String? orderType) {
@@ -127,6 +139,32 @@ abstract final class OrderTypes {
   static const delivery = 'delivery';
 
   static const all = [dineIn, takeAway, delivery];
+}
+
+class VariantOption {
+  const VariantOption({required this.id, required this.name, this.label, this.sku, this.barcode, required this.price, required this.stock, this.trackStock = true, this.trackSerial = false});
+
+  factory VariantOption.fromJson(Map<String, dynamic> json) => VariantOption(
+        id: _int(json['id']),
+        name: json['name'] as String? ?? '',
+        label: json['label'] as String?,
+        sku: json['sku'] as String?,
+        barcode: json['barcode'] as String?,
+        price: _int(json['price']),
+        stock: _double(json['stock']),
+        trackStock: json['track_stock'] as bool? ?? true,
+        trackSerial: json['track_serial'] as bool? ?? false,
+      );
+
+  final int id;
+  final String name;
+  final String? label;
+  final String? sku;
+  final String? barcode;
+  final int price;
+  final double stock;
+  final bool trackStock;
+  final bool trackSerial;
 }
 
 class ModifierOption {
@@ -215,6 +253,10 @@ class Product {
     this.matchedUnitId,
     this.tiers = const [],
     this.modifierGroups = const [],
+    this.variants = const [],
+    this.trackSerial = false,
+    this.matchedSerial,
+    this.variantLabel,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -234,9 +276,13 @@ class Product {
     requiresPrescription: json['requires_prescription'] as bool? ?? false,
     drugClassLabel: json['drug_class_label'] as String?,
     matchedUnitId: json['matched_unit_id'] == null ? null : _int(json['matched_unit_id']),
-    tiers: _tiers(json['price_tiers']),
-    modifierGroups: _groups(json['modifier_groups']),
-  );
+        tiers: _tiers(json['price_tiers']),
+        modifierGroups: _groups(json['modifier_groups']),
+        variants: (json['variants'] as List? ?? const []).cast<Map<String, dynamic>>().map(VariantOption.fromJson).toList(),
+        trackSerial: json['track_serial'] as bool? ?? false,
+        matchedSerial: json['matched_serial'] as String?,
+        variantLabel: json['variant_label'] as String?,
+      );
 
   final int id;
   final String name;
@@ -258,6 +304,31 @@ class Product {
   final int? matchedUnitId;
   final List<PriceTier> tiers;
   final List<ModifierGroupOption> modifierGroups;
+
+  /// SKU anak; produk induk tidak bisa dijual langsung.
+  final List<VariantOption> variants;
+  final bool trackSerial;
+
+  /// Nomor seri yang cocok dengan hasil scan (lookup), langsung dipilih di keranjang.
+  final String? matchedSerial;
+  final String? variantLabel;
+
+  /// SKU anak sebagai produk keranjang; satuan, grosir, dan pilihan tambahan induk tidak berlaku untuk anak.
+  Product variantProduct(VariantOption variant) => Product(
+        id: variant.id,
+        name: variant.name,
+        sku: variant.sku,
+        barcode: variant.barcode,
+        unit: unit,
+        price: variant.price,
+        trackStock: variant.trackStock,
+        stock: variant.stock,
+        categoryName: categoryName,
+        categoryId: categoryId,
+        imageUrl: imageUrl,
+        trackSerial: variant.trackSerial,
+        variantLabel: variant.label,
+      );
 
   bool get isOutOfStock => trackStock && stock <= 0;
 
@@ -307,6 +378,8 @@ class CartItem {
     this.tiers = const [],
     this.modifierGroups = const [],
     this.tierPrice,
+    this.trackSerial = false,
+    this.serials = const [],
   });
 
   factory CartItem.fromProduct(
@@ -317,6 +390,7 @@ class CartItem {
     List<SelectedModifier> modifiers = const [],
     bool withTiers = true,
     bool withModifiers = true,
+    List<String> serials = const [],
   }) => CartItem(
     productId: product.id,
     name: product.name,
@@ -334,9 +408,11 @@ class CartItem {
     units: withUnits ? product.units : const [],
     requiresPrescription: product.requiresPrescription,
     modifiers: modifiers,
-    tiers: withTiers ? product.tiers : const [],
-    modifierGroups: withModifiers ? product.modifierGroups : const [],
-  );
+tiers: withTiers ? product.tiers : const [],
+        modifierGroups: withModifiers ? product.modifierGroups : const [],
+        trackSerial: product.trackSerial,
+        serials: serials,
+      );
 
   /// Same keys as the web cashier's cart so held orders resume on either device.
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
@@ -358,9 +434,11 @@ class CartItem {
     units: (json['units'] as List? ?? const []).cast<Map<String, dynamic>>().map(ProductUnitOption.fromJson).toList(),
     requiresPrescription: json['rx'] as bool? ?? false,
     modifiers: (json['modifiers'] as List? ?? const []).cast<Map<String, dynamic>>().map(SelectedModifier.fromJson).toList(),
-    tiers: _tiers(json['tiers']),
-    modifierGroups: _groups(json['modifier_groups']),
-  );
+        tiers: _tiers(json['tiers']),
+        modifierGroups: _groups(json['modifier_groups']),
+        trackSerial: json['serial'] as bool? ?? false,
+        serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
+      );
 
   final int productId;
   final String name;
@@ -389,6 +467,12 @@ class CartItem {
 
   /// Harga grosir yang sedang berlaku, diisi keranjang dari jumlah semua baris satuan dasar produk ini.
   final int? tierPrice;
+  final bool trackSerial;
+
+  /// Nomor seri unit yang diserahkan; jumlahnya harus sama dengan quantity.
+  final List<String> serials;
+
+  bool get needsSerials => trackSerial && serials.length != quantity.round();
 
   /// Satu produk boleh muncul di beberapa baris dengan satuan atau pilihan tambahan berbeda.
   String get key => '$productId:${unitId ?? 0}:$modifierKey';
@@ -432,6 +516,7 @@ class CartItem {
     List<ModifierGroupOption>? modifierGroups,
     int? tierPrice,
     bool clearTierPrice = false,
+    List<String>? serials,
   }) => CartItem(
     productId: productId,
     name: name,
@@ -453,8 +538,10 @@ class CartItem {
     modifiers: modifiers ?? this.modifiers,
     tiers: tiers ?? this.tiers,
     modifierGroups: modifierGroups ?? this.modifierGroups,
-    tierPrice: clearTierPrice ? null : tierPrice ?? this.tierPrice,
-  );
+tierPrice: clearTierPrice ? null : tierPrice ?? this.tierPrice,
+        trackSerial: trackSerial,
+        serials: serials ?? this.serials,
+      );
 
   /// Pindah satuan: harga & faktor ikut satuan baru; null kembali ke satuan dasar.
   CartItem withUnit(ProductUnitOption? option) => CartItem(
@@ -475,10 +562,12 @@ class CartItem {
     basePrice: basePrice,
     units: units,
     requiresPrescription: requiresPrescription,
-    modifiers: modifiers,
-    tiers: tiers,
-    modifierGroups: modifierGroups,
-  );
+        modifiers: modifiers,
+        tiers: tiers,
+        modifierGroups: modifierGroups,
+        trackSerial: trackSerial,
+        serials: serials,
+      );
 
   Map<String, dynamic> toJson() => {
     'product_id': productId,
@@ -500,8 +589,10 @@ class CartItem {
     'rx': requiresPrescription,
     'modifiers': modifiers.map((m) => m.toJson()).toList(),
     if (tiers.isNotEmpty) 'tiers': tiers.map((t) => t.toJson()).toList(),
-    if (modifierGroups.isNotEmpty) 'modifier_groups': modifierGroups.map((g) => g.toJson()).toList(),
-  };
+if (modifierGroups.isNotEmpty) 'modifier_groups': modifierGroups.map((g) => g.toJson()).toList(),
+        if (trackSerial) 'serial': true,
+        if (serials.isNotEmpty) 'serials': serials,
+      };
 
   Map<String, dynamic> toCheckoutJson() => {
     'product_id': productId,
@@ -510,8 +601,9 @@ class CartItem {
     'price': unitPrice,
     'discount': discount,
     'note': note,
-    if (modifiers.isNotEmpty) 'modifiers': modifiers.map((m) => {'id': m.id, 'name': m.name, 'price': m.price}).toList(),
-  };
+if (modifiers.isNotEmpty) 'modifiers': modifiers.map((m) => {'id': m.id, 'name': m.name, 'price': m.price}).toList(),
+        if (trackSerial) 'serials': serials,
+      };
 }
 
 enum DiscountType { percent, amount }
@@ -558,6 +650,7 @@ class Cart {
     this.orderType,
     this.table,
     this.kitchenSent = const {},
+    this.customerOrder,
   });
 
   factory Cart.fromJson(Map<String, dynamic> json, {required String fallbackUuid}) {
@@ -580,7 +673,8 @@ class Cart {
           : null,
       orderType: json['orderType'] as String?,
       table: json['table'] as String?,
-      kitchenSent: {for (final entry in (json['kitchenSent'] is Map ? json['kitchenSent'] as Map : const {}).entries) '${entry.key}': _double(entry.value)},
+kitchenSent: {for (final entry in (json['kitchenSent'] is Map ? json['kitchenSent'] as Map : const {}).entries) '${entry.key}': _double(entry.value)},
+      customerOrder: json['customerOrder'] is Map<String, dynamic> ? LinkedOrder.fromJson(json['customerOrder'] as Map<String, dynamic>) : null,
     );
   }
 
@@ -597,6 +691,17 @@ class Cart {
 
   /// Jumlah per penanda baris yang sudah dikirim ke dapur (dari open bill), dibawa bolak-balik ke server.
   final Map<String, double> kitchenSent;
+
+  /// Pesanan yang sedang dilunasi; uang mukanya dipotong dari total.
+  final LinkedOrder? customerOrder;
+
+  /// Yang masih harus dibayar di kasir: total dikurangi uang muka pesanan.
+  int amountDue(PosConfig? config) {
+    final total = totalsFor(config).total;
+    final deposit = customerOrder?.deposit ?? 0;
+
+    return total > deposit ? total - deposit : 0;
+  }
 
   bool get isEmpty => items.isEmpty;
 
@@ -629,6 +734,8 @@ class Cart {
     String? table,
     bool clearTable = false,
     Map<String, double>? kitchenSent,
+    LinkedOrder? customerOrder,
+    bool clearCustomerOrder = false,
   }) => Cart(
     clientUuid: clientUuid ?? this.clientUuid,
     items: items ?? this.items,
@@ -640,8 +747,9 @@ class Cart {
     prescriptionDraft: clearPrescription ? null : prescriptionDraft ?? this.prescriptionDraft,
     orderType: orderType ?? this.orderType,
     table: clearTable ? null : table ?? this.table,
-    kitchenSent: kitchenSent ?? this.kitchenSent,
-  );
+kitchenSent: kitchenSent ?? this.kitchenSent,
+        customerOrder: clearCustomerOrder ? null : customerOrder ?? this.customerOrder,
+      );
 
   Map<String, dynamic> toJson({int? total}) => {
     'client_uuid': clientUuid,
@@ -654,9 +762,23 @@ class Cart {
     'prescriptionDraft': prescriptionDraft?.toJson(),
     'orderType': ?orderType,
     if (table != null && table!.isNotEmpty) 'table': table,
-    if (kitchenSent.isNotEmpty) 'kitchenSent': kitchenSent,
+if (kitchenSent.isNotEmpty) 'kitchenSent': kitchenSent,
+        'customerOrder': ?customerOrder?.toJson(),
     'total': ?total,
   };
+}
+
+/// Pesanan (pre-order/servis) yang dilunasi lewat keranjang ini.
+class LinkedOrder {
+  const LinkedOrder({required this.id, required this.number, required this.deposit});
+
+  factory LinkedOrder.fromJson(Map<String, dynamic> json) => LinkedOrder(id: _int(json['id']), number: json['number'] as String? ?? '', deposit: _int(json['deposit']));
+
+  final int id;
+  final String number;
+  final int deposit;
+
+  Map<String, dynamic> toJson() => {'id': id, 'number': number, 'deposit': deposit};
 }
 
 /// Resep tersimpan yang ditautkan ke keranjang.

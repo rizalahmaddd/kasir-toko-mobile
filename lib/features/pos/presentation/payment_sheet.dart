@@ -96,11 +96,14 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
   PosConfig get _config => ref.read(posConfigProvider).requireValue;
 
-  int get _total => ref.read(cartProvider).totalsFor(_config).total;
+int get _total => ref.read(cartProvider).totalsFor(_config).total;
+
+  /// Yang dibayar di kasir; uang muka pesanan yang dilunasi sudah dipotong.
+  int get _due => ref.read(cartProvider).amountDue(_config);
 
   int get _committed => _lines.fold(0, (sum, line) => sum + line.amount);
 
-  int get _remaining => (_total - _committed).clamp(0, _total);
+int get _remaining => (_due - _committed).clamp(0, _due);
 
   int get _entered => parseRupiah(_amount.text);
 
@@ -180,9 +183,9 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     final payments = _allPayments();
     final paid = payments.fold(0, (sum, payment) => sum + payment.amount);
     final nonCash = payments.where((payment) => payment.method != PaymentMethods.cash).fold(0, (sum, payment) => sum + payment.amount);
-    final shortfall = _total - paid;
+    final shortfall = _due - paid;
 
-    if (nonCash > _total) {
+    if (nonCash > _due) {
       setState(() => _error = PosStrings.errNonCashExceedsTotal);
       return;
     }
@@ -237,7 +240,8 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     final totals = cart.totalsFor(_config);
     final labels = {for (final method in _config.paymentMethods) method.value: method.label};
     final cash = payments.where((p) => p.method == PaymentMethods.cash).fold(0, (sum, p) => sum + p.amount);
-    final change = paid > totals.total ? paid - totals.total : 0;
+    final due = cart.amountDue(_config);
+    final change = paid > due ? paid - due : 0;
     final now = DateTime.now();
     final sale = QueuedSale(
       payload: PosRepository.checkoutPayload(cart: cart, payments: payments, expectedTotal: totals.total, config: _config),
@@ -363,7 +367,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
   Widget build(BuildContext context) {
     final config = ref.watch(posConfigProvider).requireValue;
     final colors = StatusColors.of(context);
-    final total = _total;
+    final total = _due;
     final remaining = _remaining;
     final change = _isCash ? _entered - remaining : 0;
 

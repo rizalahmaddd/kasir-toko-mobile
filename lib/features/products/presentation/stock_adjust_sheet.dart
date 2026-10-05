@@ -44,6 +44,7 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
   final _cost = TextEditingController();
   final _note = TextEditingController();
   final _batchNumber = TextEditingController();
+  final _serials = TextEditingController();
   DateTime? _expiresAt;
   int? _unitId;
   int? _batchId;
@@ -52,6 +53,8 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
   ApiException? _error;
 
   bool get _isOpname => widget.type == MovementTypes.opname;
+
+  bool get _usesSerials => (ref.read(currentUserProvider)?.usesSerials ?? false) && widget.product.trackSerial && widget.type != MovementTypes.opname;
 
   bool get _usesBatches => (ref.read(currentUserProvider)?.usesBatches ?? false) && widget.product.trackBatch;
 
@@ -77,6 +80,7 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
     _cost.dispose();
     _note.dispose();
     _batchNumber.dispose();
+    _serials.dispose();
     super.dispose();
   }
 
@@ -115,6 +119,7 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
             batchNumber: _usesBatches && widget.type == MovementTypes.stockIn ? _batchNumber.text.trim() : null,
             expiresAt: _usesBatches && widget.type == MovementTypes.stockIn ? _expiresAt : null,
             batchId: _batchId,
+            serials: _usesSerials ? _serials.text.split(RegExp(r'[\n,;]+')).map((s) => s.trim()).where((s) => s.isNotEmpty).toList() : null,
           );
       ref.read(dataChangesProvider).after({DataChange.products});
       if (mounted) {
@@ -185,6 +190,16 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
         if (widget.type == MovementTypes.stockIn) ...[
           const SizedBox(height: AppSizes.s12),
           MoneyField(controller: _cost, label: ProductStrings.unitCostField(_unit?.name ?? product.unit), errorText: _error?.fieldError('unit_cost')),
+        ],
+        if (_usesSerials) ...[
+          const SizedBox(height: AppSizes.s12),
+          TextField(
+            controller: _serials,
+            maxLines: 4,
+            minLines: 2,
+            textCapitalization: TextCapitalization.characters,
+            decoration: InputDecoration(labelText: BusinessStrings.serialsField, hintText: BusinessStrings.serialsHint, errorText: _error?.fieldError('serials')),
+          ),
         ],
         if (_usesBatches && widget.type == MovementTypes.stockIn) ...[
           const SizedBox(height: AppSizes.s12),

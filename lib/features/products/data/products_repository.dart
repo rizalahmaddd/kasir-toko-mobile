@@ -162,6 +162,7 @@ class ProductsRepository {
     String? batchNumber,
     DateTime? expiresAt,
     int? batchId,
+    List<String>? serials,
   }) async {
     final body = await _api.post(
       'inventory/adjustments',
@@ -175,6 +176,7 @@ class ProductsRepository {
         'batch_number': ?batchNumber,
         if (expiresAt != null) 'expires_at': expiresAt.toIso8601String().substring(0, 10),
         'batch_id': ?batchId,
+        'serials': ?serials,
       },
     );
 

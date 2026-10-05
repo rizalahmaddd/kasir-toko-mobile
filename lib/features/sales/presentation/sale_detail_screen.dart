@@ -20,6 +20,8 @@ import 'receipt_sheet.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_radius.dart';
 import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import '../../auth/access.dart';
+import '../../../core/widgets/common.dart';
 
 class SaleDetailScreen extends ConsumerWidget {
   const SaleDetailScreen({super.key, required this.saleId});
@@ -58,6 +60,66 @@ class SaleDetailScreen extends ConsumerWidget {
     }
   }
 
+  Future<void> _deliver(BuildContext context, WidgetRef ref, SaleDetail sale) async {
+    final recipient = TextEditingController(text: sale.customer?.name ?? '');
+    final phone = TextEditingController(text: sale.customer?.phone ?? '');
+    final address = TextEditingController();
+    final project = TextEditingController();
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(SalesStrings.createDeliveryNote),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(controller: recipient, decoration: const InputDecoration(labelText: SalesStrings.recipient)),
+              TextField(controller: phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: SalesStrings.recipientPhone)),
+              TextField(controller: address, maxLines: 2, decoration: const InputDecoration(labelText: SalesStrings.deliveryAddress)),
+              TextField(controller: project, decoration: const InputDecoration(labelText: SalesStrings.deliveryProject)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text(OrderStrings.back)),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text(OrderStrings.saveDeposit)),
+        ],
+      ),
+    );
+
+    final data = {'recipient': recipient.text.trim(), 'phone': phone.text.trim(), 'address': address.text.trim(), 'project': project.text.trim()};
+    for (final controller in [recipient, phone, address, project]) {
+      controller.dispose();
+    }
+    if (confirmed != true || !context.mounted) {
+      return;
+    }
+
+    try {
+      await ref.read(salesRepositoryProvider).createDeliveryNote(sale.id, data);
+      ref.invalidate(saleDetailProvider(saleId));
+      if (context.mounted) {
+        showMessage(context, SalesStrings.deliveryNoteCreated);
+      }
+    } on ApiException catch (error) {
+      if (context.mounted) {
+        showError(context, error);
+      }
+    }
+  }
+
+  Future<void> _delivered(BuildContext context, WidgetRef ref, int noteId) async {
+    try {
+      await ref.read(salesRepositoryProvider).markDelivered(noteId);
+      ref.invalidate(saleDetailProvider(saleId));
+    } on ApiException catch (error) {
+      if (context.mounted) {
+        showError(context, error);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final sale = ref.watch(saleDetailProvider(saleId));
@@ -77,18 +139,26 @@ class SaleDetailScreen extends ConsumerWidget {
       body: AsyncView(
         value: sale,
         onRetry: () => ref.invalidate(saleDetailProvider(saleId)),
-        data: (sale) => _Body(sale: sale, showOutlet: ref.watch(currentUserProvider)?.hasMultipleOutlets ?? false, onVoid: () => _void(context, ref, sale)),
+        data: (sale) => _Body(
+          sale: sale,
+          showOutlet: ref.watch(currentUserProvider)?.hasMultipleOutlets ?? false,
+          onVoid: () => _void(context, ref, sale),
+          onDeliver: (ref.watch(currentUserProvider)?.usesDeliveryNotes ?? false) && !sale.isVoided ? () => _deliver(context, ref, sale) : null,
+          onDelivered: (ref.watch(currentUserProvider)?.usesDeliveryNotes ?? false) ? (id) => _delivered(context, ref, id) : null,
+        ),
       ),
     );
   }
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.sale, required this.onVoid, this.showOutlet = false});
+  const _Body({required this.sale, required this.onVoid, this.showOutlet = false, this.onDeliver, this.onDelivered});
 
   final SaleDetail sale;
   final bool showOutlet;
   final VoidCallback onVoid;
+  final VoidCallback? onDeliver;
+  final void Function(int noteId)? onDelivered;
 
   @override
   Widget build(BuildContext context) {
@@ -290,6 +360,10 @@ class _Body extends StatelessWidget {
                                       SalesStrings.itemQuantityPrice(quantity(sale.items[i].quantity), sale.items[i].unit, rupiah(sale.items[i].price)),
                                       style: TextStyle(fontSize: 12, color: muted),
                                     ),
+                                    if (sale.items[i].modifiers.isNotEmpty)
+                                      Text('+ ${sale.items[i].modifiers.join(', ')}', style: TextStyle(fontSize: 11, color: colors.info)),
+                                    if (sale.items[i].serials.isNotEmpty)
+                                      Text('SN: ${sale.items[i].serials.join(', ')}', style: TextStyle(fontSize: 11, color: muted, fontFamily: 'monospace')),
                                     if (sale.items[i].discountAmount > 0)
                                       Text(
                                         SalesStrings.itemDiscount(rupiah(sale.items[i].discountAmount)),
@@ -338,6 +412,7 @@ class _Body extends StatelessWidget {
                       const SizedBox(height: AppSizes.s12),
                       _Row(SalesStrings.subtotal, rupiah(sale.subtotal)),
                       if (sale.discountAmount > 0) _Row(SalesStrings.discount, '-${rupiah(sale.discountAmount)}', color: AppColors.red600),
+if (sale.serviceChargeAmount > 0) _Row(PosStrings.serviceLabel(quantity(sale.serviceChargeRate)), rupiah(sale.serviceChargeAmount)),
                       if (sale.taxAmount > 0) _Row(SalesStrings.taxLabel(quantity(sale.taxRate)), rupiah(sale.taxAmount)),
                       const SizedBox(height: AppSizes.s4),
                       Divider(height: 16, color: isDark ? AppColors.slate700 : AppColors.slate100),
@@ -395,6 +470,29 @@ class _Body extends StatelessWidget {
                 const SizedBox(height: AppSizes.s20),
 
                 // 4. Action Buttons
+                if (sale.orderLabel != null || sale.customerOrderNumber != null) ...[
+                  if (sale.orderLabel != null) InfoRow(SalesStrings.orderLabel, sale.orderLabel!),
+                  if (sale.customerOrderNumber != null) InfoRow(SalesStrings.customerOrderLabel, sale.customerOrderNumber!),
+                  const SizedBox(height: AppSizes.s12),
+                ],
+                if (sale.deliveryNotes.isNotEmpty) ...[
+                  const SectionTitle(SalesStrings.deliveryNotesTitle),
+                  for (final note in sale.deliveryNotes)
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(AppIcons.truck),
+                      title: Text('${note.number} · ${note.recipient}'),
+                      subtitle: Text(note.address, maxLines: 2, overflow: TextOverflow.ellipsis),
+                      trailing: note.isDelivered || onDelivered == null
+                          ? StatusBadge(label: note.isDelivered ? SalesStrings.delivered : SalesStrings.sent, tone: note.isDelivered ? BadgeTone.success : BadgeTone.info)
+                          : TextButton(onPressed: () => onDelivered!(note.id), child: const Text(SalesStrings.markDelivered)),
+                    ),
+                  const SizedBox(height: AppSizes.s12),
+                ],
+                if (onDeliver != null) ...[
+                  OutlinedButton.icon(onPressed: onDeliver, icon: const Icon(AppIcons.truck, size: AppSizes.s18), label: const Text(SalesStrings.createDeliveryNote)),
+                  const SizedBox(height: AppSizes.s10),
+                ],
                 if (sale.canCollectPayment && sale.dueAmount > 0) ...[
                   FilledButton.icon(
                     style: FilledButton.styleFrom(

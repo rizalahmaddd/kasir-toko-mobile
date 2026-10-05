@@ -114,7 +114,8 @@ class PosRepository {
     'expected_total': expectedTotal,
     'prescription_id': ?cart.prescription?.id,
     if (cart.prescription == null && cart.prescriptionDraft != null) 'prescription': cart.prescriptionDraft!.toJson(),
-    'order_type': ?cart.orderTypeFor(config),
+        'order_type': ?cart.orderTypeFor(config),
+        'customer_order_id': ?cart.customerOrder?.id,
     if (cart.orderTypeFor(config) == OrderTypes.dineIn && (cart.table ?? '').isNotEmpty) 'table_label': cart.table,
     if (cart.kitchenSent.isNotEmpty) 'kitchen_sent': cart.kitchenSent,
   };
@@ -148,5 +149,18 @@ class PosRepository {
 
   Future<HeldOrder> resumeHeldOrder(int id) async => HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrderResume(id))));
 
-  Future<void> deleteHeldOrder(int id) => _api.delete(ApiEndpoints.posHeldOrder(id));
+Future<void> deleteHeldOrder(int id) => _api.delete(ApiEndpoints.posHeldOrder(id));
+
+  /// Nomor seri yang masih ada di stok outlet aktif. Offline: kosong, kasir mengetik/scan manual.
+  Future<List<String>> availableSerials(int productId, {String search = ''}) async {
+    try {
+      final body = await _api.get(ApiEndpoints.posProductSerials(productId), query: {'search': search}, offlineCopy: false);
+      return (body['data'] as List? ?? const []).map((s) => '$s').toList();
+    } on ApiException catch (error) {
+      if (error.isNetworkError) {
+        return const [];
+      }
+      rethrow;
+    }
+  }
 }

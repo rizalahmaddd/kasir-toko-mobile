@@ -166,6 +166,7 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
     for (final l in columns(PrintingStrings.receiptDateLabel, dateTime(sale.soldAt), width)) PrintLine(l),
     for (final l in columns(PrintingStrings.receiptCashierLabel, sale.cashierName, width)) PrintLine(l),
     if (sale.customer != null) for (final l in columns(PrintingStrings.receiptCustomerLabel, sale.customer!.name, width)) PrintLine(l),
+    if (sale.orderLabel != null) for (final l in columns(SalesStrings.orderLabel, sale.orderLabel!, width)) PrintLine(l),
     if (sale.isVoided) const PrintLine(PrintingStrings.receiptVoided, bold: true, align: LineAlign.center),
     const PrintLine.rule(),
   ];
@@ -173,6 +174,12 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
   for (final item in sale.items) {
     lines.addAll(wrap(item.productName, width).map(PrintLine.new));
     lines.addAll(columns('  ${quantity(item.quantity)} x ${_money(item.price)}', _money(item.total + item.discountAmount), width).map(PrintLine.new));
+    for (final modifier in item.modifiers) {
+      lines.addAll(wrap('  + $modifier', width).map(PrintLine.new));
+    }
+    if (item.serials.isNotEmpty) {
+      lines.addAll(wrap('  SN: ${item.serials.join(', ')}', width).map(PrintLine.new));
+    }
     if (item.discountAmount > 0) {
       lines.addAll(columns(PrintingStrings.receiptItemDiscountLabel, '-${_money(item.discountAmount)}', width).map(PrintLine.new));
     }
@@ -188,6 +195,9 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
     final label = sale.discountType == DiscountTypes.percent ? PrintingStrings.receiptPercentDiscount(quantity(sale.discountValue)) : PrintingStrings.receiptDiscountLabel;
     lines.addAll(columns(label, '-${_money(sale.discountAmount)}', width).map(PrintLine.new));
   }
+  if (sale.serviceChargeAmount > 0) {
+    lines.addAll(columns(PosStrings.serviceLabel(quantity(sale.serviceChargeRate)), _money(sale.serviceChargeAmount), width).map(PrintLine.new));
+  }
   if (sale.taxAmount > 0) {
     lines.addAll(columns(PrintingStrings.receiptTaxLine(profile.taxLabel, quantity(sale.taxRate)), _money(sale.taxAmount), width).map(PrintLine.new));
   }
@@ -195,6 +205,9 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
     ..addAll(columns(PrintingStrings.receiptTotalLabel, rupiah(sale.total), width).map((l) => PrintLine(l, bold: true)))
     ..add(const PrintLine.rule());
 
+  for (final payment in sale.payments.where((p) => p.kind == 'deposit')) {
+    lines.addAll(columns('DP ${payment.reference ?? ''}'.trim(), _money(payment.amount), width).map(PrintLine.new));
+  }
   for (final payment in sale.payments.where((p) => p.kind == PaymentKinds.sale)) {
     final amount = payment.method == PaymentMethods.cash && sale.cashReceived > 0 ? sale.cashReceived : payment.amount;
     lines.addAll(columns(payment.methodLabel, _money(amount), width).map(PrintLine.new));

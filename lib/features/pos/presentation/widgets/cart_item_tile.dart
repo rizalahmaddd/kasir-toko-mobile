@@ -14,6 +14,7 @@ import '../../../../core/widgets/quantity_stepper.dart';
 import '../../../../core/widgets/state_views.dart';
 import '../../cart_controller.dart';
 import '../../data/pos_models.dart';
+import '../pos_actions.dart';
 import 'cart_line_edit_sheet.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_radius.dart';
@@ -26,6 +27,11 @@ class CartItemTile extends ConsumerWidget {
   final bool canDiscount;
 
   void _onQuantityChanged(BuildContext context, WidgetRef ref, double newQty) {
+    // Unit bernomor seri bertambah lewat pemilihan nomor seri, bukan tombol plus.
+    if (item.trackSerial && newQty > item.quantity) {
+      unawaited(editLineSerials(context, ref, item));
+      return;
+    }
     final warning = ref.read(cartProvider.notifier).setQuantity(item.key, newQty);
     if (warning != null) {
       unawaited(HapticFeedback.heavyImpact());
@@ -175,6 +181,19 @@ class CartItemTile extends ConsumerWidget {
                       ],
                     ],
                   ),
+                  if (item.trackSerial) ...[
+                    const SizedBox(height: AppSizes.s3),
+                    Text(
+                      item.serials.isEmpty ? PosStrings.serialPick : 'SN: ${item.serials.join(', ')}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: item.needsSerials ? colors.warning : muted,
+                        fontSize: 11,
+                        fontWeight: item.needsSerials ? FontWeight.w700 : null,
+                      ),
+                    ),
+                  ],
                   if (item.modifiers.isNotEmpty) ...[
                     const SizedBox(height: AppSizes.s3),
                     Text(

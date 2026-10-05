@@ -49,6 +49,15 @@ abstract final class ApiEndpoints {
   static String productImage(int id) => 'master-data/products/$id/image';
 
   // Farmasi
+  static String posProductSerials(int id) => 'pos/products/$id/serials';
+  static const orders = 'orders';
+  static String order(int id) => 'orders/$id';
+  static String orderPayments(int id) => 'orders/$id/payments';
+  static String orderStatus(int id) => 'orders/$id/status';
+  static String orderCancel(int id) => 'orders/$id/cancel';
+  static String orderCart(int id) => 'orders/$id/cart';
+  static String saleDeliveryNotes(int saleId) => 'sales/$saleId/delivery-notes';
+  static String deliveryNoteDelivered(int id) => 'delivery-notes/$id/delivered';
   static const prescriptions = 'pharmacy/prescriptions';
   static String prescription(int id) => 'pharmacy/prescriptions/$id';
   static String prescriptionVerify(int id) => 'pharmacy/prescriptions/$id/verify';

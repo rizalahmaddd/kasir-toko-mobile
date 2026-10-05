@@ -56,6 +56,11 @@ abstract final class AppRoutes {
   static const outlets = '/outlets';
   static const outletSettingsPattern = '/outlets/:id/settings';
   static const offline = '/offline';
+  static const orders = '/orders';
+  static const order = '/order';
+  static const orderNew = '/order/new';
+  static const orderPattern = '/order/:id';
+  static String orderDetail(int id) => '$order/$id';
   static const prescriptions = '/prescriptions';
   static const prescription = '/prescription';
   static const prescriptionNew = '/prescription/new';

@@ -34,4 +34,8 @@ extension Access on CurrentUser {
   bool get canViewPrescriptions => _gate(FeatureKeys.prescription, PermissionKeys.prescriptionView);
   bool get canManagePrescriptions => _gate(FeatureKeys.prescription, PermissionKeys.prescriptionManage);
   bool get canVerifyPrescriptions => _gate(FeatureKeys.prescription, PermissionKeys.prescriptionVerify);
+  bool get usesVariants => hasFeature(FeatureKeys.variants);
+  bool get usesSerials => hasFeature(FeatureKeys.serialNumber);
+  bool get canManageOrders => _gate(FeatureKeys.preOrder, PermissionKeys.ordersManage);
+  bool get usesDeliveryNotes => _gate(FeatureKeys.deliveryNote, PermissionKeys.posSell);
 }

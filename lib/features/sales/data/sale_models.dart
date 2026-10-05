@@ -28,6 +28,8 @@ class SaleItem {
     required this.discountAmount,
     required this.total,
     this.note,
+    this.modifiers = const [],
+    this.serials = const [],
   });
 
   factory SaleItem.fromJson(Map<String, dynamic> json) => SaleItem(
@@ -38,6 +40,8 @@ class SaleItem {
         discountAmount: _int(json['discount_amount']),
         total: _int(json['total']),
         note: json['note'] as String?,
+        modifiers: (json['modifiers'] as List? ?? const []).cast<Map<String, dynamic>>().map((m) => m['name'] as String? ?? '').where((n) => n.isNotEmpty).toList(),
+        serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
       );
 
   final String productName;
@@ -47,6 +51,28 @@ class SaleItem {
   final int discountAmount;
   final int total;
   final String? note;
+  final List<String> modifiers;
+  final List<String> serials;
+}
+
+class DeliveryNoteInfo {
+  const DeliveryNoteInfo({required this.id, required this.number, required this.recipient, required this.address, required this.status});
+
+  factory DeliveryNoteInfo.fromJson(Map<String, dynamic> json) => DeliveryNoteInfo(
+        id: _int(json['id']),
+        number: json['number'] as String? ?? '',
+        recipient: json['recipient'] as String? ?? '',
+        address: json['address'] as String? ?? '',
+        status: json['status'] as String? ?? 'sent',
+      );
+
+  final int id;
+  final String number;
+  final String recipient;
+  final String address;
+  final String status;
+
+  bool get isDelivered => status == 'delivered';
 }
 
 class SalePayment {
@@ -162,6 +188,13 @@ class SaleDetail {
     this.flagLabels = const [],
     this.prescriptionNumber,
     this.prescriptionDoctor,
+    this.serviceChargeRate = 0,
+    this.serviceChargeAmount = 0,
+    this.orderTypeLabel,
+    this.tableLabel,
+    this.queueNumber,
+    this.deliveryNotes = const [],
+    this.customerOrderNumber,
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> json) {
@@ -199,6 +232,13 @@ class SaleDetail {
       flagLabels: (json['flag_labels'] as List? ?? const []).cast<String>(),
       prescriptionNumber: (json['prescription'] as Map<String, dynamic>?)?['number'] as String?,
       prescriptionDoctor: (json['prescription'] as Map<String, dynamic>?)?['doctor_name'] as String?,
+      serviceChargeRate: _double(json['service_charge_rate']),
+      serviceChargeAmount: _int(json['service_charge_amount']),
+      orderTypeLabel: json['order_type_label'] as String?,
+      tableLabel: json['table_label'] as String?,
+      queueNumber: json['queue_number'] == null ? null : _int(json['queue_number']),
+      deliveryNotes: (json['delivery_notes'] as List? ?? const []).cast<Map<String, dynamic>>().map(DeliveryNoteInfo.fromJson).toList(),
+      customerOrderNumber: (json['customer_order'] as Map<String, dynamic>?)?['number'] as String?,
     );
   }
 
@@ -235,6 +275,24 @@ class SaleDetail {
   final List<String> flagLabels;
   final String? prescriptionNumber;
   final String? prescriptionDoctor;
+  final double serviceChargeRate;
+  final int serviceChargeAmount;
+  final String? orderTypeLabel;
+  final String? tableLabel;
+  final int? queueNumber;
+  final List<DeliveryNoteInfo> deliveryNotes;
+  final String? customerOrderNumber;
+
+  /// Mis. "Dine-in · Meja 5" atau "Bawa Pulang · Antrean 012".
+  String? get orderLabel {
+    if (orderTypeLabel == null) {
+      return null;
+    }
+    final marker = tableLabel != null ? 'Meja $tableLabel' : (queueNumber != null ? 'Antrean ${queueNumber.toString().padLeft(3, '0')}' : null);
+
+    return [orderTypeLabel!, ?marker].join(' · ');
+  }
+
 
   bool get isVoided => status == SaleStatuses.voided;
 }

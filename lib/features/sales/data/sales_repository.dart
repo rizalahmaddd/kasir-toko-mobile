@@ -120,6 +120,10 @@ class SalesRepository {
     }
   }
 
+  Future<void> createDeliveryNote(int saleId, Map<String, dynamic> data) => _api.post(ApiEndpoints.saleDeliveryNotes(saleId), data: data);
+
+  Future<void> markDelivered(int noteId) => _api.post(ApiEndpoints.deliveryNoteDelivered(noteId));
+
   Future<SaleDetail> voidSale(int id, String reason) async {
     final body = await _api.post(ApiEndpoints.saleVoid(id), data: {'reason': reason});
     await _api.updateCached(ApiEndpoints.sale(id), body);

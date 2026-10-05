@@ -10,6 +10,7 @@ import '../../../../core/widgets/common.dart';
 import '../../../../core/widgets/money_field.dart';
 import '../../cart_controller.dart';
 import '../../data/pos_models.dart';
+import '../pos_actions.dart';
 import 'modifier_picker_sheet.dart';
 
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
@@ -111,6 +112,28 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (widget.item.trackSerial) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.item.serials.isEmpty ? PosStrings.serialPick : 'SN: ${widget.item.serials.join(', ')}',
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      OutlinedButton(
+                        onPressed: () {
+                          final navigator = Navigator.of(context);
+                          navigator.pop();
+                          editLineSerials(navigator.context, ref, widget.item);
+                        },
+                        child: const Text(PosStrings.serialPick),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.s12),
+                ],
                 if (widget.item.modifierGroups.isNotEmpty) ...[
                   Row(
                     children: [
