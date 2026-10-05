@@ -14,6 +14,7 @@ import '../../auth/auth_controller.dart';
 import '../../auth/data/current_user.dart';
 import '../../notifications/notifications.dart';
 import '../../offline/offline_queue.dart';
+import '../../outlets/presentation/outlet_picker.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_radius.dart';
 import 'package:web_pos_mobile/core/theme/app_sizes.dart';
@@ -232,6 +233,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             badgeColor: null,
             isPro: false,
           ),
+          if (user.canViewOutlets)
+            (
+              icon: AppIcons.store,
+              label: OutletStrings.menuLabel,
+              path: AppRoutes.outlets,
+              caption: OutletStrings.menuCaption,
+              color: AppColors.teal600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
           if (user.canManagePosSettings)
             (
               icon: AppIcons.slidersHorizontal,
@@ -293,6 +305,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_search.isEmpty && user.outlets.length > 1) ...[
+                          const OutletSwitchCard(),
+                          const SizedBox(height: AppSizes.s8),
+                        ],
                         if (_search.isEmpty && user.tenant != null) ...[
                           _buildSubscriptionCard(context, user, isDark),
                           const SizedBox(height: AppSizes.s8),

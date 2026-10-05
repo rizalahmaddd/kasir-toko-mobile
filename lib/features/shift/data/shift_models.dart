@@ -83,6 +83,8 @@ class Shift {
     this.closedByName,
     this.salesCount,
     this.salesTotal,
+    this.outletId,
+    this.outletName,
   });
 
   factory Shift.fromJson(Map<String, dynamic> json) {
@@ -107,6 +109,8 @@ class Shift {
       closedByName: (json['closed_by'] as Map<String, dynamic>?)?['name'] as String?,
       salesCount: json['sales_count'] == null ? null : _int(json['sales_count']),
       salesTotal: json['sales_total'] == null ? null : _int(json['sales_total']),
+      outletId: (json['outlet'] as Map<String, dynamic>?)?['id'] as int?,
+      outletName: (json['outlet'] as Map<String, dynamic>?)?['name'] as String?,
     );
   }
 
@@ -128,4 +132,8 @@ class Shift {
   final String? closedByName;
   final int? salesCount;
   final int? salesTotal;
+
+  /// Outlet the shift was opened in; null for servers that predate outlets.
+  final int? outletId;
+  final String? outletName;
 }

@@ -17,6 +17,7 @@ import '../../../core/widgets/money_field.dart';
 import '../../auth/auth_controller.dart';
 import '../../data_changes.dart';
 import '../../offline/offline_queue.dart';
+import '../../outlets/outlet_controller.dart';
 import '../../sales/data/sale_models.dart';
 import '../../shift/shift_controller.dart';
 import '../cart_controller.dart';
@@ -233,6 +234,8 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       paid: paid,
       itemCount: cart.itemCount,
       createdAt: now,
+      outletId: ref.read(currentOutletIdProvider),
+      shiftId: ref.read(currentShiftProvider).value?.id,
       customerName: cart.customer?.name,
       preview: {
         'id': 0,
@@ -297,6 +300,13 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
         ref
           ..invalidate(currentShiftProvider)
           ..invalidate(posConfigProvider);
+        Navigator.pop(context);
+        messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      case 'outlet_mismatch' || 'outlet_locked':
+        ref
+          ..invalidate(currentShiftProvider)
+          ..invalidate(posConfigProvider);
+        unawaited(ref.read(authControllerProvider.notifier).refreshProfile());
         Navigator.pop(context);
         messenger.showSnackBar(SnackBar(content: Text(error.message)));
       case 'total_mismatch':

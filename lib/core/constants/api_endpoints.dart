@@ -15,6 +15,17 @@ abstract final class ApiEndpoints {
   static const authLogoutAll = 'auth/logout-all';
   static const authMe = 'auth/me';
   static const authLogout = 'auth/logout';
+  static const authCurrentOutlet = 'auth/current-outlet';
+
+  // Outlet
+  static const outlets = 'outlets';
+  static const outletPriorities = 'outlets/priorities';
+  static String outlet(int id) => 'outlets/$id';
+  static String outletPrimary(int id) => 'outlets/$id/primary';
+  static String outletActive(int id) => 'outlets/$id/active';
+  static String outletUsers(int id) => 'outlets/$id/users';
+  static String outletCopy(int id) => 'outlets/$id/copy';
+  static String outletSettings(int id) => 'outlets/$id/settings';
 
   // Umum
   static const dashboard = 'dashboard';
@@ -85,4 +96,5 @@ abstract final class ApiEndpoints {
   // Prefiks untuk aturan cache
   static const posPrefix = 'pos/';
   static const authPrefix = 'auth/';
+  static const outletsPrefix = 'outlets';
 }

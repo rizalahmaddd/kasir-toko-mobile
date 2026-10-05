@@ -1516,3 +1516,123 @@ abstract final class ProStrings {
   static const actionUpgradeOrExtend = 'Kelola / Perpanjang';
 }
 
+
+abstract final class OutletStrings {
+  // Menu & judul
+  static const menuLabel = 'Outlet';
+  static const menuCaption = 'Cabang, akses pengguna, pajak, dan harga per outlet';
+  static const screenTitle = 'Outlet';
+
+  static String currentOutletCaption(String outlet) => 'Outlet aktif: $outlet';
+  static const switchCardAction = 'Ganti';
+
+  // Pemilih outlet
+  static const pickerTitle = 'Pilih outlet';
+  static const pickerSubtitle = 'Stok, harga, shift, dan transaksi mengikuti outlet yang dipilih.';
+  static const chipTooltip = 'Ganti outlet';
+  static const switchTitle = 'Ganti outlet?';
+  static String switchCartMessage(String outlet) =>
+      'Keranjang yang belum dibayar akan dikosongkan karena harga dan stok berbeda di tiap outlet. Pindah ke $outlet?';
+  static const switchConfirm = 'Pindah Outlet';
+  static String switched(String outlet) => 'Sekarang di outlet $outlet.';
+  static const lockedOption = 'Terkunci paket';
+
+  // Status
+  static const badgePrimary = 'Utama';
+  static const badgeActive = 'Aktif';
+  static const badgeLocked = 'Terkunci paket';
+  static const badgeInactive = 'Nonaktif';
+
+  // Banner di kasir
+  static String lockedBanner(String outlet) => 'Outlet $outlet terkunci oleh batas paket, jadi belum bisa menerima transaksi. Pindah ke outlet lain atau hubungi pemilik toko.';
+  static String shiftElsewhereBanner(String outlet) => 'Shift Anda masih terbuka di outlet $outlet. Pindah ke outlet itu atau tutup shift tersebut sebelum berjualan di sini.';
+  static String shiftElsewhereAction(String outlet) => 'Ke $outlet';
+  static const lockedAction = 'Ganti outlet';
+  static const noAccessTitle = 'Belum ada outlet';
+  static const noAccessDescription = 'Akun ini belum ditugaskan ke outlet mana pun. Hubungi pemilik toko untuk mendapatkan akses.';
+  static const updateRequiredTitle = 'Perbarui aplikasi';
+  static const updateLater = 'Nanti';
+  static const updateAction = 'Perbarui';
+  static const updateRequiredMessage = 'Toko ini memakai beberapa outlet. Perbarui aplikasi supaya stok, harga, dan transaksi tercatat di outlet yang benar.';
+
+  // Daftar & kuota
+  static String quotaTitle(int used, int max) => '$used dari $max outlet aktif';
+  static const quotaHint = 'Produk, kategori, dan pelanggan dipakai bersama. Stok, shift, dan transaksi dicatat per outlet.';
+  static const addOutlet = 'Tambah Outlet';
+  static const limitReached = 'Batas outlet paket ini sudah terpakai. Tambah outlet tersedia di paket Pro. Kelola langganan dari dashboard web.';
+  static const emptyTitle = 'Belum ada outlet';
+  static String usersCount(int count) => '$count pengguna';
+
+  // Form
+  static const formAddTitle = 'Tambah Outlet';
+  static const formEditTitle = 'Ubah Outlet';
+  static const nameLabel = 'Nama outlet';
+  static const nameHint = 'Contoh: Cabang Dago';
+  static const codeLabel = 'Kode';
+  static const codeHint = 'DGO';
+  static const codeHelp = 'Dipakai di nomor transaksi, mis. TRX-DGO-2026-000001. Tidak bisa diubah setelah outlet dipakai bertransaksi.';
+  static const addressLabel = 'Alamat';
+  static const phoneLabel = 'Telepon';
+  static const copyFromLabel = 'Salin pengaturan & harga dari';
+  static const copyFromNone = 'Tidak disalin (ikuti pengaturan toko)';
+  static const copyFromHelp = 'Pajak, metode bayar, struk, dan harga khusus outlet disalin sebagai titik awal, lalu bisa diubah sendiri. Stok tidak disalin.';
+  static const save = 'Simpan';
+
+  // Aksi
+  static const actionEdit = 'Ubah data outlet';
+  static const actionSettings = 'Pajak, pembayaran & struk';
+  static const actionAccess = 'Akses pengguna';
+  static const actionCopy = 'Salin pengaturan & harga dari outlet lain';
+  static const actionMakePrimary = 'Jadikan outlet utama';
+  static const actionDeactivate = 'Nonaktifkan outlet';
+  static const actionActivate = 'Aktifkan kembali';
+  static const actionDelete = 'Hapus outlet';
+  static const deleteTitle = 'Hapus outlet?';
+  static String deleteMessage(String outlet) => 'Outlet $outlet dihapus permanen. Hanya outlet tanpa riwayat transaksi atau stok yang bisa dihapus; selain itu nonaktifkan saja.';
+  static const deleteConfirm = 'Hapus';
+  static const makePrimaryTitle = 'Jadikan outlet utama?';
+  static String makePrimaryMessage(String outlet) => '$outlet menjadi outlet utama dan selalu tetap beroperasi saat batas paket lebih kecil dari jumlah outlet.';
+  static const deactivateTitle = 'Nonaktifkan outlet?';
+  static String deactivateMessage(String outlet) => 'Outlet $outlet tidak bisa dipakai bertransaksi sampai diaktifkan lagi. Data dan riwayatnya tetap aman.';
+  static const deactivateConfirm = 'Nonaktifkan';
+  static const savedMessage = 'Outlet disimpan.';
+
+  // Akses
+  static const accessTitle = 'Akses pengguna';
+  static String accessSubtitle(String outlet) => 'Siapa yang boleh memakai $outlet';
+  static const accessHelp = 'Pemilik dan pengguna "semua outlet" selalu punya akses. Pengguna lain hanya melihat outlet yang dicentang.';
+  static const accessAllOutlets = 'Semua outlet';
+  static const accessSaved = 'Akses pengguna diperbarui.';
+
+  // Salin
+  static const copyTitle = 'Salin pengaturan & harga';
+  static const copyHelp = 'Pajak, metode bayar, struk, dan harga khusus outlet ini diganti dengan milik outlet sumber. Stok dan transaksi tidak berubah.';
+  static const copySource = 'Salin dari';
+  static const copyConfirm = 'Salin Sekarang';
+  static const copyDone = 'Pengaturan dan harga disalin.';
+
+  // Pengaturan outlet
+  static String settingsTitle(String outlet) => 'Pengaturan $outlet';
+  static const settingsHelp = 'Kosongkan penimpaan untuk mengikuti pengaturan toko.';
+  static const inheritTax = 'Pajak ikut pengaturan toko';
+  static const taxEnabled = 'Tambahkan pajak di outlet ini';
+  static const taxLabelField = 'Nama pajak';
+  static const taxRateField = 'Tarif (%)';
+  static const inheritPayments = 'Metode pembayaran ikut pengaturan toko';
+  static const paymentsHelp = 'Tunai selalu aktif karena dipakai untuk kembalian dan rekap laci.';
+  static const inheritReceipt = 'Struk ikut pengaturan toko';
+  static const receiptWidth = 'Lebar kertas';
+  static const receiptHeader = 'Teks di atas struk';
+  static const receiptFooter = 'Teks di bawah struk';
+  static const autoPrint = 'Cetak struk otomatis';
+  static const inheritQris = 'QRIS ikut pengaturan toko';
+  static const qrisPayload = 'Teks QRIS statis outlet';
+  static const qrisHelp = 'Kosongkan untuk mematikan QRIS bernominal di outlet ini.';
+  static const settingsSaved = 'Pengaturan outlet disimpan.';
+
+  // Harga per outlet di form produk
+  static const productPricesTitle = 'Harga per outlet';
+  static const productPricesHelp = 'Harga jual di atas berlaku untuk semua outlet. Isi hanya outlet yang harganya berbeda; kosongkan untuk mengikuti harga bawaan.';
+  static const productPriceHint = 'Ikuti bawaan';
+  static const productBasePriceBadge = 'Harga khusus outlet';
+}

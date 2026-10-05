@@ -42,6 +42,16 @@ class PosScreen extends ConsumerWidget {
       );
     }
 
+    if (user != null && (user.tenant?.isMultiOutlet ?? false) && user.outlets.isEmpty) {
+      return const Scaffold(
+        body: EmptyState(
+          icon: AppIcons.store,
+          title: OutletStrings.noAccessTitle,
+          description: OutletStrings.noAccessDescription,
+        ),
+      );
+    }
+
     final shift = ref.watch(currentShiftProvider);
 
     return Scaffold(

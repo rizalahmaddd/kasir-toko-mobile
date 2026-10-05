@@ -21,6 +21,8 @@ import 'features/notifications/presentation/notifications_screen.dart';
 import 'features/offline/presentation/offline_screen.dart';
 import 'features/notifications/presentation/search_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
+import 'features/outlets/presentation/outlet_settings_screen.dart';
+import 'features/outlets/presentation/outlets_screen.dart';
 import 'features/pos/presentation/pos_screen.dart';
 import 'features/pos/presentation/pos_settings_screen.dart';
 import 'features/printing/presentation/printer_screen.dart';
@@ -86,6 +88,9 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under(AppRoutes.posSettings)) {
     return user.canManagePosSettings;
+  }
+  if (under(AppRoutes.outlets)) {
+    return location == AppRoutes.outlets ? user.canViewOutlets : user.canManageOutlets;
   }
 
   return true;
@@ -171,6 +176,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page(AppRoutes.account, (state) => AccountScreen(scrollToDelete: state.uri.queryParameters['action'] == 'delete')),
       _page(AppRoutes.printer, (_) => const PrinterScreen()),
       _page(AppRoutes.posSettings, (_) => const PosSettingsScreen()),
+      _page(AppRoutes.outlets, (_) => const OutletsScreen()),
+      _page(AppRoutes.outletSettingsPattern, (state) => OutletSettingsScreen(outletId: _id(state))),
       _page(AppRoutes.offline, (_) => const OfflineScreen()),
     ],
   );

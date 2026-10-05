@@ -115,7 +115,14 @@ class PosRepository {
       };
 
   /// Safe to repeat: the server returns the existing sale for a `client_uuid` it has already stored.
-  Future<SaleDetail> submitCheckout(Map<String, dynamic> payload) async => SaleDetail.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posCheckout, data: payload)));
+  /// A queued sale goes to the outlet it was made in, not the one selected now, and is flagged
+  /// `offline` so the server accepts it even if that outlet has been locked in the meantime.
+  Future<SaleDetail> submitCheckout(Map<String, dynamic> payload, {int? outletId, bool offline = false}) async {
+    final body = {...payload, 'outlet_id': ?outletId, if (offline) 'offline': true};
+    final response = await _api.post(ApiEndpoints.posCheckout, data: body, headers: outletId == null ? null : {outletHeader: '$outletId'});
+
+    return SaleDetail.fromJson(ApiClient.data(response));
+  }
 
   Future<SaleDetail> checkout({required Cart cart, required List<PaymentLine> payments, required int expectedTotal}) =>
       submitCheckout(checkoutPayload(cart: cart, payments: payments, expectedTotal: expectedTotal));

@@ -21,5 +21,8 @@ extension Access on CurrentUser {
   bool get canViewSalesReport => _gate(FeatureKeys.reportsSales, PermissionKeys.reportsSalesView);
   bool get canViewActivityLog => _gate(FeatureKeys.reportsActivityLog, PermissionKeys.reportsActivityView);
 
+  bool get canViewOutlets => _gate(FeatureKeys.settingsOutlets, PermissionKeys.outletsView);
+  bool get canManageOutlets => canViewOutlets && can(PermissionKeys.outletsManage);
+
   bool get canManagePosSettings => can(PermissionKeys.settingsPosManage) || canManageMasterData;
 }

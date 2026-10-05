@@ -34,7 +34,10 @@ class ProductRecord {
     required this.isLowStock,
     this.imageUrl,
     required this.isActive,
-  });
+    int? basePrice,
+    this.hasOutletPrice = false,
+    this.outletPrices = const {},
+  }) : basePrice = basePrice ?? price;
 
   factory ProductRecord.fromJson(Map<String, dynamic> json) => ProductRecord(
         id: json['id'] as int,
@@ -51,6 +54,12 @@ class ProductRecord {
         isLowStock: json['is_low_stock'] as bool? ?? false,
         imageUrl: json['image_url'] as String?,
         isActive: json['is_active'] as bool? ?? true,
+        basePrice: json['base_price'] == null ? null : asInt(json['base_price']),
+        hasOutletPrice: json['has_outlet_price'] as bool? ?? false,
+        outletPrices: {
+          for (final row in json['outlet_prices'] as List? ?? const [])
+            if (row is Map<String, dynamic>) asInt(row['outlet_id']): asInt(row['price']),
+        },
       );
 
   final int id;
@@ -67,6 +76,13 @@ class ProductRecord {
   final bool isLowStock;
   final String? imageUrl;
   final bool isActive;
+
+  /// Price of every outlet without a price of its own; `price` is what the active outlet charges.
+  final int basePrice;
+  final bool hasOutletPrice;
+
+  /// Prices set for single outlets (outlet id to price); only sent with product details.
+  final Map<int, int> outletPrices;
 
   bool get isOutOfStock => trackStock && stock <= 0;
   int get margin => price - costPrice;
@@ -85,6 +101,7 @@ class ProductInput {
     this.stock,
     this.minStock,
     required this.isActive,
+    this.outletPrices,
   });
 
   final int? categoryId;
@@ -99,6 +116,9 @@ class ProductInput {
   final double? minStock;
   final bool isActive;
 
+  /// Outlet id to its own price; null clears it so the outlet follows `price` again.
+  final Map<int, int?>? outletPrices;
+
   Map<String, dynamic> toJson() => {
         'category_id': categoryId,
         'sku': sku,
@@ -111,6 +131,10 @@ class ProductInput {
         'stock': stock,
         'min_stock': minStock,
         'is_active': isActive,
+        if (outletPrices != null)
+          'outlet_prices': [
+            for (final entry in outletPrices!.entries) {'outlet_id': entry.key, 'price': entry.value},
+          ],
       };
 }
 

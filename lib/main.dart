@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/constants/app_routes.dart';
@@ -14,6 +15,7 @@ import 'core/storage/app_storage.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/auth_controller.dart';
 import 'features/offline/presentation/offline_screen.dart';
+import 'features/outlets/outlet_controller.dart';
 import 'router.dart';
 
 Future<void> main() async {
@@ -24,6 +26,7 @@ Future<void> main() async {
   ]);
   await initializeDateFormatting(AppDateFormat.locale);
   final prefs = await SharedPreferences.getInstance();
+  final version = (await PackageInfo.fromPlatform()).version;
 
   runApp(
     ProviderScope(
@@ -33,6 +36,9 @@ Future<void> main() async {
         unauthorizedHandlerProvider.overrideWith((ref) => () => ref.read(authControllerProvider.notifier).expire()),
         tenantBlockedHandlerProvider.overrideWith((ref) => (reason, message) => ref.read(authControllerProvider.notifier).markBlocked(reason, message)),
         offlineTenantProvider.overrideWith((ref) => ref.watch(currentUserProvider.select((user) => user?.tenant?.id))),
+        offlineOutletProvider.overrideWith((ref) => ref.watch(currentOutletIdProvider)),
+        appVersionProvider.overrideWithValue(version),
+        outletRejectedHandlerProvider.overrideWith((ref) => (reason) => ref.read(authControllerProvider.notifier).refreshProfile()),
       ],
       child: const KasirApp(),
     ),

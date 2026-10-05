@@ -53,9 +53,12 @@ abstract final class AppRoutes {
   static const account = '/account';
   static const printer = '/printer';
   static const posSettings = '/pos-settings';
+  static const outlets = '/outlets';
+  static const outletSettingsPattern = '/outlets/:id/settings';
   static const offline = '/offline';
   static const editSuffix = '/edit';
 
+  static String outletSettings(int id) => '$outlets/$id/settings';
   static String saleDetail(int id) => '$sale/$id';
   static String productDetail(int id) => '$product/$id';
   static String productEdit(int id) => '$product/$id/edit';

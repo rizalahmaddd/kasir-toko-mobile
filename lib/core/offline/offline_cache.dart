@@ -11,11 +11,19 @@ import '../storage/app_storage.dart';
 /// Shop of the signed-in account; overridden in main() so this file stays free of feature imports.
 final offlineTenantProvider = Provider<int?>((ref) => null);
 
+/// Outlet the app works in; overridden in main() like the shop. Prices, stock, and the open shift
+/// belong to one outlet, so cached copies are kept per outlet.
+final offlineOutletProvider = Provider<int?>((ref) => null);
+
 /// Last good API responses kept on the device for when the server can't be reached.
-/// Entries are tagged with the server and the shop they came from: on a hosted server many shops
-/// share one address, so the server alone would let one shop read another's cached catalog.
+/// Entries are tagged with the server, the shop, and the outlet they came from: on a hosted server
+/// many shops share one address, so the server alone would let one shop read another's cached
+/// catalog, and an outlet's prices and stock must not show up in another outlet.
 final offlineCacheProvider = Provider<OfflineCache>(
-  (ref) => OfflineCache(ref.watch(sharedPreferencesProvider), '${ref.watch(serverUrlProvider)}#${ref.watch(offlineTenantProvider) ?? ''}'),
+  (ref) => OfflineCache(
+    ref.watch(sharedPreferencesProvider),
+    '${ref.watch(serverUrlProvider)}#${ref.watch(offlineTenantProvider) ?? ''}#${ref.watch(offlineOutletProvider) ?? ''}',
+  ),
 );
 
 class OfflineCache {
@@ -143,9 +151,12 @@ class OfflineCache {
       await prefs.remove(key);
     }
     try {
-      final file = File('${(await getApplicationSupportDirectory()).path}/catalog.json');
-      if (await file.exists()) {
-        await file.delete();
+      final support = await getApplicationSupportDirectory();
+      await for (final entity in support.list()) {
+        final name = entity.uri.pathSegments.where((segment) => segment.isNotEmpty).lastOrNull ?? '';
+        if (entity is File && name.startsWith(StorageKeys.catalog) && name.endsWith('.json')) {
+          await entity.delete();
+        }
       }
       final responses = Directory('${(await getApplicationSupportDirectory()).path}/responses');
       if (await responses.exists()) {

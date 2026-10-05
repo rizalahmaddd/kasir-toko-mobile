@@ -93,6 +93,7 @@ class SaleSummary {
     this.paidAmount = 0,
     required this.dueAmount,
     required this.paymentMethods,
+    this.outletName,
   });
 
   factory SaleSummary.fromJson(Map<String, dynamic> json) => SaleSummary(
@@ -108,6 +109,7 @@ class SaleSummary {
         paidAmount: _int(json['paid_amount']),
         dueAmount: _int(json['due_amount']),
         paymentMethods: (json['payment_methods'] as List? ?? const []).cast<String>(),
+        outletName: (json['outlet'] as Map<String, dynamic>?)?['name'] as String?,
       );
 
   final int id;
@@ -116,6 +118,7 @@ class SaleSummary {
   final String statusLabel;
   final DateTime soldAt;
   final String cashierName;
+  final String? outletName;
   final SaleCustomer? customer;
   final int itemsCount;
   final int total;
@@ -155,6 +158,7 @@ class SaleDetail {
     this.discountType,
     this.discountValue = 0,
     this.shiftNumber,
+    this.outletName,
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> json) {
@@ -188,6 +192,7 @@ class SaleDetail {
       discountType: json['discount_type'] as String?,
       discountValue: _double(json['discount_value']),
       shiftNumber: (json['shift'] as Map<String, dynamic>?)?['number'] as String?,
+      outletName: (json['outlet'] as Map<String, dynamic>?)?['name'] as String?,
     );
   }
 
@@ -197,6 +202,7 @@ class SaleDetail {
   final String statusLabel;
   final DateTime soldAt;
   final String cashierName;
+  final String? outletName;
   final SaleCustomer? customer;
   final int subtotal;
   final int discountAmount;

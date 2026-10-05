@@ -154,9 +154,11 @@ final catalogSnapshotProvider = AsyncNotifierProvider<CatalogSnapshotNotifier, C
 class CatalogSnapshotNotifier extends AsyncNotifier<CatalogSnapshot?> {
   OfflineCache get _cache => ref.read(offlineCacheProvider);
 
+  String get _file => StorageKeys.catalogFor(ref.read(offlineOutletProvider));
+
   @override
   Future<CatalogSnapshot?> build() async {
-    final stored = asMap(await ref.watch(offlineCacheProvider).readFile(StorageKeys.catalog));
+    final stored = asMap(await ref.watch(offlineCacheProvider).readFile(StorageKeys.catalogFor(ref.watch(offlineOutletProvider))));
     if (stored.isEmpty) {
       return null;
     }
@@ -198,5 +200,5 @@ class CatalogSnapshotNotifier extends AsyncNotifier<CatalogSnapshot?> {
   }
 
   Future<void> _save(CatalogSnapshot snapshot) =>
-      _cache.writeFile(StorageKeys.catalog, {'products': snapshot.products, 'updated_at': snapshot.updatedAt.toIso8601String()});
+      _cache.writeFile(_file, {'products': snapshot.products, 'updated_at': snapshot.updatedAt.toIso8601String()});
 }

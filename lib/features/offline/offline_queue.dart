@@ -32,6 +32,8 @@ class QueuedSale {
     required this.paid,
     required this.itemCount,
     required this.createdAt,
+    this.outletId,
+    this.shiftId,
     this.customerName,
     this.preview = const {},
     this.status = QueuedStatus.pending,
@@ -46,6 +48,8 @@ class QueuedSale {
         paid: asInt(json['paid']),
         itemCount: asDouble(json['item_count']),
         createdAt: DateTime.parse(json['created_at'] as String),
+        outletId: json['outlet_id'] as int?,
+        shiftId: json['cash_shift_id'] as int?,
         customerName: json['customer_name'] as String?,
         preview: asMap(json['preview']),
         status: json['status'] == QueuedStatusValues.failed ? QueuedStatus.failed : QueuedStatus.pending,
@@ -59,6 +63,11 @@ class QueuedSale {
   final int paid;
   final double itemCount;
   final DateTime createdAt;
+
+  /// Outlet and shift the sale was made in. Entries queued by older app versions carry neither and
+  /// are sent to whichever outlet is selected when they sync.
+  final int? outletId;
+  final int? shiftId;
   final String? customerName;
 
   /// SaleDetail-shaped copy built on the device, for printing a receipt before the server has the sale.
@@ -77,6 +86,8 @@ class QueuedSale {
         paid: paid,
         itemCount: itemCount,
         createdAt: createdAt,
+        outletId: outletId,
+        shiftId: shiftId,
         customerName: customerName,
         preview: preview,
         status: status ?? this.status,
@@ -91,6 +102,8 @@ class QueuedSale {
         'paid': paid,
         'item_count': itemCount,
         'created_at': createdAt.toIso8601String(),
+        'outlet_id': outletId,
+        'cash_shift_id': shiftId,
         'customer_name': customerName,
         'preview': preview,
         'status': status.name,
@@ -172,7 +185,7 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
     try {
       for (final sale in due) {
         try {
-          await ref.read(posRepositoryProvider).submitCheckout(sale.payload);
+          await ref.read(posRepositoryProvider).submitCheckout(sale.payload, outletId: sale.outletId, offline: true);
           remove(sale.clientUuid);
           sent++;
         } on ApiException catch (error) {

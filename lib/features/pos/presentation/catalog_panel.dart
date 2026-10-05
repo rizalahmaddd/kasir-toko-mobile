@@ -16,6 +16,7 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
+import '../../outlets/presentation/outlet_picker.dart';
 import '../../shift/shift_controller.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
@@ -188,6 +189,8 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: AppSizes.s6),
+                  const Flexible(child: OutletChip()),
                   const Spacer(),
                   // Search toggle button
                   IconButton(
@@ -290,6 +293,8 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
             ],
           ),
         ),
+
+        const OutletStatusBanner(),
 
         // Category filter chips
         const PosCategoryChips(),

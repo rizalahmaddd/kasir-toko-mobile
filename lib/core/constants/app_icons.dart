@@ -56,6 +56,7 @@ abstract final class AppIcons {
   static const croissant = LucideIcons.croissant;
   static const download = LucideIcons.download;
   static const externalLink = LucideIcons.externalLink;
+  static const ellipsisVertical = LucideIcons.ellipsisVertical;
   static const eye = LucideIcons.eye;
   static const eyeOff = LucideIcons.eyeOff;
   static const fileClock = LucideIcons.fileClock;

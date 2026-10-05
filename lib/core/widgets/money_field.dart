@@ -10,6 +10,7 @@ class MoneyField extends StatelessWidget {
     super.key,
     required this.controller,
     this.label,
+    this.hint,
     this.autofocus = false,
     this.errorText,
     this.onChanged,
@@ -18,6 +19,7 @@ class MoneyField extends StatelessWidget {
 
   final TextEditingController controller;
   final String? label;
+  final String? hint;
   final bool autofocus;
   final String? errorText;
   final ValueChanged<int>? onChanged;
@@ -34,7 +36,7 @@ class MoneyField extends StatelessWidget {
       onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
       inputFormatters: [FilteringTextInputFormatter.digitsOnly, ThousandsFormatter()],
       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-      decoration: InputDecoration(labelText: label, prefixText: CoreStrings.currencyPrefix, errorText: errorText),
+      decoration: InputDecoration(labelText: label, hintText: hint, prefixText: CoreStrings.currencyPrefix, errorText: errorText),
       onChanged: onChanged == null ? null : (value) => onChanged!(parseRupiah(value)),
       onSubmitted: onSubmitted == null ? null : (value) => onSubmitted!(parseRupiah(value)),
     );

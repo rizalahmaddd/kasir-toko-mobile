@@ -99,7 +99,7 @@ class ShiftDetailScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(shift.value?.number ?? ShiftStrings.shiftFallbackTitle),
+        title: Text(_title(ref, shift.value)),
         actions: [
           if (shift.value != null && ref.watch(printerSettingsProvider).isConfigured)
             IconButton(
@@ -129,6 +129,16 @@ class ShiftDetailScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+/// Shift number, with the outlet name added in shops that have several outlets.
+String _title(WidgetRef ref, Shift? shift) {
+  if (shift == null) {
+    return ShiftStrings.shiftFallbackTitle;
+  }
+  final multi = ref.watch(currentUserProvider)?.hasMultipleOutlets ?? false;
+
+  return multi && (shift.outletName ?? '').isNotEmpty ? '${shift.number} · ${shift.outletName}' : shift.number;
 }
 
 class ShiftView extends ConsumerWidget {

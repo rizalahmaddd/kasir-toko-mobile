@@ -10,6 +10,7 @@ abstract final class FeatureKeys {
   static const inventoryStock = 'inventory.stock';
   static const reportsSales = 'reports.sales';
   static const reportsActivityLog = 'reports.activity-log';
+  static const settingsOutlets = 'settings.outlets';
 }
 
 /// Nama izin (permission) yang dipakai aturan akses.
@@ -23,4 +24,6 @@ abstract final class PermissionKeys {
   static const reportsSalesView = 'reports.sales.view';
   static const reportsActivityView = 'reports.activity.view';
   static const settingsPosManage = 'settings.pos.manage';
+  static const outletsView = 'outlets.view';
+  static const outletsManage = 'outlets.manage';
 }

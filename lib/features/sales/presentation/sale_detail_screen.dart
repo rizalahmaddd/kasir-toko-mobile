@@ -8,6 +8,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../auth/auth_controller.dart';
 import '../../data_changes.dart';
 import '../../printing/presentation/printer_screen.dart';
 import '../../printing/printer.dart';
@@ -76,16 +77,17 @@ class SaleDetailScreen extends ConsumerWidget {
       body: AsyncView(
         value: sale,
         onRetry: () => ref.invalidate(saleDetailProvider(saleId)),
-        data: (sale) => _Body(sale: sale, onVoid: () => _void(context, ref, sale)),
+        data: (sale) => _Body(sale: sale, showOutlet: ref.watch(currentUserProvider)?.hasMultipleOutlets ?? false, onVoid: () => _void(context, ref, sale)),
       ),
     );
   }
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.sale, required this.onVoid});
+  const _Body({required this.sale, required this.onVoid, this.showOutlet = false});
 
   final SaleDetail sale;
+  final bool showOutlet;
   final VoidCallback onVoid;
 
   @override
@@ -178,6 +180,8 @@ class _Body extends StatelessWidget {
                               label: SalesStrings.shiftLabel('${sale.shiftNumber}'),
                               isDark: isDark,
                             ),
+                          if (showOutlet && (sale.outletName ?? '').isNotEmpty)
+                            _MetaPill(icon: AppIcons.store, label: sale.outletName!, isDark: isDark),
                         ],
                       ),
                       if (sale.isVoided) ...[

@@ -5,7 +5,7 @@
 [![State Management](https://img.shields.io/badge/State_Management-Riverpod-8A2BE2)](https://riverpod.dev)
 [![HTTP Client](https://img.shields.io/badge/HTTP_Client-Dio-00599C)](https://pub.dev/packages/dio)
 [![Thermal Printer](https://img.shields.io/badge/Thermal_Printer-ESC%2FPOS-1E88E5?logo=bluetooth&logoColor=white)](https://pub.dev/packages/esc_pos_utils_plus)
-[![Tests](https://img.shields.io/badge/Tests-112_passed-success?logo=flutter&logoColor=white)](#-rilis--pengujian)
+[![Tests](https://img.shields.io/badge/Tests-141_passed-success?logo=flutter&logoColor=white)](#-rilis--pengujian)
 
 Aplikasi kasir mobile modern berbasis **Flutter** untuk smartphone dan tablet Android & iOS, terintegrasi penuh dengan backend SaaS [**Kasir Toko (Web POS)**](https://github.com/rizalahmaddd/kasir-toko). Mendukung mode cloud SaaS (hosted) maupun server sendiri (self-hosted).
 
@@ -17,6 +17,7 @@ Aplikasi kasir mobile modern berbasis **Flutter** untuk smartphone dan tablet An
 - 📶 **Mode Offline & Auto-Sync**: Tetap bertransaksi tanpa internet; antrean penjualan otomatis tersinkronisasi saat online.
 - 💳 **Pembayaran & QRIS Auto-Bright**: Tunai, transfer, split, dan QRIS dinamis dengan fitur auto-maksimal kecerahan layar.
 - 🖨️ **Struk Thermal Bluetooth**: Cetak langsung ke printer Bluetooth ESC/POS 58/80mm atau bagikan via WhatsApp.
+- 🏬 **Multi-Outlet**: Pilih outlet aktif, stok/harga/shift/transaksi per outlet, kelola outlet beserta pajak, metode bayar, dan akses pengguna (paket Pro).
 - 📊 **Back Office Mobile**: Manajemen produk, mutasi stok, pelanggan, kasbon/piutang, dan laporan penjualan.
 - 🔐 **Autentikasi Modern**: Social login Google & Apple, verifikasi OTP WhatsApp, dan kepatuhan store.
 
@@ -43,7 +44,7 @@ flutter run --dart-define=API_BASE_URL=http://192.168.1.10:8000
   flutter build appbundle --release --dart-define=HOSTED=true
   flutter build apk --release --split-per-abi --dart-define=HOSTED=true
   ```
-- 🧪 **Pengujian**: `flutter test --dart-define=HOSTED=true` *(112 unit & widget tests passed)*
+- 🧪 **Pengujian**: `flutter test --dart-define=HOSTED=true` *(141 unit & widget tests passed)*
 - 🎥 **Video Promosi Vertikal (promo/)**: Video promosi 60s siap tayang di `promo/kasir-toko-promo.mp4`
 - 🌐 **Sistem Backend Web POS**: [Kasir Toko (Web POS)](https://github.com/rizalahmaddd/kasir-toko)
 

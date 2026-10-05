@@ -30,6 +30,7 @@ int charsPerLine(String paperWidth) => paperWidth == '80' ? 48 : 32;
 class ReceiptProfile {
   const ReceiptProfile({
     required this.storeName,
+    this.outletName = '',
     this.address = '',
     this.phone = '',
     this.header = '',
@@ -56,6 +57,7 @@ class ReceiptProfile {
 
     return ReceiptProfile(
       storeName: text('store_name').isEmpty ? PrintingStrings.defaultStoreName : text('store_name'),
+      outletName: text('outlet_name'),
       address: text('address'),
       phone: text('phone'),
       header: text('header'),
@@ -80,6 +82,9 @@ class ReceiptProfile {
   }
 
   final String storeName;
+
+  /// Outlet printed under the store name; empty for single-outlet shops.
+  final String outletName;
   final String address;
   final String phone;
   final String header;
@@ -89,6 +94,7 @@ class ReceiptProfile {
 
   Map<String, dynamic> toJson() => {
         'store_name': storeName,
+        'outlet_name': outletName,
         'address': address,
         'phone': phone,
         'header': header,
@@ -144,6 +150,7 @@ List<PrintLine> _centered(String text, int width) =>
 /// Double-size text takes two columns per character, so the store name wraps at half the width.
 List<PrintLine> storeHeader(ReceiptProfile profile, int width, {bool showStoreInfo = true, bool showHeader = true}) => [
       for (final line in wrap(profile.storeName, width ~/ 2)) PrintLine(line, bold: true, align: LineAlign.center, large: true),
+      if (profile.outletName.isNotEmpty) for (final line in wrap(profile.outletName, width)) PrintLine(line, bold: true, align: LineAlign.center),
       if (showStoreInfo && profile.address.isNotEmpty) ..._centered(profile.address, width),
       if (showStoreInfo && profile.phone.isNotEmpty) ..._centered(PrintingStrings.receiptPhoneLine(profile.phone), width),
       if (showHeader && profile.header.isNotEmpty) ..._centered(profile.header, width),
