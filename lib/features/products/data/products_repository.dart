@@ -183,6 +183,10 @@ class ProductsRepository {
     return StockMovement.fromJson(ApiClient.data(body));
   }
 
+  /// Opname per batch: hasil hitung fisik tiap batch (id batch => jumlah satuan dasar).
+  Future<StockMovement> batchOpname({required int productId, required Map<String, double> counts, String? note}) async =>
+      StockMovement.fromJson(ApiClient.data(await _api.post('inventory/batch-opname', data: {'product_id': productId, 'counts': counts, 'note': ?note})));
+
   /// Batch bersaldo produk di outlet aktif, urut kedaluwarsa paling awal.
   Future<List<ProductBatchRecord>> batches(int productId) async =>
       ApiClient.list(await _api.get(ApiEndpoints.productBatches(productId), offlineCopy: false)).map(ProductBatchRecord.fromJson).toList();

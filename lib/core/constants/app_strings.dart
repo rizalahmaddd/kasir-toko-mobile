@@ -1774,6 +1774,8 @@ abstract final class BusinessStrings {
   static const unitsTitle = 'Satuan jual lain';
   static const tiersTitle = 'Harga grosir';
   static const serialsField = 'Nomor seri / IMEI';
+  static const batchOpnameHint = 'Hitung fisik tiap batch. Selisihnya dicatat per batch.';
+  static String batchSystemQuantity(String quantity, String unit) => 'Sistem: $quantity $unit';
   static const serialsHint = 'Satu per baris, sebanyak jumlah unit';
   static const trackSerial = 'Catat nomor seri / IMEI';
   static const trackSerialHint = 'Tiap unit dicatat nomor serinya saat stok masuk dan dipilih kasir saat dijual.';

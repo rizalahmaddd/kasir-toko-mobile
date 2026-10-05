@@ -49,6 +49,9 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
   int? _unitId;
   int? _batchId;
   List<ProductBatchRecord> _batches = const [];
+
+  /// Hitungan fisik per batch saat opname produk ber-batch.
+  final Map<int, TextEditingController> _counts = {};
   bool _busy = false;
   ApiException? _error;
 
@@ -65,10 +68,15 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
   @override
   void initState() {
     super.initState();
-    if (_usesBatches && widget.type == MovementTypes.stockOut) {
+    if (_usesBatches && (widget.type == MovementTypes.stockOut || _isOpname)) {
       unawaited(ref.read(productsRepositoryProvider).batches(widget.product.id).then((batches) {
         if (mounted) {
-          setState(() => _batches = batches.where((batch) => batch.quantity > 0).toList());
+          setState(() {
+            _batches = batches.where((batch) => batch.quantity > 0).toList();
+            for (final batch in _batches) {
+              _counts[batch.id] = TextEditingController(text: editableQuantity(batch.quantity));
+            }
+          });
         }
       }, onError: (_) {}));
     }
@@ -81,6 +89,9 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
     _note.dispose();
     _batchNumber.dispose();
     _serials.dispose();
+    for (final controller in _counts.values) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -96,7 +107,44 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
     }
   }
 
+  bool get _batchOpname => _isOpname && _usesBatches && _counts.isNotEmpty;
+
+  Future<void> _saveBatchOpname() async {
+    final counts = <String, double>{};
+    for (final entry in _counts.entries) {
+      final counted = parseQuantity(entry.value.text);
+      if (counted == null || counted < 0) {
+        setState(() => _error = ApiException(message: ProductStrings.validationQuantityNumber));
+        return;
+      }
+      counts['${entry.key}'] = counted;
+    }
+
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+
+    try {
+      await ref.read(productsRepositoryProvider).batchOpname(productId: widget.product.id, counts: counts, note: _note.text.trim().isEmpty ? null : _note.text.trim());
+      ref.read(dataChangesProvider).after({DataChange.products});
+      if (mounted) {
+        Navigator.pop(context, true);
+        showMessage(context, ProductStrings.stockAdjustRecordedMessage(_titles[widget.type]!, widget.product.name));
+      }
+    } on ApiException catch (error) {
+      setState(() => _error = error);
+    } finally {
+      if (mounted) {
+        setState(() => _busy = false);
+      }
+    }
+  }
+
   Future<void> _save() async {
+    if (_batchOpname) {
+      return _saveBatchOpname();
+    }
     final quantity = parseQuantity(_quantity.text);
     if (quantity == null) {
       setState(() => _error = ApiException(message: ProductStrings.validationQuantityNumber));
@@ -168,6 +216,23 @@ class _StockAdjustSheetState extends ConsumerState<StockAdjustSheet> {
           ),
           const SizedBox(height: AppSizes.s12),
         ],
+        if (_batchOpname) ...[
+          Text(BusinessStrings.batchOpnameHint, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          for (final batch in _batches)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSizes.s8),
+              child: TextField(
+                controller: _counts[batch.id],
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: InputDecoration(
+                  labelText: '${batch.batchNumber ?? BusinessStrings.noBatchNumber}${batch.expiresAt == null ? '' : ' · ${dateOnly(batch.expiresAt!)}'}',
+                  helperText: BusinessStrings.batchSystemQuantity(quantity(batch.quantity), product.unit),
+                  suffixText: product.unit,
+                ),
+              ),
+            ),
+          if (_error != null) Padding(padding: const EdgeInsets.only(top: AppSizes.s8), child: Text(_error!.message, style: TextStyle(color: Theme.of(context).colorScheme.error))),
+        ] else
         TextField(
           controller: _quantity,
           autofocus: true,
