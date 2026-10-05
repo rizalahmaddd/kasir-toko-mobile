@@ -197,8 +197,7 @@ class _CartBar extends ConsumerWidget {
     final cart = ref.watch(cartProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final taxRate = ref.watch(posConfigProvider).value?.taxRate ?? 0;
-    final total = cart.totals(taxRate).total;
+    final total = cart.totalsFor(ref.watch(posConfigProvider).value).total;
 
     if (cart.isEmpty) {
       return const SizedBox.shrink();

@@ -141,13 +141,20 @@ class CartItemTile extends ConsumerWidget {
                   Row(
                     children: [
                       Text(
-                        PosStrings.pricePerUnit(rupiah(item.price), item.unit),
+                        PosStrings.pricePerUnit(rupiah(item.unitPrice + item.modifiersTotal), item.unit),
                         style: AppTypography.money(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: muted,
                         ),
                       ),
+                      if (item.isTiered) ...[
+                        const SizedBox(width: AppSizes.s6),
+                        Text(
+                          PosStrings.tierBadge,
+                          style: theme.textTheme.labelSmall?.copyWith(color: colors.warning, fontWeight: FontWeight.w800, fontSize: 10),
+                        ),
+                      ],
                       if (item.appliedDiscount > 0) ...[
                         const SizedBox(width: AppSizes.s8),
                         Container(
@@ -168,6 +175,15 @@ class CartItemTile extends ConsumerWidget {
                       ],
                     ],
                   ),
+                  if (item.modifiers.isNotEmpty) ...[
+                    const SizedBox(height: AppSizes.s3),
+                    Text(
+                      item.modifierNames,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(color: colors.info, fontSize: 11),
+                    ),
+                  ],
                   if (item.note != null && item.note!.isNotEmpty) ...[
                     const SizedBox(height: AppSizes.s3),
                     Row(

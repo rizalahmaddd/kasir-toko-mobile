@@ -510,6 +510,24 @@ abstract final class PosStrings {
   static String stockSystemNotice(String name, String status) => 'Stok sistem $name $status. Tetap ditambahkan.';
   static String productNoLongerSold(String name) => '$name sudah tidak dijual dan dikeluarkan dari keranjang.';
   static String priceChanged(String name, String price) => 'Harga $name berubah jadi $price.';
+  static String tableLabel(String table) => 'Meja $table';
+
+  static const modifierSheetSubtitle = 'Pilih varian pesanan. Harga tambahan dihitung per porsi.';
+  static const modifierAdd = 'Tambah ke Keranjang';
+  static String modifierAddWithPrice(String extra) => 'Tambah (+$extra)';
+  static const modifierSave = 'Simpan Pilihan';
+  static const modifierEdit = 'Ubah Pilihan';
+  static const modifierNone = 'Belum ada pilihan';
+  static const modifierSectionLabel = 'Pilihan tambahan';
+  static String modifierRule(String group, String rule) => '$group: ${rule.toLowerCase()}.';
+  static const tierBadge = 'GROSIR';
+  static const openBillBadge = 'OPEN BILL';
+  static const tableField = 'Meja';
+  static String serviceLabel(String rate) => 'Service $rate%';
+  static const orderTypeLabels = {'dine_in': 'Dine-in', 'take_away': 'Take away', 'delivery': 'Delivery'};
+
+  static String modifierRemoved(String name) => 'Sebagian pilihan tambahan $name sudah dihapus dan dilepas dari keranjang.';
+
   static String unitRemoved(String name, String unit) => 'Satuan $unit untuk $name sudah dihapus, diganti satuan dasar.';
   static const unitLabel = 'Satuan';
   static String unitOption(String name, String factor, String baseUnit, String price) => '$name ($factor $baseUnit) · $price';
@@ -1726,6 +1744,11 @@ abstract final class BusinessStrings {
   static const expiresAt = 'Tanggal kedaluwarsa';
   static const expiresAtPick = 'Pilih tanggal';
   static const unitsTitle = 'Satuan jual lain';
+  static const tiersTitle = 'Harga grosir';
+  static String tiersHint(String unit) => 'Harga per $unit turun otomatis di kasir saat jumlah beli mencapai batasnya.';
+  static const addTier = 'Tambah tingkat';
+  static String tierMin(String unit) => 'Mulai beli ($unit)';
+  static const tierPrice = 'Harga per satuan';
   static String unitsHint(String base) => 'Stok tetap dihitung dalam $base. Harga kosong = isi × harga satuan dasar.';
   static const addUnit = 'Tambah Satuan';
   static const unitName = 'Nama satuan';

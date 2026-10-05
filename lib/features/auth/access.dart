@@ -28,6 +28,7 @@ extension Access on CurrentUser {
 
   bool get usesMultiUnit => hasFeature(FeatureKeys.multiUnit);
   bool get usesBatches => hasFeature(FeatureKeys.batchExpiry);
+  bool get usesTieredPrice => hasFeature(FeatureKeys.tieredPrice);
   bool get usesProductAttributes => hasFeature(FeatureKeys.productAttributes);
   bool get usesPrescriptions => hasFeature(FeatureKeys.prescription);
   bool get canViewPrescriptions => _gate(FeatureKeys.prescription, PermissionKeys.prescriptionView);

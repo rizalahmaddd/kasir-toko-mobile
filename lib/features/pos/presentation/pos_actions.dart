@@ -11,9 +11,20 @@ import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
 import '../pos_providers.dart';
+import 'widgets/modifier_picker_sheet.dart';
 
-void addToCart(BuildContext context, WidgetRef ref, Product product, {double quantity = 1, int? unitId}) {
-  final warning = ref.read(cartProvider.notifier).add(product, quantity: quantity, unitId: unitId);
+/// Menu dengan grup pilihan tambahan membuka pemilih dulu; batal berarti tidak ada yang ditambahkan.
+Future<void> addToCart(BuildContext context, WidgetRef ref, Product product, {double quantity = 1, int? unitId}) async {
+  var modifiers = const <SelectedModifier>[];
+  if ((ref.read(posConfigProvider).value?.modifiersEnabled ?? false) && product.modifierGroups.isNotEmpty) {
+    final picked = await ModifierPickerSheet.show(context, title: product.name, groups: product.modifierGroups);
+    if (picked == null || !context.mounted) {
+      return;
+    }
+    modifiers = picked;
+  }
+
+  final warning = ref.read(cartProvider.notifier).add(product, quantity: quantity, unitId: unitId, modifiers: modifiers);
 
   if (warning != null) {
     final allowNegative = ref.read(posConfigProvider).value?.allowNegativeStock ?? false;
@@ -65,7 +76,7 @@ Future<void> addByCode(BuildContext context, WidgetRef ref, String code) async {
   try {
     final product = await ref.read(posRepositoryProvider).lookup(trimmed);
     if (context.mounted) {
-      addToCart(context, ref, product);
+      await addToCart(context, ref, product);
     }
   } on ApiException catch (error) {
     if (context.mounted) {

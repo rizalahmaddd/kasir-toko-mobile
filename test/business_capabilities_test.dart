@@ -63,7 +63,7 @@ void main() {
     expect(cart.add(_paracetamol, unitId: 11), contains('tersisa 250'));
 
     final items = container.read(cartProvider).items;
-    expect(items.map((item) => item.key), ['7:11', '7:12']);
+    expect(items.map((item) => item.key), ['7:11:', '7:12:']);
     expect(items.firstWhere((item) => item.unitId == 12).price, 45000);
     expect(items.fold<double>(0, (sum, item) => sum + item.baseQuantity), 250);
   });

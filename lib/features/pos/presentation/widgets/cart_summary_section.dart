@@ -85,8 +85,9 @@ class CartSummarySection extends StatelessWidget {
                     valueColor: AppColors.emerald500,
                     icon: AppIcons.tag,
                   ),
-                if ((config?.taxRate ?? 0) > 0)
-                  _SummaryRow(PosStrings.taxLabelRate(config!.taxLabel, quantity(config!.taxRate)), rupiah(totals.taxAmount)),
+                if (totals.serviceAmount > 0)
+                  _SummaryRow(PosStrings.serviceLabel(quantity(config!.serviceRateFor(cart.orderTypeFor(config)))), rupiah(totals.serviceAmount)),
+                if ((config?.taxRate ?? 0) > 0) _SummaryRow(PosStrings.taxLabelRate(config!.taxLabel, quantity(config!.taxRate)), rupiah(totals.taxAmount)),
                 const SizedBox(height: AppSizes.s6),
                 Divider(
                   height: 12,

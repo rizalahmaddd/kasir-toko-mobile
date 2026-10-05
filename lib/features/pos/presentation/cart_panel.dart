@@ -38,7 +38,7 @@ class CartPanel extends ConsumerWidget {
       label: PosStrings.holdLabelField,
       hint: PosStrings.holdLabelHint,
       confirmLabel: PosStrings.holdConfirm,
-      initialValue: cart.customer?.name ?? '',
+      initialValue: (cart.table ?? '').isNotEmpty ? PosStrings.tableLabel(cart.table!) : cart.customer?.name ?? '',
       maxLength: 60,
     );
 
@@ -47,8 +47,8 @@ class CartPanel extends ConsumerWidget {
     }
 
     try {
-      final taxRate = ref.read(posConfigProvider).value?.taxRate ?? 0;
-      final heldOrder = await ref.read(posRepositoryProvider).holdOrder(cart: cart, total: cart.totals(taxRate).total, label: label);
+      final config = ref.read(posConfigProvider).value;
+      final heldOrder = await ref.read(posRepositoryProvider).holdOrder(cart: cart, total: cart.totalsFor(config).total, label: label, config: config);
       final preview = cart.items.map((i) => PosStrings.heldPreviewItem(quantity(i.quantity), i.name)).take(3).join(', ');
       ref.read(heldOrderPreviewsProvider.notifier).save(heldOrder.id, preview);
       ref.read(cartProvider.notifier).clear();
@@ -110,7 +110,7 @@ class CartPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final cart = ref.watch(cartProvider);
     final config = ref.watch(posConfigProvider).value;
-    final totals = cart.totals(config?.taxRate ?? 0);
+    final totals = cart.totalsFor(config);
 
     // Auto-pop on phone with slight delay when cart becomes empty (cleared, held, or deleted 1-by-1)
     ref.listen<Cart>(cartProvider, (previous, next) {
@@ -207,8 +207,8 @@ class CartPanel extends ConsumerWidget {
             ],
           ),
         ),
-        if ((ref.watch(currentUserProvider)?.usesPrescriptions ?? false) && (cart.needsPrescription || cart.hasPrescription))
-          _PrescriptionBar(cart: cart),
+        if (config?.orderTypeEnabled ?? false) _OrderTypeBar(cart: cart, config: config!),
+        if ((ref.watch(currentUserProvider)?.usesPrescriptions ?? false) && (cart.needsPrescription || cart.hasPrescription)) _PrescriptionBar(cart: cart),
         if (!cart.isEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s6),
@@ -324,6 +324,71 @@ class _PrescriptionBar extends ConsumerWidget {
               onPressed: () => ref.read(cartProvider.notifier).clearPrescription(),
               icon: const Icon(AppIcons.x, size: AppSizes.s18),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Tipe pesanan dan nomor meja (makan di tempat). Penundaan dengan nomor meja menjadi open bill meja itu.
+class _OrderTypeBar extends ConsumerStatefulWidget {
+  const _OrderTypeBar({required this.cart, required this.config});
+
+  final Cart cart;
+  final PosConfig config;
+
+  @override
+  ConsumerState<_OrderTypeBar> createState() => _OrderTypeBarState();
+}
+
+class _OrderTypeBarState extends ConsumerState<_OrderTypeBar> {
+  late final _table = TextEditingController(text: widget.cart.table ?? '');
+
+  @override
+  void didUpdateWidget(covariant _OrderTypeBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final table = widget.cart.table ?? '';
+    if (table != _table.text) {
+      _table.text = table;
+    }
+  }
+
+  @override
+  void dispose() {
+    _table.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final current = widget.cart.orderTypeFor(widget.config);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.s12, AppSpacing.s8, AppSpacing.s12, AppSpacing.s4),
+      child: Row(
+        children: [
+          Expanded(
+            child: SegmentedButton<String>(
+              showSelectedIcon: false,
+              style: const ButtonStyle(visualDensity: VisualDensity.compact),
+              segments: [for (final type in OrderTypes.all) ButtonSegment(value: type, label: Text(PosStrings.orderTypeLabels[type]!, maxLines: 1))],
+              selected: {current ?? OrderTypes.dineIn},
+              onSelectionChanged: (value) => ref.read(cartProvider.notifier).setOrderType(value.first),
+            ),
+          ),
+          if (current == OrderTypes.dineIn) ...[
+            const SizedBox(width: AppSizes.s8),
+            SizedBox(
+              width: 72,
+              child: TextField(
+                controller: _table,
+                maxLength: 30,
+                textAlign: TextAlign.center,
+                decoration: const InputDecoration(hintText: PosStrings.tableField, counterText: '', isDense: true),
+                onChanged: (value) => ref.read(cartProvider.notifier).setTable(value),
+              ),
+            ),
+          ],
         ],
       ),
     );

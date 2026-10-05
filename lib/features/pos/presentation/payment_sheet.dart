@@ -96,7 +96,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
   PosConfig get _config => ref.read(posConfigProvider).requireValue;
 
-  int get _total => ref.read(cartProvider).totals(_config.taxRate).total;
+  int get _total => ref.read(cartProvider).totalsFor(_config).total;
 
   int get _committed => _lines.fold(0, (sum, line) => sum + line.amount);
 
@@ -208,7 +208,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     });
 
     try {
-      final sale = await ref.read(posRepositoryProvider).checkout(cart: cart, payments: payments, expectedTotal: _total);
+      final sale = await ref.read(posRepositoryProvider).checkout(cart: cart, payments: payments, expectedTotal: _total, config: _config);
       ref.read(cartProvider.notifier).clear();
       unawaited(ref.read(dataChangesProvider).saleRecorded(_baseQuantities(cart)));
       if (mounted) {
@@ -234,13 +234,13 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       return;
     }
 
-    final totals = cart.totals(_config.taxRate);
+    final totals = cart.totalsFor(_config);
     final labels = {for (final method in _config.paymentMethods) method.value: method.label};
     final cash = payments.where((p) => p.method == PaymentMethods.cash).fold(0, (sum, p) => sum + p.amount);
     final change = paid > totals.total ? paid - totals.total : 0;
     final now = DateTime.now();
     final sale = QueuedSale(
-      payload: PosRepository.checkoutPayload(cart: cart, payments: payments, expectedTotal: totals.total),
+      payload: PosRepository.checkoutPayload(cart: cart, payments: payments, expectedTotal: totals.total, config: _config),
       cart: cart.toJson(total: totals.total),
       userId: user.id,
       total: totals.total,

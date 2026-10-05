@@ -11,6 +11,7 @@ import '../../../core/widgets/common.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../data/product_meta.dart';
+import '../../pos/cart_math.dart';
 import '../data/product_models.dart';
 
 class UnitDraft {
@@ -34,30 +35,44 @@ class UnitDraft {
   }
 }
 
+class TierDraft {
+  TierDraft({String min = '', String price = ''}) : min = TextEditingController(text: min), price = TextEditingController(text: price);
+
+  final TextEditingController min;
+  final TextEditingController price;
+
+  void dispose() {
+    min.dispose();
+    price.dispose();
+  }
+}
+
 /// Isian kapabilitas usaha di form produk. Hanya isian dari kapabilitas yang menyala yang ikut dikirim.
 class ProductBusinessDraft {
   ProductBusinessDraft(ProductRecord? product)
-      : attributes = {for (final entry in (product?.customAttributes ?? const {}).entries) entry.key: '${entry.value}'},
-        drugClass = product?.drugClass,
-        requiresPrescription = product?.requiresPrescription ?? false,
-        trackBatch = product?.trackBatch ?? false,
-        units = [
-          for (final unit in product?.units ?? const <ProductUnitRecord>[])
-            UnitDraft(
-              id: unit.id,
-              name: unit.name,
-              factor: editableQuantity(unit.factor),
-              price: unit.fixedPrice == null ? '' : thousands(unit.fixedPrice!),
-              barcode: unit.barcode ?? '',
-              isDefault: unit.isDefault,
-            ),
-        ];
+    : attributes = {for (final entry in (product?.customAttributes ?? const {}).entries) entry.key: '${entry.value}'},
+      drugClass = product?.drugClass,
+      requiresPrescription = product?.requiresPrescription ?? false,
+      trackBatch = product?.trackBatch ?? false,
+      units = [
+        for (final unit in product?.units ?? const <ProductUnitRecord>[])
+          UnitDraft(
+            id: unit.id,
+            name: unit.name,
+            factor: editableQuantity(unit.factor),
+            price: unit.fixedPrice == null ? '' : thousands(unit.fixedPrice!),
+            barcode: unit.barcode ?? '',
+            isDefault: unit.isDefault,
+          ),
+      ],
+      tiers = [for (final tier in product?.priceTiers ?? const <PriceTier>[]) TierDraft(min: editableQuantity(tier.min), price: thousands(tier.price))];
 
   final Map<String, String> attributes;
   String? drugClass;
   bool requiresPrescription;
   bool trackBatch;
   final List<UnitDraft> units;
+  final List<TierDraft> tiers;
   final batchNumber = TextEditingController();
   DateTime? expiresAt;
 
@@ -65,6 +80,9 @@ class ProductBusinessDraft {
     batchNumber.dispose();
     for (final unit in units) {
       unit.dispose();
+    }
+    for (final tier in tiers) {
+      tier.dispose();
     }
   }
 
@@ -77,6 +95,12 @@ class ProductBusinessDraft {
       if (user?.usesBatches ?? false) 'track_batch': trackBatch && trackStock,
       if ((user?.usesBatches ?? false) && isNew && trackBatch && batchNumber.text.trim().isNotEmpty) 'batch_number': batchNumber.text.trim(),
       if ((user?.usesBatches ?? false) && isNew && trackBatch && expiresAt != null) 'expires_at': expiresAt!.toIso8601String().substring(0, 10),
+      if (user?.usesTieredPrice ?? false)
+        'price_tiers': [
+          for (final tier in tiers)
+            if (tier.min.text.trim().isNotEmpty)
+              {'min_quantity': double.tryParse(tier.min.text.trim().replaceAll(',', '.')) ?? 0, 'price': parseRupiah(tier.price.text)},
+        ],
       if (user?.usesMultiUnit ?? false)
         'units': [
           for (final unit in units)
@@ -130,8 +154,9 @@ class _ProductBusinessSectionState extends ConsumerState<ProductBusinessSection>
     final showPharmacy = user?.usesPrescriptions ?? false;
     final showBatch = (user?.usesBatches ?? false) && widget.trackStock;
     final showUnits = user?.usesMultiUnit ?? false;
+    final showTiers = user?.usesTieredPrice ?? false;
 
-    if (!showAttributes && !showPharmacy && !showBatch && !showUnits) {
+    if (!showAttributes && !showPharmacy && !showBatch && !showUnits && !showTiers) {
       return const SizedBox.shrink();
     }
 
@@ -190,6 +215,51 @@ class _ProductBusinessSectionState extends ConsumerState<ProductBusinessSection>
                 ),
               ],
             ),
+        ],
+        if (showTiers) ...[
+          SectionTitle(
+            BusinessStrings.tiersTitle,
+            trailing: TextButton.icon(
+              onPressed: _draft.tiers.length >= 10 ? null : () => setState(() => _draft.tiers.add(TierDraft())),
+              icon: const Icon(AppIcons.plus, size: AppSizes.s16),
+              label: const Text(BusinessStrings.addTier),
+            ),
+          ),
+          Text(BusinessStrings.tiersHint(widget.baseUnit), style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+          for (final (index, tier) in _draft.tiers.indexed)
+            Padding(
+              key: ObjectKey(tier),
+              padding: const EdgeInsets.only(top: AppSpacing.s8),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: tier.min,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))],
+                      decoration: InputDecoration(
+                        labelText: BusinessStrings.tierMin(widget.baseUnit),
+                        errorText: error?.call('price_tiers.$index.min_quantity'),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.s12),
+                  Expanded(
+                    child: TextField(
+                      controller: tier.price,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: BusinessStrings.tierPrice, errorText: error?.call('price_tiers.$index.price')),
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: () => setState(() => _draft.tiers.removeAt(index).dispose()),
+                    icon: const Icon(AppIcons.trash2, size: AppSizes.s18),
+                  ),
+                ],
+              ),
+            ),
+          const SizedBox(height: AppSizes.s12),
         ],
         if (showUnits) ...[
           SectionTitle(

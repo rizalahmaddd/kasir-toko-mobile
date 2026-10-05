@@ -10,6 +10,8 @@ import '../../../../core/widgets/common.dart';
 import '../../../../core/widgets/money_field.dart';
 import '../../cart_controller.dart';
 import '../../data/pos_models.dart';
+import 'modifier_picker_sheet.dart';
+
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 
@@ -73,6 +75,24 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
     Navigator.pop(context);
   }
 
+  /// Edit sheet ditutup dulu karena kunci baris ikut berubah saat pilihan tambahannya diganti.
+  Future<void> _editModifiers() async {
+    final item = widget.item;
+    final navigator = Navigator.of(context);
+    final cart = ref.read(cartProvider.notifier);
+    navigator.pop();
+    final picked = await ModifierPickerSheet.show(
+      navigator.context,
+      title: item.name,
+      groups: item.modifierGroups,
+      selected: item.modifiers,
+      confirmLabel: PosStrings.modifierSave,
+    );
+    if (picked != null) {
+      cart.setModifiers(item.key, picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
@@ -91,6 +111,27 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                if (widget.item.modifierGroups.isNotEmpty) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(PosStrings.modifierSectionLabel, style: Theme.of(context).textTheme.labelMedium),
+                            Text(
+                              widget.item.modifiers.isEmpty ? PosStrings.modifierNone : widget.item.modifierNames,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      OutlinedButton(onPressed: _editModifiers, child: const Text(PosStrings.modifierEdit)),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.s12),
+                ],
                 if (widget.item.units.isNotEmpty) ...[
                   Text(PosStrings.unitLabel, style: Theme.of(context).textTheme.labelMedium),
                   const SizedBox(height: AppSizes.s6),

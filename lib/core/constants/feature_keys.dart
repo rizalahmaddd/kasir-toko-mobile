@@ -13,6 +13,9 @@ abstract final class FeatureKeys {
   static const settingsOutlets = 'settings.outlets';
   static const productAttributes = 'business.product-attributes';
   static const multiUnit = 'business.multi-unit';
+  static const tieredPrice = 'business.tiered-price';
+  static const modifiers = 'business.modifiers';
+  static const orderType = 'business.order-type';
   static const batchExpiry = 'business.batch-expiry';
   static const prescription = 'business.prescription';
 }

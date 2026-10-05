@@ -248,6 +248,13 @@ class _HeldOrderCard extends StatelessWidget {
                         ],
                       ),
                     ),
+                    if (order.tableLabel != null) ...[
+                      const SizedBox(width: AppSizes.s6),
+                      const Text(
+                        PosStrings.openBillBadge,
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: AppColors.sky500),
+                      ),
+                    ],
                     const SizedBox(width: AppSizes.s8),
                     Expanded(
                       child: Text(

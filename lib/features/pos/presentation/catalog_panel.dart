@@ -77,10 +77,10 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
     final exact = products.where((p) => p.barcode == term || p.sku == term).firstOrNull;
 
     if (exact != null) {
-      addToCart(context, ref, exact);
+      unawaited(addToCart(context, ref, exact));
       _clearSearch();
     } else if (products.length == 1) {
-      addToCart(context, ref, products.first);
+      unawaited(addToCart(context, ref, products.first));
       _clearSearch();
     }
   }
@@ -112,7 +112,7 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
     final qty = input == null ? null : parseQuantity(input);
 
     if (qty != null && qty > 0 && mounted) {
-      addToCart(context, ref, product, quantity: qty);
+      await addToCart(context, ref, product, quantity: qty);
     }
   }
 

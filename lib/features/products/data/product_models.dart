@@ -1,4 +1,5 @@
 import '../../../core/utils/json.dart';
+import '../../pos/cart_math.dart';
 
 class CategoryRecord {
   const CategoryRecord({required this.id, required this.name, this.sortOrder = 0, this.isActive = true, this.productsCount});
@@ -43,36 +44,38 @@ class ProductRecord {
     this.requiresPrescription = false,
     this.trackBatch = false,
     this.units = const [],
+    this.priceTiers = const [],
   }) : basePrice = basePrice ?? price;
 
   factory ProductRecord.fromJson(Map<String, dynamic> json) => ProductRecord(
-        id: json['id'] as int,
-        sku: json['sku'] as String? ?? '',
-        barcode: json['barcode'] as String?,
-        name: json['name'] as String,
-        unit: json['unit'] as String? ?? 'pcs',
-        category: json['category'] == null ? null : CategoryRecord.fromJson(json['category'] as Map<String, dynamic>),
-        costPrice: asInt(json['cost_price']),
-        price: asInt(json['price']),
-        trackStock: json['track_stock'] as bool? ?? false,
-        stock: asDouble(json['stock']),
-        minStock: asDouble(json['min_stock']),
-        isLowStock: json['is_low_stock'] as bool? ?? false,
-        imageUrl: json['image_url'] as String?,
-        isActive: json['is_active'] as bool? ?? true,
-        basePrice: json['base_price'] == null ? null : asInt(json['base_price']),
-        hasOutletPrice: json['has_outlet_price'] as bool? ?? false,
-        outletPrices: {
-          for (final row in json['outlet_prices'] as List? ?? const [])
-            if (row is Map<String, dynamic>) asInt(row['outlet_id']): asInt(row['price']),
-        },
-        customAttributes: asMap(json['custom_attributes']),
-        drugClass: json['drug_class'] as String?,
-        drugClassLabel: json['drug_class_label'] as String?,
-        requiresPrescription: json['requires_prescription'] as bool? ?? false,
-        trackBatch: json['track_batch'] as bool? ?? false,
-        units: asList(json['units']).map(ProductUnitRecord.fromJson).toList(),
-      );
+    id: json['id'] as int,
+    sku: json['sku'] as String? ?? '',
+    barcode: json['barcode'] as String?,
+    name: json['name'] as String,
+    unit: json['unit'] as String? ?? 'pcs',
+    category: json['category'] == null ? null : CategoryRecord.fromJson(json['category'] as Map<String, dynamic>),
+    costPrice: asInt(json['cost_price']),
+    price: asInt(json['price']),
+    trackStock: json['track_stock'] as bool? ?? false,
+    stock: asDouble(json['stock']),
+    minStock: asDouble(json['min_stock']),
+    isLowStock: json['is_low_stock'] as bool? ?? false,
+    imageUrl: json['image_url'] as String?,
+    isActive: json['is_active'] as bool? ?? true,
+    basePrice: json['base_price'] == null ? null : asInt(json['base_price']),
+    hasOutletPrice: json['has_outlet_price'] as bool? ?? false,
+    outletPrices: {
+      for (final row in json['outlet_prices'] as List? ?? const [])
+        if (row is Map<String, dynamic>) asInt(row['outlet_id']): asInt(row['price']),
+    },
+    customAttributes: asMap(json['custom_attributes']),
+    drugClass: json['drug_class'] as String?,
+    drugClassLabel: json['drug_class_label'] as String?,
+    requiresPrescription: json['requires_prescription'] as bool? ?? false,
+    trackBatch: json['track_batch'] as bool? ?? false,
+    units: asList(json['units']).map(ProductUnitRecord.fromJson).toList(),
+    priceTiers: asList(json['price_tiers']).map(PriceTier.fromJson).toList(),
+  );
 
   final int id;
   final String sku;
@@ -103,6 +106,7 @@ class ProductRecord {
   final bool requiresPrescription;
   final bool trackBatch;
   final List<ProductUnitRecord> units;
+  final List<PriceTier> priceTiers;
 
   bool get isOutOfStock => trackStock && stock <= 0;
   int get margin => price - costPrice;

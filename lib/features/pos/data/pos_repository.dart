@@ -103,18 +103,21 @@ class PosRepository {
 
   Future<QrisPayment> qris(int amount) async => QrisPayment.fromJson(ApiClient.data(await _api.get(ApiEndpoints.posQris, query: {'amount': amount})));
 
-  static Map<String, dynamic> checkoutPayload({required Cart cart, required List<PaymentLine> payments, required int expectedTotal}) => {
-        'client_uuid': cart.clientUuid,
-        'customer_id': cart.customer?.id,
-        'items': cart.items.map((item) => item.toCheckoutJson()).toList(),
-        'discount_type': cart.discountType?.name,
-        'discount_value': cart.discountType == null ? null : cart.discountValue,
-        'payments': payments.map((payment) => payment.toJson()).toList(),
-        'note': cart.note,
-        'expected_total': expectedTotal,
-        'prescription_id': ?cart.prescription?.id,
-        if (cart.prescription == null && cart.prescriptionDraft != null) 'prescription': cart.prescriptionDraft!.toJson(),
-      };
+  static Map<String, dynamic> checkoutPayload({required Cart cart, required List<PaymentLine> payments, required int expectedTotal, PosConfig? config}) => {
+    'client_uuid': cart.clientUuid,
+    'customer_id': cart.customer?.id,
+    'items': cart.items.map((item) => item.toCheckoutJson()).toList(),
+    'discount_type': cart.discountType?.name,
+    'discount_value': cart.discountType == null ? null : cart.discountValue,
+    'payments': payments.map((payment) => payment.toJson()).toList(),
+    'note': cart.note,
+    'expected_total': expectedTotal,
+    'prescription_id': ?cart.prescription?.id,
+    if (cart.prescription == null && cart.prescriptionDraft != null) 'prescription': cart.prescriptionDraft!.toJson(),
+    'order_type': ?cart.orderTypeFor(config),
+    if (cart.orderTypeFor(config) == OrderTypes.dineIn && (cart.table ?? '').isNotEmpty) 'table_label': cart.table,
+    if (cart.kitchenSent.isNotEmpty) 'kitchen_sent': cart.kitchenSent,
+  };
 
   /// Safe to repeat: the server returns the existing sale for a `client_uuid` it has already stored.
   /// A queued sale goes to the outlet it was made in, not the one selected now, and is flagged
@@ -126,13 +129,22 @@ class PosRepository {
     return SaleDetail.fromJson(ApiClient.data(response));
   }
 
-  Future<SaleDetail> checkout({required Cart cart, required List<PaymentLine> payments, required int expectedTotal}) =>
-      submitCheckout(checkoutPayload(cart: cart, payments: payments, expectedTotal: expectedTotal));
+  Future<SaleDetail> checkout({required Cart cart, required List<PaymentLine> payments, required int expectedTotal, PosConfig? config}) =>
+      submitCheckout(checkoutPayload(cart: cart, payments: payments, expectedTotal: expectedTotal, config: config));
 
   Future<List<HeldOrder>> heldOrders() async => ApiClient.list(await _api.get(ApiEndpoints.posHeldOrders)).map(HeldOrder.fromJson).toList();
 
-  Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label}) async =>
-      HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrders, data: {'label': label, 'cart': cart.toJson(total: total)})));
+  Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label, PosConfig? config}) async => HeldOrder.fromJson(
+    ApiClient.data(
+      await _api.post(
+        ApiEndpoints.posHeldOrders,
+        data: {
+          'label': label,
+          'cart': {...cart.toJson(total: total), 'orderType': ?cart.orderTypeFor(config)},
+        },
+      ),
+    ),
+  );
 
   Future<HeldOrder> resumeHeldOrder(int id) async => HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrderResume(id))));
 
