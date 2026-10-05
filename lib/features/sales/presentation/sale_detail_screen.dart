@@ -184,6 +184,28 @@ class _Body extends StatelessWidget {
                             _MetaPill(icon: AppIcons.store, label: sale.outletName!, isDark: isDark),
                         ],
                       ),
+                      if (sale.prescriptionNumber != null) ...[
+                        const SizedBox(height: AppSizes.s8),
+                        _MetaPill(icon: AppIcons.fileHeart, label: '${sale.prescriptionNumber} · dr. ${sale.prescriptionDoctor ?? '-'}', isDark: isDark),
+                      ],
+                      if (sale.flagLabels.isNotEmpty) ...[
+                        const SizedBox(height: AppSizes.s12),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.s10),
+                          decoration: BoxDecoration(
+                            color: AppColors.amber600.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppRadius.r8),
+                            border: Border.all(color: AppColors.amber600.withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(AppIcons.alertTriangle, size: AppSizes.s16, color: AppColors.amber600),
+                              const SizedBox(width: AppSizes.s8),
+                              Expanded(child: Text(sale.flagLabels.join(' · '), style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (sale.isVoided) ...[
                         const SizedBox(height: AppSizes.s12),
                         Container(

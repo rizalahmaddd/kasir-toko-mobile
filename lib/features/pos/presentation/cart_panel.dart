@@ -8,7 +8,10 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../auth/access.dart';
+import '../../auth/auth_controller.dart';
 import '../../offline/offline_queue.dart';
+import '../../pharmacy/presentation/prescription_picker_sheet.dart';
 import '../../offline/presentation/offline_checkout_success.dart';
 import '../../sales/data/sale_models.dart';
 import '../cart_controller.dart';
@@ -77,7 +80,15 @@ class CartPanel extends ConsumerWidget {
     }
   }
 
-  Future<void> _pay(BuildContext context) async {
+  Future<void> _pay(BuildContext context, WidgetRef ref) async {
+    final cart = ref.read(cartProvider);
+    final usesPrescriptions = ref.read(currentUserProvider)?.usesPrescriptions ?? false;
+    if (usesPrescriptions && cart.needsPrescription && !cart.hasPrescription) {
+      showMessage(context, PosStrings.prescriptionRequiredBeforePay, isError: true);
+      await PrescriptionPickerSheet.show(context);
+      return;
+    }
+
     final navigator = Navigator.of(context);
     final result = await PaymentSheet.show(context);
     if (result == null || !navigator.mounted) {
@@ -196,6 +207,8 @@ class CartPanel extends ConsumerWidget {
             ],
           ),
         ),
+        if ((ref.watch(currentUserProvider)?.usesPrescriptions ?? false) && (cart.needsPrescription || cart.hasPrescription))
+          _PrescriptionBar(cart: cart),
         if (!cart.isEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s6),
@@ -269,9 +282,50 @@ class CartPanel extends ConsumerWidget {
           config: config,
           totals: totals,
           onHold: () => _hold(context, ref),
-          onPay: () => _pay(context),
+          onPay: () => _pay(context, ref),
         ),
       ],
+    );
+  }
+}
+
+class _PrescriptionBar extends ConsumerWidget {
+  const _PrescriptionBar({required this.cart});
+
+  final Cart cart;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final colors = StatusColors.of(context);
+    final linked = cart.prescription;
+    final draft = cart.prescriptionDraft;
+    final label = linked != null
+        ? PosStrings.prescriptionLinked(linked.number, linked.patient)
+        : draft != null
+            ? PosStrings.prescriptionDrafted(draft.doctorName, draft.patientName)
+            : PosStrings.prescriptionNeeded;
+    final tone = cart.hasPrescription ? colors.success : colors.danger;
+
+    return Container(
+      color: tone.withValues(alpha: 0.08),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.s14, AppSpacing.s4, AppSpacing.s4, AppSpacing.s4),
+      child: Row(
+        children: [
+          Icon(AppIcons.fileHeart, size: AppSizes.s16, color: tone),
+          const SizedBox(width: AppSizes.s8),
+          Expanded(child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
+          TextButton(
+            onPressed: () => PrescriptionPickerSheet.show(context),
+            child: Text(cart.hasPrescription ? PosStrings.prescriptionChange : PosStrings.prescriptionLink),
+          ),
+          if (cart.hasPrescription)
+            IconButton(
+              tooltip: PosStrings.prescriptionRemove,
+              onPressed: () => ref.read(cartProvider.notifier).clearPrescription(),
+              icon: const Icon(AppIcons.x, size: AppSizes.s18),
+            ),
+        ],
+      ),
     );
   }
 }

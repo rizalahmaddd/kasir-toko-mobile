@@ -159,6 +159,9 @@ class SaleDetail {
     this.discountValue = 0,
     this.shiftNumber,
     this.outletName,
+    this.flagLabels = const [],
+    this.prescriptionNumber,
+    this.prescriptionDoctor,
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> json) {
@@ -193,6 +196,9 @@ class SaleDetail {
       discountValue: _double(json['discount_value']),
       shiftNumber: (json['shift'] as Map<String, dynamic>?)?['number'] as String?,
       outletName: (json['outlet'] as Map<String, dynamic>?)?['name'] as String?,
+      flagLabels: (json['flag_labels'] as List? ?? const []).cast<String>(),
+      prescriptionNumber: (json['prescription'] as Map<String, dynamic>?)?['number'] as String?,
+      prescriptionDoctor: (json['prescription'] as Map<String, dynamic>?)?['doctor_name'] as String?,
     );
   }
 
@@ -224,6 +230,11 @@ class SaleDetail {
   final String? discountType;
   final double discountValue;
   final String? shiftNumber;
+
+  /// Catatan transaksi offline yang perlu ditinjau (resep belum diverifikasi, batch kedaluwarsa, dll.).
+  final List<String> flagLabels;
+  final String? prescriptionNumber;
+  final String? prescriptionDoctor;
 
   bool get isVoided => status == SaleStatuses.voided;
 }

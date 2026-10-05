@@ -152,12 +152,36 @@ class ProductsRepository {
     return Paginated.fromJson(body, StockMovement.fromJson);
   }
 
-  Future<StockMovement> adjust({required int productId, required String type, required double quantity, int? unitCost, String? note}) async {
+  Future<StockMovement> adjust({
+    required int productId,
+    required String type,
+    required double quantity,
+    int? unitCost,
+    String? note,
+    int? unitId,
+    String? batchNumber,
+    DateTime? expiresAt,
+    int? batchId,
+  }) async {
     final body = await _api.post(
       'inventory/adjustments',
-      data: {'product_id': productId, 'type': type, 'quantity': quantity, 'unit_cost': unitCost, 'note': note},
+      data: {
+        'product_id': productId,
+        'type': type,
+        'quantity': quantity,
+        'unit_cost': unitCost,
+        'note': note,
+        'unit_id': ?unitId,
+        'batch_number': ?batchNumber,
+        if (expiresAt != null) 'expires_at': expiresAt.toIso8601String().substring(0, 10),
+        'batch_id': ?batchId,
+      },
     );
 
     return StockMovement.fromJson(ApiClient.data(body));
   }
+
+  /// Batch bersaldo produk di outlet aktif, urut kedaluwarsa paling awal.
+  Future<List<ProductBatchRecord>> batches(int productId) async =>
+      ApiClient.list(await _api.get(ApiEndpoints.productBatches(productId), offlineCopy: false)).map(ProductBatchRecord.fromJson).toList();
 }

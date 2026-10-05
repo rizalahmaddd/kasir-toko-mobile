@@ -112,6 +112,8 @@ class PosRepository {
         'payments': payments.map((payment) => payment.toJson()).toList(),
         'note': cart.note,
         'expected_total': expectedTotal,
+        'prescription_id': ?cart.prescription?.id,
+        if (cart.prescription == null && cart.prescriptionDraft != null) 'prescription': cart.prescriptionDraft!.toJson(),
       };
 
   /// Safe to repeat: the server returns the existing sale for a `client_uuid` it has already stored.

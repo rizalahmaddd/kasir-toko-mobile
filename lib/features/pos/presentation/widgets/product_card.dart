@@ -328,7 +328,7 @@ class PosProductCard extends ConsumerWidget {
                         SizedBox(
                           height: isLarge ? 36 : (isCompact ? 28 : 34),
                           child: Text(
-                            product.name,
+                            product.requiresPrescription ? '${PosStrings.prescriptionBadge} · ${product.name}' : product.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(

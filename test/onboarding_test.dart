@@ -42,6 +42,10 @@ Map<String, dynamic> _presetJson(String key, String label) => {
         'receipt_footer': 'Sampai jumpa',
       },
       'disabled_features': ['pos.receivables'],
+      'capabilities': [
+        {'key': 'business.product-attributes', 'label': 'Atribut Produk Khusus', 'description': 'Isian tambahan', 'default_on': true},
+        {'key': 'business.batch-expiry', 'label': 'Batch & Kedaluwarsa', 'description': 'Stok per batch', 'default_on': false},
+      ],
     };
 
 class _FakeAuth extends AuthController {
@@ -54,6 +58,9 @@ class _FakeAuth extends AuthController {
 
   @override
   Future<void> updateTenant(TenantInfo tenant) async => state = AsyncData(state.value!.withTenant(tenant));
+
+  @override
+  Future<void> refreshProfile() async {}
 
   @override
   Future<void> logout() async => state = const AsyncData(null);
@@ -69,6 +76,7 @@ class _FakeRepository implements OnboardingRepository {
   ApiException? applyError;
   List<String>? lastCategories;
   Map<String, dynamic>? lastSettings;
+  List<String>? lastCapabilities;
 
   @override
   Future<List<StorePreset>> presets() async => [StorePreset.fromJson(_presetJson('kafe', 'Kafe / Coffee Shop'))];
@@ -79,9 +87,11 @@ class _FakeRepository implements OnboardingRepository {
     required bool includeSampleProducts,
     List<String>? categories,
     Map<String, dynamic>? settings,
+    List<String>? capabilities,
   }) async {
     lastCategories = categories;
     lastSettings = settings;
+    lastCapabilities = capabilities;
     calls.add('apply $storeType samples=$includeSampleProducts');
     if (applyError != null) {
       throw applyError!;
@@ -248,6 +258,25 @@ void main() {
       expect(repository.lastCategories, ['Kopi']);
       expect(repository.lastSettings?['allow_negative_stock'], isFalse);
       expect(container.read(currentUserProvider)?.needsOnboarding, isFalse);
+    });
+
+    testWidgets('sends the business capabilities the owner keeps ticked', (tester) async {
+      final (_, repository) = await _pump(tester);
+
+      await tester.tap(find.text('Kafe / Coffee Shop'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Batch & Kedaluwarsa'));
+      await tester.tap(find.text('Batch & Kedaluwarsa'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Atribut Produk Khusus'));
+      await tester.tap(find.text('Atribut Produk Khusus'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Terapkan'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastCapabilities, ['business.batch-expiry']);
     });
   });
 }

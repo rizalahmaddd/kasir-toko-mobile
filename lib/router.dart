@@ -37,6 +37,9 @@ import 'features/reports/presentation/activity_log_screen.dart';
 import 'features/reports/presentation/sales_report_screen.dart';
 import 'features/sales/presentation/sale_detail_screen.dart';
 import 'features/sales/presentation/sales_screen.dart';
+import 'features/pharmacy/presentation/prescription_detail_screen.dart';
+import 'features/pharmacy/presentation/prescription_form_screen.dart';
+import 'features/pharmacy/presentation/prescriptions_screen.dart';
 import 'features/shift/presentation/shift_screen.dart';
 import 'features/shift/presentation/shifts_screen.dart';
 
@@ -88,6 +91,12 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under(AppRoutes.posSettings)) {
     return user.canManagePosSettings;
+  }
+  if (location == AppRoutes.prescriptionNew) {
+    return user.canManagePrescriptions;
+  }
+  if (under(AppRoutes.prescriptions) || under(AppRoutes.prescription)) {
+    return user.canViewPrescriptions;
   }
   if (under(AppRoutes.outlets)) {
     return location == AppRoutes.outlets ? user.canViewOutlets : user.canManageOutlets;
@@ -179,6 +188,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page(AppRoutes.outlets, (_) => const OutletsScreen()),
       _page(AppRoutes.outletSettingsPattern, (state) => OutletSettingsScreen(outletId: _id(state))),
       _page(AppRoutes.offline, (_) => const OfflineScreen()),
+      _page(AppRoutes.prescriptions, (_) => const PrescriptionsScreen()),
+      _page(AppRoutes.prescriptionNew, (_) => const PrescriptionFormScreen()),
+      _page(AppRoutes.prescriptionPattern, (state) => PrescriptionDetailScreen(prescriptionId: _id(state))),
     ],
   );
 });

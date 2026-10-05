@@ -2,6 +2,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Pusat semua ikon aplikasi. Untuk mengganti ikon, cukup ubah di file ini.
 abstract final class AppIcons {
+  static const fileHeart = LucideIcons.fileHeart;
+  static const layers = LucideIcons.layers;
+  static const briefcaseBusiness = LucideIcons.briefcaseBusiness;
   static const alertCircle = LucideIcons.alertCircle;
   static const alertOctagon = LucideIcons.alertOctagon;
   static const alertTriangle = LucideIcons.alertTriangle;

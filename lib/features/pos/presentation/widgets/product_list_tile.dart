@@ -154,7 +154,7 @@ class PosProductListTile extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          product.name,
+                          product.requiresPrescription ? '${PosStrings.prescriptionBadge} · ${product.name}' : product.name,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: TextStyle(

@@ -12,8 +12,8 @@ import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
 import '../pos_providers.dart';
 
-void addToCart(BuildContext context, WidgetRef ref, Product product, {double quantity = 1}) {
-  final warning = ref.read(cartProvider.notifier).add(product, quantity: quantity);
+void addToCart(BuildContext context, WidgetRef ref, Product product, {double quantity = 1, int? unitId}) {
+  final warning = ref.read(cartProvider.notifier).add(product, quantity: quantity, unitId: unitId);
 
   if (warning != null) {
     final allowNegative = ref.read(posConfigProvider).value?.allowNegativeStock ?? false;
@@ -37,10 +37,10 @@ void decrementFromCart(BuildContext context, WidgetRef ref, Product product, {do
 
   final newQty = item.quantity - quantity;
   if (newQty <= 0) {
-    ref.read(cartProvider.notifier).remove(product.id);
+    ref.read(cartProvider.notifier).remove(item.key);
     unawaited(HapticFeedback.mediumImpact());
   } else {
-    final warning = ref.read(cartProvider.notifier).setQuantity(product.id, newQty);
+    final warning = ref.read(cartProvider.notifier).setQuantity(item.key, newQty);
     if (warning != null) {
       unawaited(HapticFeedback.heavyImpact());
       showMessage(context, warning, isError: true);
@@ -50,8 +50,8 @@ void decrementFromCart(BuildContext context, WidgetRef ref, Product product, {do
   }
 }
 
-void removeFromCart(BuildContext context, WidgetRef ref, int productId) {
-  ref.read(cartProvider.notifier).remove(productId);
+void removeFromCart(BuildContext context, WidgetRef ref, String key) {
+  ref.read(cartProvider.notifier).remove(key);
   unawaited(HapticFeedback.mediumImpact());
 }
 

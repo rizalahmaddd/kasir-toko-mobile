@@ -37,6 +37,12 @@ class ProductRecord {
     int? basePrice,
     this.hasOutletPrice = false,
     this.outletPrices = const {},
+    this.customAttributes = const {},
+    this.drugClass,
+    this.drugClassLabel,
+    this.requiresPrescription = false,
+    this.trackBatch = false,
+    this.units = const [],
   }) : basePrice = basePrice ?? price;
 
   factory ProductRecord.fromJson(Map<String, dynamic> json) => ProductRecord(
@@ -60,6 +66,12 @@ class ProductRecord {
           for (final row in json['outlet_prices'] as List? ?? const [])
             if (row is Map<String, dynamic>) asInt(row['outlet_id']): asInt(row['price']),
         },
+        customAttributes: asMap(json['custom_attributes']),
+        drugClass: json['drug_class'] as String?,
+        drugClassLabel: json['drug_class_label'] as String?,
+        requiresPrescription: json['requires_prescription'] as bool? ?? false,
+        trackBatch: json['track_batch'] as bool? ?? false,
+        units: asList(json['units']).map(ProductUnitRecord.fromJson).toList(),
       );
 
   final int id;
@@ -84,8 +96,73 @@ class ProductRecord {
   /// Prices set for single outlets (outlet id to price); only sent with product details.
   final Map<int, int> outletPrices;
 
+  /// Isian khusus jenis toko (zat aktif, merek, dll.) sesuai skema `meta.product_attributes`.
+  final Map<String, dynamic> customAttributes;
+  final String? drugClass;
+  final String? drugClassLabel;
+  final bool requiresPrescription;
+  final bool trackBatch;
+  final List<ProductUnitRecord> units;
+
   bool get isOutOfStock => trackStock && stock <= 0;
   int get margin => price - costPrice;
+}
+
+/// Satuan jual tambahan; `factor` = isi dalam satuan dasar. `fixedPrice` null berarti faktor × harga dasar.
+class ProductUnitRecord {
+  const ProductUnitRecord({this.id, required this.name, required this.factor, this.price = 0, this.fixedPrice, this.barcode, this.isDefault = false});
+
+  factory ProductUnitRecord.fromJson(Map<String, dynamic> json) => ProductUnitRecord(
+        id: asInt(json['id']),
+        name: json['name'] as String? ?? '',
+        factor: asDouble(json['factor']),
+        price: asInt(json['price']),
+        fixedPrice: json['fixed_price'] == null ? null : asInt(json['fixed_price']),
+        barcode: json['barcode'] as String?,
+        isDefault: json['is_default_sale'] as bool? ?? false,
+      );
+
+  final int? id;
+  final String name;
+  final double factor;
+  final int price;
+  final int? fixedPrice;
+  final String? barcode;
+  final bool isDefault;
+
+  Map<String, dynamic> toJson() => {
+        'id': ?id,
+        'name': name,
+        'factor': factor,
+        'price': fixedPrice,
+        'barcode': barcode,
+        'is_default_sale': isDefault,
+      };
+}
+
+/// Batch stok produk di outlet aktif.
+class ProductBatchRecord {
+  const ProductBatchRecord({required this.id, this.batchNumber, this.expiresAt, this.daysLeft, required this.isExpired, required this.quantity, this.productName, this.unit});
+
+  factory ProductBatchRecord.fromJson(Map<String, dynamic> json) => ProductBatchRecord(
+        id: asInt(json['id']),
+        batchNumber: json['batch_number'] as String?,
+        expiresAt: asDate(json['expires_at']),
+        daysLeft: json['days_left'] == null ? null : asInt(json['days_left']),
+        isExpired: json['is_expired'] as bool? ?? false,
+        quantity: asDouble(json['quantity']),
+        productName: json['product_name'] as String?,
+        unit: json['unit'] as String?,
+      );
+
+  final int id;
+  final String? batchNumber;
+  final DateTime? expiresAt;
+  final int? daysLeft;
+  final bool isExpired;
+  final double quantity;
+  final String? productName;
+  final String? unit;
 }
 
 class ProductInput {
@@ -102,7 +179,11 @@ class ProductInput {
     this.minStock,
     required this.isActive,
     this.outletPrices,
+    this.business,
   });
+
+  /// Isian kapabilitas usaha; null kalau tidak ada yang menyala (field lama di server tidak diubah).
+  final Map<String, dynamic>? business;
 
   final int? categoryId;
   final String? sku;
@@ -135,6 +216,7 @@ class ProductInput {
           'outlet_prices': [
             for (final entry in outletPrices!.entries) {'outlet_id': entry.key, 'price': entry.value},
           ],
+        ...?business,
       };
 }
 

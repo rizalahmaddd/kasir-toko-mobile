@@ -18,7 +18,9 @@ import '../../auth/auth_controller.dart';
 import '../../data_changes.dart';
 import '../../outlets/data/outlet_models.dart';
 import '../../pos/presentation/camera_scanner_screen.dart';
+import '../data/product_meta.dart';
 import '../data/product_models.dart';
+import 'product_business_section.dart';
 import '../data/products_repository.dart';
 import '../products_providers.dart';
 import 'product_widgets.dart';
@@ -86,6 +88,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   late int? _categoryId = _p?.category?.id;
   late bool _trackStock = _p?.trackStock ?? true;
   late bool _isActive = _p?.isActive ?? true;
+  late final _business = ProductBusinessDraft(_p);
   bool _busy = false;
   ApiException? _error;
 
@@ -120,7 +123,15 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
     for (final controller in [_name, _sku, _barcode, _unit, _price, _cost, _stock, _minStock, ..._outletPrices.values]) {
       controller.dispose();
     }
+    _business.dispose();
     super.dispose();
+  }
+
+  /// Satuan umum jenis toko ini (dari meta) bila ada, selain itu daftar bawaan.
+  List<String> _unitChoices() {
+    final units = ref.watch(productMetaProvider).value?.units ?? const <String>[];
+
+    return units.isEmpty ? _units : units.take(14).toList();
   }
 
   String? _clean(TextEditingController controller) => controller.text.trim().isEmpty ? null : controller.text.trim();
@@ -154,6 +165,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       minStock: _trackStock ? parseQuantity(_minStock.text) : null,
       isActive: _isActive,
       outletPrices: _outlets.isEmpty ? null : {for (final entry in _outletPrices.entries) entry.key: entry.value.text.trim().isEmpty ? null : parseRupiah(entry.value.text)},
+      business: _business.toJson(ref, isNew: _isNew, trackStock: _trackStock),
     );
 
     try {
@@ -269,7 +281,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                           spacing: 6,
                           runSpacing: 6,
                           children: [
-                            for (final unit in _units)
+                            for (final unit in _unitChoices())
                               ChoiceChip(
                                 label: Text(unit),
                                 selected: _unit.text.trim().toLowerCase() == unit,
@@ -573,6 +585,14 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                           onChanged: (value) => setState(() => _isActive = value),
                         ),
                       ],
+                    ),
+
+                    ProductBusinessSection(
+                      draft: _business,
+                      baseUnit: _unit.text.trim().isEmpty ? ProductStrings.unitFallback : _unit.text.trim(),
+                      trackStock: _trackStock,
+                      isNew: _isNew,
+                      fieldError: (field) => _error?.fieldError(field),
                     ),
 
                     if (generalError != null) ...[

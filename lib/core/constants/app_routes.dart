@@ -56,9 +56,14 @@ abstract final class AppRoutes {
   static const outlets = '/outlets';
   static const outletSettingsPattern = '/outlets/:id/settings';
   static const offline = '/offline';
+  static const prescriptions = '/prescriptions';
+  static const prescription = '/prescription';
+  static const prescriptionNew = '/prescription/new';
+  static const prescriptionPattern = '/prescription/:id';
   static const editSuffix = '/edit';
 
   static String outletSettings(int id) => '$outlets/$id/settings';
+  static String prescriptionDetail(int id) => '$prescription/$id';
   static String saleDetail(int id) => '$sale/$id';
   static String productDetail(int id) => '$product/$id';
   static String productEdit(int id) => '$product/$id/edit';

@@ -20,6 +20,7 @@ import '../../offline/offline_queue.dart';
 import '../../outlets/outlet_controller.dart';
 import '../../sales/data/sale_models.dart';
 import '../../shift/shift_controller.dart';
+import '../../pharmacy/presentation/prescription_picker_sheet.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
@@ -39,7 +40,19 @@ const _methodIcons = {
 
 /// Rejections where the server already told us what changed; the cart is fixed up and the
 /// cashier reviews it before paying again.
-const _cartRejections = {'unavailable', 'price_changed', 'insufficient_stock'};
+const _cartRejections = {'unavailable', 'price_changed', 'insufficient_stock', 'unit_unavailable'};
+
+const _prescriptionRejections = {'prescription_required', 'prescription_unverified', 'prescription_exceeded', 'prescription_invalid'};
+
+/// Stok yang terpakai per produk dalam satuan dasar; satu produk bisa ada di beberapa baris satuan.
+Map<int, double> _baseQuantities(Cart cart) {
+  final totals = <int, double>{};
+  for (final item in cart.items) {
+    totals[item.productId] = (totals[item.productId] ?? 0) + item.baseQuantity;
+  }
+
+  return totals;
+}
 
 class PaymentSheet extends ConsumerStatefulWidget {
   const PaymentSheet({super.key});
@@ -197,7 +210,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     try {
       final sale = await ref.read(posRepositoryProvider).checkout(cart: cart, payments: payments, expectedTotal: _total);
       ref.read(cartProvider.notifier).clear();
-      unawaited(ref.read(dataChangesProvider).saleRecorded({for (final item in cart.items) item.productId: item.quantity}));
+      unawaited(ref.read(dataChangesProvider).saleRecorded(_baseQuantities(cart)));
       if (mounted) {
         Navigator.pop(context, sale);
       }
@@ -262,6 +275,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
               'product_name': item.name,
               'unit': item.unit,
               'quantity': item.quantity,
+              'base_quantity': item.baseQuantity,
               'price': item.price,
               'discount_amount': item.appliedDiscount,
               'total': item.total,
@@ -276,7 +290,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     );
 
     ref.read(offlineQueueProvider.notifier).add(sale);
-    unawaited(ref.read(dataChangesProvider).saleQueued({for (final item in cart.items) item.productId: item.quantity}));
+    unawaited(ref.read(dataChangesProvider).saleQueued(_baseQuantities(cart)));
     ref.read(cartProvider.notifier).clear();
     Navigator.pop(context, sale);
   }
@@ -292,6 +306,15 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       ref.invalidate(catalogProvider);
       Navigator.pop(context);
       messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      return;
+    }
+
+    if (_prescriptionRejections.contains(error.reason)) {
+      ref.read(cartProvider.notifier).applyRejection(error);
+      final sheetContext = Navigator.of(context).context;
+      Navigator.pop(context);
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      unawaited(PrescriptionPickerSheet.show(sheetContext));
       return;
     }
 

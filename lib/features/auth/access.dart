@@ -25,4 +25,12 @@ extension Access on CurrentUser {
   bool get canManageOutlets => canViewOutlets && can(PermissionKeys.outletsManage);
 
   bool get canManagePosSettings => can(PermissionKeys.settingsPosManage) || canManageMasterData;
+
+  bool get usesMultiUnit => hasFeature(FeatureKeys.multiUnit);
+  bool get usesBatches => hasFeature(FeatureKeys.batchExpiry);
+  bool get usesProductAttributes => hasFeature(FeatureKeys.productAttributes);
+  bool get usesPrescriptions => hasFeature(FeatureKeys.prescription);
+  bool get canViewPrescriptions => _gate(FeatureKeys.prescription, PermissionKeys.prescriptionView);
+  bool get canManagePrescriptions => _gate(FeatureKeys.prescription, PermissionKeys.prescriptionManage);
+  bool get canVerifyPrescriptions => _gate(FeatureKeys.prescription, PermissionKeys.prescriptionVerify);
 }

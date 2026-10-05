@@ -190,6 +190,13 @@ class ApiClient {
     return '$response';
   }
 
+  /// Berkas privat (mis. foto resep) yang hanya bisa diambil dengan token login.
+  Future<List<int>> getBytes(String path) async {
+    final response = await _send(() => _dio.get<dynamic>(path, options: Options(responseType: ResponseType.bytes)));
+
+    return (response as List).cast<int>();
+  }
+
   /// Unwraps the `data` envelope of Laravel API resources.
   static Map<String, dynamic> data(dynamic body) => (body as Map<String, dynamic>)['data'] as Map<String, dynamic>;
 

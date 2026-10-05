@@ -65,6 +65,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _taxLabel = OnboardingStrings.taxDefaultLabel;
   bool _allowCredit = true;
   bool _allowNegativeStock = false;
+  Set<String> _capabilities = {};
   bool _busy = false;
 
   void _selectPreset(StorePreset preset) {
@@ -77,6 +78,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
       _taxLabel = preset.settings.taxLabel.isNotEmpty ? preset.settings.taxLabel : OnboardingStrings.taxDefaultLabel;
       _allowCredit = preset.settings.allowCredit;
       _allowNegativeStock = preset.settings.allowNegativeStock;
+      _capabilities = {for (final capability in preset.capabilities) if (capability.defaultOn) capability.key};
     });
   }
 
@@ -116,6 +118,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
               'allow_credit': _allowCredit,
               'allow_negative_stock': _allowNegativeStock,
             },
+            capabilities: _capabilities.toList(),
           );
       final parts = [
         OnboardingStrings.categoriesCreated(result.categoriesCreated),
@@ -181,6 +184,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                   taxLabel: _taxLabel,
                   allowCredit: _allowCredit,
                   allowNegativeStock: _allowNegativeStock,
+                  capabilities: _capabilities,
+                  onToggleCapability: (key) => setState(() => _capabilities.contains(key) ? _capabilities.remove(key) : _capabilities.add(key)),
                   busy: _busy,
                   onToggleCategory: (category) {
                     setState(() {
@@ -385,6 +390,8 @@ class _PresetPreview extends StatefulWidget {
     required this.taxLabel,
     required this.allowCredit,
     required this.allowNegativeStock,
+    required this.capabilities,
+    required this.onToggleCapability,
     required this.busy,
     required this.onToggleCategory,
     required this.onSelectAllCategories,
@@ -409,6 +416,8 @@ class _PresetPreview extends StatefulWidget {
   final bool busy;
 
   final ValueChanged<String> onToggleCategory;
+  final Set<String> capabilities;
+  final ValueChanged<String> onToggleCapability;
   final VoidCallback onSelectAllCategories;
   final VoidCallback onClearAllCategories;
   final ValueChanged<bool> onIncludeSamplesChanged;
@@ -612,6 +621,33 @@ class _PresetPreviewState extends State<_PresetPreview> {
                       ),
                     ),
                   ),
+
+                  if (preset.capabilities.isNotEmpty) ...[
+                    const SizedBox(height: AppSizes.s16),
+                    Text(
+                      BusinessStrings.capabilitiesTitle,
+                      style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700, color: theme.colorScheme.primary),
+                    ),
+                    const SizedBox(height: AppSizes.s8),
+                    for (final capability in preset.capabilities)
+                      CheckboxListTile(
+                        key: ValueKey('capability-${capability.key}'),
+                        contentPadding: EdgeInsets.zero,
+                        value: widget.capabilities.contains(capability.key),
+                        onChanged: widget.busy ? null : (_) => widget.onToggleCapability(capability.key),
+                        title: Row(
+                          children: [
+                            Flexible(child: Text(capability.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5))),
+                            if (capability.defaultOn) ...[
+                              const SizedBox(width: AppSizes.s6),
+                              const StatusBadge(label: BusinessStrings.recommended, tone: BadgeTone.success),
+                            ],
+                          ],
+                        ),
+                        subtitle: Text(capability.description, style: const TextStyle(fontSize: 11.5)),
+                      ),
+                    Text(BusinessStrings.capabilitiesHint, style: TextStyle(fontSize: 11.5, color: theme.colorScheme.onSurfaceVariant)),
+                  ],
 
                   const SizedBox(height: AppSizes.s16),
 

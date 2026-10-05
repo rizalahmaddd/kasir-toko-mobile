@@ -42,8 +42,21 @@ class CatalogSnapshot {
   }
 
   Product? lookup(String code) {
-    final match = products.where((p) => p['barcode'] == code).firstOrNull ?? products.where((p) => p['sku'] == code).firstOrNull;
-    return match == null ? null : Product.fromJson(match);
+    final match = products.where((p) => p['barcode'] == code).firstOrNull;
+    if (match != null) {
+      return Product.fromJson(match);
+    }
+
+    // Barcode satuan jual (mis. box) memilih satuan itu, sama dengan lookup di server.
+    for (final product in products) {
+      final unit = (product['units'] as List? ?? const []).cast<Map<String, dynamic>>().where((unit) => unit['barcode'] == code).firstOrNull;
+      if (unit != null) {
+        return Product.fromJson({...product, 'matched_unit_id': unit['id']});
+      }
+    }
+
+    final bySku = products.where((p) => p['sku'] == code).firstOrNull;
+    return bySku == null ? null : Product.fromJson(bySku);
   }
 
   List<Product> byIds(Iterable<int> ids) {

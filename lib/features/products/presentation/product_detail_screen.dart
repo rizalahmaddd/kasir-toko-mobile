@@ -21,6 +21,7 @@ import '../data/product_models.dart';
 import '../data/products_repository.dart';
 import '../products_providers.dart';
 import 'movement_tile.dart';
+import 'product_business_details.dart';
 import 'product_widgets.dart';
 import 'stock_adjust_sheet.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
@@ -72,6 +73,7 @@ class ProductDetailScreen extends ConsumerWidget {
                     _Header(product: product, canManage: canManage),
                     const SizedBox(height: AppSizes.s16),
                     _PricingAndSpecsCard(product: product),
+                    ProductBusinessDetails(product: product),
                     if (product.trackStock) ...[
                       const SectionTitle(ProductStrings.sectionStock),
                       _StockCard(product: product, canAdjust: user?.canAdjustStock ?? false),

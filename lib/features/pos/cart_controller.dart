@@ -7,6 +7,8 @@ import '../../core/constants/app_strings.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/storage/app_storage.dart';
 import '../../core/utils/formatters.dart' as fmt;
+import '../auth/access.dart';
+import '../auth/auth_controller.dart';
 import 'data/pos_models.dart';
 import 'data/pos_repository.dart';
 import 'pos_providers.dart';
@@ -38,13 +40,24 @@ class CartController extends Notifier<Cart> {
 
   bool get _allowNegativeStock => ref.read(posConfigProvider).value?.allowNegativeStock ?? false;
 
-  /// Returns a warning to show the cashier, or null when the item was added as asked.
-  String? add(Product product, {double quantity = 1}) {
-    final index = state.items.indexWhere((item) => item.productId == product.id);
+  bool get _multiUnit => ref.read(currentUserProvider)?.usesMultiUnit ?? false;
+
+  /// Jumlah satuan dasar produk ini di baris lain keranjang.
+  double _otherBase(int productId, String exceptKey) =>
+      state.items.where((item) => item.productId == productId && item.key != exceptKey).fold(0.0, (sum, item) => sum + item.baseQuantity);
+
+  /// Returns a warning to show the cashier, or null when the item was added as asked. Tanpa [unitId]
+  /// dipakai satuan hasil scan barcode, lalu satuan default kasir, lalu satuan dasar.
+  String? add(Product product, {double quantity = 1, int? unitId}) {
+    final unit = _multiUnit ? (product.unitById(unitId) ?? product.unitById(product.matchedUnitId) ?? (unitId == null ? product.defaultUnit : null)) : null;
+    final key = '${product.id}:${unit?.id ?? 0}';
+    final index = state.items.indexWhere((item) => item.key == key && (item.note == null || item.note!.isEmpty) && item.discount == 0);
     final current = index == -1 ? 0.0 : state.items[index].quantity;
     final wanted = current + quantity;
+    final factor = unit?.factor ?? 1;
+    final wantedBase = _otherBase(product.id, key) + wanted * factor;
 
-    if (product.trackStock && !_allowNegativeStock && wanted > product.stock) {
+    if (product.trackStock && !_allowNegativeStock && wantedBase > product.stock + 0.0001) {
       return product.stock <= 0
           ? PosStrings.stockOut(product.name)
           : PosStrings.stockRemaining(product.name, fmt.quantity(product.stock), product.unit);
@@ -52,18 +65,19 @@ class CartController extends Notifier<Cart> {
 
     final items = [...state.items];
     if (index == -1) {
-      items.insert(0, CartItem.fromProduct(product, quantity: quantity));
+      items.insert(0, CartItem.fromProduct(product, quantity: quantity, unit: unit, withUnits: _multiUnit));
     } else {
       items[index] = items[index].copyWith(
         quantity: wanted,
-        price: product.price,
+        price: unit?.price ?? product.price,
         stock: product.stock,
         imageUrl: product.imageUrl,
+        basePrice: product.price,
       );
     }
     state = state.copyWith(items: items);
 
-    if (product.trackStock && _allowNegativeStock && wanted > product.stock) {
+    if (product.trackStock && _allowNegativeStock && wantedBase > product.stock) {
       final curStock = product.stock <= 0
           ? PosStrings.stockStatusEmpty
           : PosStrings.stockStatusRemaining(fmt.quantity(product.stock), product.unit);
@@ -73,30 +87,54 @@ class CartController extends Notifier<Cart> {
     return null;
   }
 
-  String? setQuantity(int productId, double quantity) {
+  String? setQuantity(String key, double quantity) {
     if (quantity <= 0) {
-      remove(productId);
+      remove(key);
       return null;
     }
 
-    final item = state.items.firstWhere((item) => item.productId == productId);
-    if (item.trackStock && !_allowNegativeStock && quantity > item.stock) {
-      return PosStrings.stockRemaining(item.name, fmt.quantity(item.stock), item.unit);
+    final item = state.items.firstWhere((item) => item.key == key);
+    final error = stockProblem(item, quantity, item.factor);
+    if (error != null) {
+      return error;
     }
 
-    _replace(productId, (item) => item.copyWith(quantity: quantity));
+    _replace(key, (item) => item.copyWith(quantity: quantity));
     return null;
   }
 
-  void updateItem(int productId, {required double quantity, required int discount, String? note}) {
-    _replace(
-      productId,
-      (item) => item.copyWith(quantity: quantity, discount: discount, note: note, clearNote: note == null || note.isEmpty),
-    );
+  /// Pesan bila [quantity] dalam satuan berfaktor [factor] melebihi stok (stok minus tidak diizinkan).
+  String? stockProblem(CartItem item, double quantity, double factor) {
+    if (item.trackStock && !_allowNegativeStock && _otherBase(item.productId, item.key) + quantity * factor > item.stock + 0.0001) {
+      return PosStrings.stockRemaining(item.name, fmt.quantity(item.stock), item.baseUnit ?? item.unit);
+    }
+
+    return null;
   }
 
-  void remove(int productId) {
-    state = state.copyWith(items: state.items.where((item) => item.productId != productId).toList());
+  /// Ubah jumlah, diskon, catatan, dan satuan baris. Bila satuan baru sudah ada di baris lain, baris tetap terpisah.
+  void updateItem(String key, {required double quantity, required int discount, String? note, ProductUnitOption? unit, bool changeUnit = false}) {
+    _replace(key, (item) {
+      final base = changeUnit ? item.withUnit(unit) : item;
+
+      return base.copyWith(quantity: quantity, discount: discount, note: note, clearNote: note == null || note.isEmpty);
+    });
+  }
+
+  void remove(String key) {
+    state = state.copyWith(items: state.items.where((item) => item.key != key).toList());
+  }
+
+  void setPrescription(LinkedPrescription prescription) {
+    state = state.copyWith(clearPrescription: true).copyWith(prescription: prescription);
+  }
+
+  void setPrescriptionDraft(PrescriptionDraft draft) {
+    state = state.copyWith(clearPrescription: true).copyWith(prescriptionDraft: draft);
+  }
+
+  void clearPrescription() {
+    state = state.copyWith(clearPrescription: true);
   }
 
   void setCustomer(CustomerOption? customer) {
@@ -134,10 +172,17 @@ class CartController extends Notifier<Cart> {
         notices.add(PosStrings.productNoLongerSold(item.name));
         continue;
       }
-      if (product.price != item.price) {
-        notices.add(PosStrings.priceChanged(item.name, fmt.rupiah(product.price)));
+      var line = item.copyWith(units: _multiUnit ? product.units : const [], basePrice: product.price, requiresPrescription: product.requiresPrescription);
+      final unit = product.unitById(item.unitId);
+      if (item.unitId != null && unit == null) {
+        notices.add(PosStrings.unitRemoved(item.name, item.unit));
+        line = line.withUnit(null);
       }
-      items.add(item.copyWith(price: product.price, stock: product.stock));
+      final price = unit?.price ?? product.price;
+      if (price != line.price) {
+        notices.add(PosStrings.priceChanged(item.name, fmt.rupiah(price)));
+      }
+      items.add(line.copyWith(price: price, stock: product.stock));
     }
 
     state = state.copyWith(items: items);
@@ -155,12 +200,23 @@ class CartController extends Notifier<Cart> {
         state = state.copyWith(items: state.items.where((item) => !ids.contains(item.productId)).toList());
       case 'price_changed':
         final prices = context['prices'] as Map<String, dynamic>? ?? const {};
+        final unitPrices = context['unit_prices'] as Map<String, dynamic>? ?? const {};
         state = state.copyWith(
           items: [
             for (final item in state.items)
-              if (prices['${item.productId}'] case {'price': final num price}) item.copyWith(price: price.toInt()) else item,
+              if (unitPrices['${item.unitId}'] case {'price': final num price} when item.unitId != null)
+                item.copyWith(price: price.toInt())
+              else if (prices['${item.productId}'] case {'price': final num price} when item.unitId == null)
+                item.copyWith(price: price.toInt())
+              else
+                item,
           ],
         );
+      case 'unit_unavailable':
+        final ids = (context['unit_ids'] as List? ?? const []).map((id) => (id as num).toInt()).toSet();
+        state = state.copyWith(items: [for (final item in state.items) ids.contains(item.unitId) ? item.withUnit(null) : item]);
+      case 'prescription_invalid':
+        state = state.copyWith(clearPrescription: true);
       case 'insufficient_stock':
         final stock = context['stock'] as Map<String, dynamic>? ?? const {};
         state = state.copyWith(
@@ -172,7 +228,7 @@ class CartController extends Notifier<Cart> {
     }
   }
 
-  void _replace(int productId, CartItem Function(CartItem item) update) {
-    state = state.copyWith(items: [for (final item in state.items) item.productId == productId ? update(item) : item]);
+  void _replace(String key, CartItem Function(CartItem item) update) {
+    state = state.copyWith(items: [for (final item in state.items) item.key == key ? update(item) : item]);
   }
 }

@@ -26,7 +26,7 @@ class CartItemTile extends ConsumerWidget {
   final bool canDiscount;
 
   void _onQuantityChanged(BuildContext context, WidgetRef ref, double newQty) {
-    final warning = ref.read(cartProvider.notifier).setQuantity(item.productId, newQty);
+    final warning = ref.read(cartProvider.notifier).setQuantity(item.key, newQty);
     if (warning != null) {
       unawaited(HapticFeedback.heavyImpact());
       showMessage(context, warning, isError: true);
@@ -45,7 +45,7 @@ class CartItemTile extends ConsumerWidget {
         : PosStrings.productInitialsFallback;
 
     return Dismissible(
-      key: ValueKey('cart_item_${item.productId}'),
+      key: ValueKey('cart_item_${item.key}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -65,7 +65,7 @@ class CartItemTile extends ConsumerWidget {
       ),
       onDismissed: (_) {
         unawaited(HapticFeedback.mediumImpact());
-        ref.read(cartProvider.notifier).remove(item.productId);
+        ref.read(cartProvider.notifier).remove(item.key);
       },
       child: InkWell(
         onTap: () {
@@ -117,8 +117,17 @@ class CartItemTile extends ConsumerWidget {
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.name,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (item.requiresPrescription)
+                          TextSpan(
+                            text: '${PosStrings.prescriptionBadge} ',
+                            style: TextStyle(color: colors.danger, fontWeight: FontWeight.w800),
+                          ),
+                        TextSpan(text: item.name),
+                      ],
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(

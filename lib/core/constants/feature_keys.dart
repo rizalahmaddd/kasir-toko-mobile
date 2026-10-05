@@ -11,6 +11,10 @@ abstract final class FeatureKeys {
   static const reportsSales = 'reports.sales';
   static const reportsActivityLog = 'reports.activity-log';
   static const settingsOutlets = 'settings.outlets';
+  static const productAttributes = 'business.product-attributes';
+  static const multiUnit = 'business.multi-unit';
+  static const batchExpiry = 'business.batch-expiry';
+  static const prescription = 'business.prescription';
 }
 
 /// Nama izin (permission) yang dipakai aturan akses.
@@ -26,4 +30,7 @@ abstract final class PermissionKeys {
   static const settingsPosManage = 'settings.pos.manage';
   static const outletsView = 'outlets.view';
   static const outletsManage = 'outlets.manage';
+  static const prescriptionView = 'pharmacy.prescription.view';
+  static const prescriptionManage = 'pharmacy.prescription.manage';
+  static const prescriptionVerify = 'pharmacy.prescription.verify';
 }

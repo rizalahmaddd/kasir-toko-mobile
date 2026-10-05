@@ -32,6 +32,8 @@ class PosConfig {
     required this.qrisEnabled,
     required this.hasOpenShift,
     required this.heldOrdersCount,
+    this.prescriptionMode = 'strict',
+    this.canVerifyPrescription = false,
   });
 
   factory PosConfig.fromJson(Map<String, dynamic> json) => PosConfig(
@@ -50,6 +52,8 @@ class PosConfig {
         qrisEnabled: json['qris_enabled'] as bool? ?? false,
         hasOpenShift: json['has_open_shift'] as bool? ?? false,
         heldOrdersCount: _int(json['held_orders_count']),
+        prescriptionMode: json['prescription_mode'] as String? ?? 'strict',
+        canVerifyPrescription: json['can_verify_prescription'] as bool? ?? false,
       );
 
   final double taxRate;
@@ -64,6 +68,35 @@ class PosConfig {
   final bool qrisEnabled;
   final bool hasOpenShift;
   final int heldOrdersCount;
+  final String prescriptionMode;
+  final bool canVerifyPrescription;
+
+  bool get strictPrescription => prescriptionMode != 'warn';
+
+  /// Resep boleh diisi langsung di kasir: mode peringatan, atau kasirnya apoteker.
+  bool get canDraftPrescription => !strictPrescription || canVerifyPrescription;
+}
+
+/// Satuan jual tambahan; `factor` = isi dalam satuan dasar produk, `price` sudah harga outlet aktif.
+class ProductUnitOption {
+  const ProductUnitOption({required this.id, required this.name, required this.factor, required this.price, this.isDefault = false});
+
+  factory ProductUnitOption.fromJson(Map<String, dynamic> json) => ProductUnitOption(
+        id: _int(json['id']),
+        name: json['name'] as String? ?? '',
+        factor: _double(json['factor']),
+        price: _int(json['price']),
+        isDefault: json['is_default_sale'] as bool? ?? json['default'] as bool? ?? false,
+      );
+
+  final int id;
+  final String name;
+  final double factor;
+  final int price;
+  final bool isDefault;
+
+  /// Kunci yang sama dengan keranjang web supaya transaksi tertunda bisa dilanjutkan di perangkat mana pun.
+  Map<String, dynamic> toJson() => {'id': id, 'name': name, 'factor': factor, 'price': price, 'default': isDefault};
 }
 
 class Category {
@@ -89,6 +122,10 @@ class Product {
     this.categoryName,
     this.categoryId,
     this.imageUrl,
+    this.units = const [],
+    this.requiresPrescription = false,
+    this.drugClassLabel,
+    this.matchedUnitId,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -104,6 +141,10 @@ class Product {
         categoryName: (json['category'] as Map<String, dynamic>?)?['name'] as String?,
         categoryId: (json['category'] as Map<String, dynamic>?)?['id'] as int?,
         imageUrl: json['image_url'] as String?,
+        units: (json['units'] as List? ?? const []).cast<Map<String, dynamic>>().map(ProductUnitOption.fromJson).toList(),
+        requiresPrescription: json['requires_prescription'] as bool? ?? false,
+        drugClassLabel: json['drug_class_label'] as String?,
+        matchedUnitId: json['matched_unit_id'] == null ? null : _int(json['matched_unit_id']),
       );
 
   final int id;
@@ -118,8 +159,18 @@ class Product {
   final String? categoryName;
   final int? categoryId;
   final String? imageUrl;
+  final List<ProductUnitOption> units;
+  final bool requiresPrescription;
+  final String? drugClassLabel;
+
+  /// Satuan yang barcodenya baru saja discan (dari lookup), dipilih otomatis di keranjang.
+  final int? matchedUnitId;
 
   bool get isOutOfStock => trackStock && stock <= 0;
+
+  ProductUnitOption? unitById(int? id) => id == null ? null : units.where((unit) => unit.id == id).firstOrNull;
+
+  ProductUnitOption? get defaultUnit => units.where((unit) => unit.isDefault).firstOrNull;
 }
 
 class CustomerOption {
@@ -153,18 +204,30 @@ class CartItem {
     required this.trackStock,
     required this.stock,
     this.imageUrl,
+    this.unitId,
+    this.factor = 1,
+    this.baseUnit,
+    this.basePrice,
+    this.units = const [],
+    this.requiresPrescription = false,
   });
 
-  factory CartItem.fromProduct(Product product, {double quantity = 1}) => CartItem(
+  factory CartItem.fromProduct(Product product, {double quantity = 1, ProductUnitOption? unit, bool withUnits = true}) => CartItem(
         productId: product.id,
         name: product.name,
         sku: product.sku,
-        unit: product.unit,
-        price: product.price,
+        unit: unit?.name ?? product.unit,
+        price: unit?.price ?? product.price,
         quantity: quantity,
         trackStock: product.trackStock,
         stock: product.stock,
         imageUrl: product.imageUrl,
+        unitId: unit?.id,
+        factor: unit?.factor ?? 1,
+        baseUnit: product.unit,
+        basePrice: product.price,
+        units: withUnits ? product.units : const [],
+        requiresPrescription: product.requiresPrescription,
       );
 
   /// Same keys as the web cashier's cart so held orders resume on either device.
@@ -180,6 +243,12 @@ class CartItem {
         trackStock: json['track'] as bool? ?? false,
         stock: _double(json['stock']),
         imageUrl: json['image_url'] as String?,
+        unitId: json['unit_id'] == null ? null : _int(json['unit_id']),
+        factor: json['factor'] == null ? 1 : _double(json['factor']),
+        baseUnit: json['base_unit'] as String?,
+        basePrice: json['base_price'] == null ? null : _int(json['base_price']),
+        units: (json['units'] as List? ?? const []).cast<Map<String, dynamic>>().map(ProductUnitOption.fromJson).toList(),
+        requiresPrescription: json['rx'] as bool? ?? false,
       );
 
   final int productId;
@@ -193,6 +262,19 @@ class CartItem {
   final bool trackStock;
   final double stock;
   final String? imageUrl;
+  final int? unitId;
+
+  /// Isi satu satuan baris ini dalam satuan dasar produk; stok selalu dihitung dalam satuan dasar.
+  final double factor;
+  final String? baseUnit;
+  final int? basePrice;
+  final List<ProductUnitOption> units;
+  final bool requiresPrescription;
+
+  /// Satu produk boleh muncul di beberapa baris dengan satuan berbeda.
+  String get key => '$productId:${unitId ?? 0}';
+
+  double get baseQuantity => quantity * factor;
 
   int get gross => (price * quantity).round();
 
@@ -200,7 +282,7 @@ class CartItem {
 
   int get total => gross - appliedDiscount;
 
-  bool get exceedsStock => trackStock && quantity > stock;
+  bool get exceedsStock => trackStock && baseQuantity > stock;
 
   CartItem copyWith({
     int? price,
@@ -210,6 +292,9 @@ class CartItem {
     bool clearNote = false,
     double? stock,
     String? imageUrl,
+    List<ProductUnitOption>? units,
+    bool? requiresPrescription,
+    int? basePrice,
   }) =>
       CartItem(
         productId: productId,
@@ -223,6 +308,33 @@ class CartItem {
         trackStock: trackStock,
         stock: stock ?? this.stock,
         imageUrl: imageUrl ?? this.imageUrl,
+        unitId: unitId,
+        factor: factor,
+        baseUnit: baseUnit,
+        basePrice: basePrice ?? this.basePrice,
+        units: units ?? this.units,
+        requiresPrescription: requiresPrescription ?? this.requiresPrescription,
+      );
+
+  /// Pindah satuan: harga & faktor ikut satuan baru; null kembali ke satuan dasar.
+  CartItem withUnit(ProductUnitOption? option) => CartItem(
+        productId: productId,
+        name: name,
+        sku: sku,
+        unit: option?.name ?? baseUnit ?? unit,
+        price: option?.price ?? basePrice ?? price,
+        quantity: quantity,
+        discount: discount,
+        note: note,
+        trackStock: trackStock,
+        stock: stock,
+        imageUrl: imageUrl,
+        unitId: option?.id,
+        factor: option?.factor ?? 1,
+        baseUnit: baseUnit,
+        basePrice: basePrice,
+        units: units,
+        requiresPrescription: requiresPrescription,
       );
 
   Map<String, dynamic> toJson() => {
@@ -237,10 +349,17 @@ class CartItem {
         'track': trackStock,
         'stock': stock,
         if (imageUrl != null) 'image_url': imageUrl,
+        'unit_id': unitId,
+        'factor': factor,
+        'base_unit': ?baseUnit,
+        'base_price': ?basePrice,
+        if (units.isNotEmpty) 'units': units.map((unit) => unit.toJson()).toList(),
+        'rx': requiresPrescription,
       };
 
   Map<String, dynamic> toCheckoutJson() => {
         'product_id': productId,
+        'unit_id': ?unitId,
         'quantity': quantity,
         'price': price,
         'discount': discount,
@@ -283,6 +402,8 @@ class Cart {
     this.discountType,
     this.discountValue = 0,
     this.note,
+    this.prescription,
+    this.prescriptionDraft,
   });
 
   factory Cart.fromJson(Map<String, dynamic> json, {required String fallbackUuid}) {
@@ -299,6 +420,8 @@ class Cart {
       },
       discountValue: _double(json['discountValue']),
       note: json['note'] as String?,
+      prescription: json['prescription'] is Map<String, dynamic> ? LinkedPrescription.fromJson(json['prescription'] as Map<String, dynamic>) : null,
+      prescriptionDraft: json['prescriptionDraft'] is Map<String, dynamic> ? PrescriptionDraft.fromJson(json['prescriptionDraft'] as Map<String, dynamic>) : null,
     );
   }
 
@@ -308,8 +431,14 @@ class Cart {
   final DiscountType? discountType;
   final double discountValue;
   final String? note;
+  final LinkedPrescription? prescription;
+  final PrescriptionDraft? prescriptionDraft;
 
   bool get isEmpty => items.isEmpty;
+
+  bool get needsPrescription => items.any((item) => item.requiresPrescription);
+
+  bool get hasPrescription => prescription != null || prescriptionDraft != null;
 
   double get itemCount => items.fold(0, (sum, item) => sum + item.quantity);
 
@@ -324,6 +453,9 @@ class Cart {
     double? discountValue,
     bool clearDiscount = false,
     String? note,
+    LinkedPrescription? prescription,
+    PrescriptionDraft? prescriptionDraft,
+    bool clearPrescription = false,
   }) =>
       Cart(
         clientUuid: clientUuid ?? this.clientUuid,
@@ -332,6 +464,8 @@ class Cart {
         discountType: clearDiscount ? null : discountType ?? this.discountType,
         discountValue: clearDiscount ? 0 : discountValue ?? this.discountValue,
         note: note ?? this.note,
+        prescription: clearPrescription ? null : prescription ?? this.prescription,
+        prescriptionDraft: clearPrescription ? null : prescriptionDraft ?? this.prescriptionDraft,
       );
 
   Map<String, dynamic> toJson({int? total}) => {
@@ -341,7 +475,50 @@ class Cart {
         'discountType': discountType?.name,
         'discountValue': discountValue,
         'note': note,
+        'prescription': prescription?.toJson(),
+        'prescriptionDraft': prescriptionDraft?.toJson(),
         'total': ?total,
+      };
+}
+
+/// Resep tersimpan yang ditautkan ke keranjang.
+class LinkedPrescription {
+  const LinkedPrescription({required this.id, required this.number, required this.patient});
+
+  factory LinkedPrescription.fromJson(Map<String, dynamic> json) =>
+      LinkedPrescription(id: _int(json['id']), number: json['number'] as String? ?? '', patient: json['patient'] as String? ?? '');
+
+  final int id;
+  final String number;
+  final String patient;
+
+  Map<String, dynamic> toJson() => {'id': id, 'number': number, 'patient': patient};
+}
+
+/// Dokter & pasien yang diisi langsung di kasir; server membuat resepnya saat checkout.
+class PrescriptionDraft {
+  const PrescriptionDraft({required this.doctorName, required this.patientName, this.patientAge, this.doctorSip, this.clinicName});
+
+  factory PrescriptionDraft.fromJson(Map<String, dynamic> json) => PrescriptionDraft(
+        doctorName: json['doctor_name'] as String? ?? '',
+        patientName: json['patient_name'] as String? ?? '',
+        patientAge: json['patient_age'] == null ? null : _int(json['patient_age']),
+        doctorSip: json['doctor_sip'] as String?,
+        clinicName: json['clinic_name'] as String?,
+      );
+
+  final String doctorName;
+  final String patientName;
+  final int? patientAge;
+  final String? doctorSip;
+  final String? clinicName;
+
+  Map<String, dynamic> toJson() => {
+        'doctor_name': doctorName,
+        'patient_name': patientName,
+        'patient_age': ?patientAge,
+        if (doctorSip != null && doctorSip!.isNotEmpty) 'doctor_sip': doctorSip,
+        if (clinicName != null && clinicName!.isNotEmpty) 'clinic_name': clinicName,
       };
 }
 
