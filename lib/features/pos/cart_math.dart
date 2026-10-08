@@ -71,6 +71,15 @@ class PriceTier {
   Map<String, dynamic> toJson() => {'min': min, 'price': price};
 }
 
+/// Potongan ED dekat satu baris; [available] = sisa unit ED dekat produk itu setelah baris sebelumnya.
+int nearExpiryDiscount(int price, double quantity, double available, double percent) {
+  if (percent <= 0 || available <= 0) {
+    return 0;
+  }
+
+  return (price * (quantity < available ? quantity : available) * percent / 100).round();
+}
+
 int tierPrice(int basePrice, List<PriceTier> tiers, double quantity) {
   var price = basePrice;
   var reached = -1.0;

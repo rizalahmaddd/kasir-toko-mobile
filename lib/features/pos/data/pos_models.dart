@@ -44,6 +44,7 @@ class PosConfig {
     this.serialsEnabled = false,
     this.preOrderEnabled = false,
     this.deliveryNoteEnabled = false,
+    this.nearExpiryDiscountPercent = 0,
   });
 
   factory PosConfig.fromJson(Map<String, dynamic> json) => PosConfig(
@@ -69,7 +70,8 @@ tieredPriceEnabled: json['tiered_price_enabled'] as bool? ?? false,
         variantsEnabled: json['variants_enabled'] as bool? ?? false,
         serialsEnabled: json['serials_enabled'] as bool? ?? false,
         preOrderEnabled: json['pre_order_enabled'] as bool? ?? false,
-        deliveryNoteEnabled: json['delivery_note_enabled'] as bool? ?? false,
+deliveryNoteEnabled: json['delivery_note_enabled'] as bool? ?? false,
+        nearExpiryDiscountPercent: _double(json['near_expiry_discount_percent']),
       );
 
   final double taxRate;
@@ -95,6 +97,9 @@ tieredPriceEnabled: json['tiered_price_enabled'] as bool? ?? false,
   final bool serialsEnabled;
   final bool preOrderEnabled;
   final bool deliveryNoteEnabled;
+
+  /// Potongan (persen) untuk unit dari batch hampir kedaluwarsa; 0 berarti mati.
+  final double nearExpiryDiscountPercent;
 
   /// Persen service charge untuk tipe pesanan ini (0 bila tidak dipungut).
   double serviceRateFor(String? orderType) {
@@ -257,6 +262,7 @@ class Product {
     this.trackSerial = false,
     this.matchedSerial,
     this.variantLabel,
+    this.nearExpiry = 0,
   });
 
   factory Product.fromJson(Map<String, dynamic> json) => Product(
@@ -281,7 +287,8 @@ class Product {
         variants: (json['variants'] as List? ?? const []).cast<Map<String, dynamic>>().map(VariantOption.fromJson).toList(),
         trackSerial: json['track_serial'] as bool? ?? false,
         matchedSerial: json['matched_serial'] as String?,
-        variantLabel: json['variant_label'] as String?,
+variantLabel: json['variant_label'] as String?,
+        nearExpiry: _double(json['near_expiry_quantity']),
       );
 
   final int id;
@@ -312,6 +319,9 @@ class Product {
   /// Nomor seri yang cocok dengan hasil scan (lookup), langsung dipilih di keranjang.
   final String? matchedSerial;
   final String? variantLabel;
+
+  /// Unit dari batch hampir kedaluwarsa di outlet aktif yang mendapat potongan ED dekat.
+  final double nearExpiry;
 
   /// SKU anak sebagai produk keranjang; satuan, grosir, dan pilihan tambahan induk tidak berlaku untuk anak.
   Product variantProduct(VariantOption variant) => Product(
@@ -387,6 +397,8 @@ class CartItem {
     this.tierPrice,
     this.trackSerial = false,
     this.serials = const [],
+    this.nearExpiry = 0,
+    this.autoDiscount = 0,
   });
 
   factory CartItem.fromProduct(
@@ -417,8 +429,9 @@ class CartItem {
     modifiers: modifiers,
 tiers: withTiers ? product.tiers : const [],
         modifierGroups: withModifiers ? product.modifierGroups : const [],
-        trackSerial: product.trackSerial,
+trackSerial: product.trackSerial,
         serials: serials,
+        nearExpiry: product.nearExpiry,
       );
 
   /// Same keys as the web cashier's cart so held orders resume on either device.
@@ -444,7 +457,8 @@ tiers: withTiers ? product.tiers : const [],
         tiers: _tiers(json['tiers']),
         modifierGroups: _groups(json['modifier_groups']),
         trackSerial: json['serial'] as bool? ?? false,
-        serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
+serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
+        nearExpiry: _double(json['near_expiry']),
       );
 
   final int productId;
@@ -478,6 +492,10 @@ tiers: withTiers ? product.tiers : const [],
 
   /// Nomor seri unit yang diserahkan; jumlahnya harus sama dengan quantity.
   final List<String> serials;
+  final double nearExpiry;
+
+  /// Potongan ED dekat baris ini, diisi keranjang (unit ED dekat dibagi berurutan antarbaris produk yang sama).
+  final int autoDiscount;
 
   bool get needsSerials => trackSerial && serials.length != quantity.round();
 
@@ -501,7 +519,7 @@ tiers: withTiers ? product.tiers : const [],
 
   int get gross => ((unitPrice + modifiersTotal) * quantity).round();
 
-  int get appliedDiscount => discount.clamp(0, gross);
+int get appliedDiscount => (discount + autoDiscount).clamp(0, gross);
 
   int get total => gross - appliedDiscount;
 
@@ -524,7 +542,10 @@ tiers: withTiers ? product.tiers : const [],
     int? tierPrice,
     bool clearTierPrice = false,
     List<String>? serials,
-  }) => CartItem(
+    double? nearExpiry,
+    int? autoDiscount,
+  }) =>
+      CartItem(
     productId: productId,
     name: name,
     sku: sku,
@@ -547,7 +568,9 @@ tiers: withTiers ? product.tiers : const [],
     modifierGroups: modifierGroups ?? this.modifierGroups,
 tierPrice: clearTierPrice ? null : tierPrice ?? this.tierPrice,
         trackSerial: trackSerial,
-        serials: serials ?? this.serials,
+serials: serials ?? this.serials,
+        nearExpiry: nearExpiry ?? this.nearExpiry,
+        autoDiscount: autoDiscount ?? this.autoDiscount,
       );
 
   /// Pindah satuan: harga & faktor ikut satuan baru; null kembali ke satuan dasar.
@@ -574,6 +597,7 @@ tierPrice: clearTierPrice ? null : tierPrice ?? this.tierPrice,
         modifierGroups: modifierGroups,
         trackSerial: trackSerial,
         serials: serials,
+        nearExpiry: nearExpiry,
       );
 
   Map<String, dynamic> toJson() => {
@@ -599,6 +623,7 @@ tierPrice: clearTierPrice ? null : tierPrice ?? this.tierPrice,
 if (modifierGroups.isNotEmpty) 'modifier_groups': modifierGroups.map((g) => g.toJson()).toList(),
         if (trackSerial) 'serial': true,
         if (serials.isNotEmpty) 'serials': serials,
+        if (nearExpiry > 0) 'near_expiry': nearExpiry,
       };
 
   Map<String, dynamic> toCheckoutJson() => {
@@ -606,9 +631,10 @@ if (modifierGroups.isNotEmpty) 'modifier_groups': modifierGroups.map((g) => g.to
     'unit_id': ?unitId,
     'quantity': quantity,
     'price': unitPrice,
-    'discount': discount,
-    'note': note,
-if (modifiers.isNotEmpty) 'modifiers': modifiers.map((m) => {'id': m.id, 'name': m.name, 'price': m.price}).toList(),
+        'discount': discount,
+        if (autoDiscount > 0) 'auto_discount': autoDiscount,
+        'note': note,
+        if (modifiers.isNotEmpty) 'modifiers': modifiers.map((m) => {'id': m.id, 'name': m.name, 'price': m.price}).toList(),
         if (trackSerial) 'serials': serials,
       };
 }
@@ -621,7 +647,7 @@ class CartTotals {
   /// Mirrors App\Services\Pos\CartCalculator so the screen total matches what the server stores.
   factory CartTotals.calculate(List<CartItem> items, DiscountType? discountType, double discountValue, double taxRate, {double serviceRate = 0}) {
     final result = calculateCart(
-      [for (final item in items) MathLine(price: item.unitPrice, quantity: item.quantity, discount: item.discount, modifiers: item.modifiersTotal)],
+      [for (final item in items)MathLine(price: item.unitPrice, quantity: item.quantity, discount: item.discount + item.autoDiscount, modifiers: item.modifiersTotal)],
       discountType?.name,
       discountValue,
       taxRate,

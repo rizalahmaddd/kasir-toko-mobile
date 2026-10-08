@@ -224,4 +224,27 @@ void main() {
     expect(printed, contains('Kepada: Pak Budi'));
     expect(printed, isNot(contains('65.000')));
   });
+
+  test('near-expiry units are discounted across lines of the same product', () async {
+    SharedPreferences.setMockInitialValues({});
+    final prefs = await SharedPreferences.getInstance();
+    final container = ProviderContainer(overrides: [
+      sharedPreferencesProvider.overrideWithValue(prefs),
+      posConfigProvider.overrideWith((ref) => Future.value(const PosConfig(
+            taxRate: 0, taxLabel: 'PPN', allowNegativeStock: true, allowCredit: false, canDiscount: true, receiptWidth: '58', quickCash: [],
+            paymentMethods: [], qrisEnabled: false, hasOpenShift: true, heldOrdersCount: 0, nearExpiryDiscountPercent: 30,
+          ))),
+    ]);
+    addTearDown(container.dispose);
+    await container.read(posConfigProvider.future);
+    final bread = Product.fromJson({'id': 50, 'name': 'Roti', 'unit': 'pcs', 'price': 12000, 'track_stock': true, 'stock': '12', 'near_expiry_quantity': '2.000'});
+
+    container.read(cartProvider.notifier).add(bread, quantity: 3);
+    final line = container.read(cartProvider).items.single;
+
+    expect(line.autoDiscount, 7200);
+    expect(line.total, 28800);
+    expect(line.toCheckoutJson()['auto_discount'], 7200);
+    expect(line.toCheckoutJson()['discount'], 0);
+  });
 }

@@ -56,4 +56,13 @@ void main() {
       );
     });
   }
+
+  for (final c in (fixture['near_expiry'] as List).cast<Map<String, dynamic>>()) {
+    test('near-expiry discount ${c['price']} x ${c['quantity']}', () {
+      expect(
+        nearExpiryDiscount((c['price'] as num).toInt(), (c['quantity'] as num).toDouble(), (c['available'] as num).toDouble(), (c['percent'] as num).toDouble()),
+        c['expected'],
+      );
+    });
+  }
 }

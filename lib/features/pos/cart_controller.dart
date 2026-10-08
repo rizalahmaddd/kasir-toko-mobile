@@ -41,7 +41,35 @@ class CartController extends Notifier<Cart> {
   }
 
   /// Harga grosir dihitung dari jumlah semua baris satuan dasar produk yang sama, seperti di server.
-  Cart _applyTiers(Cart cart) {
+  Cart _applyTiers(Cart cart) => _applyNearExpiry(_applyGrosir(cart));
+
+  /// Potongan ED dekat: unit ED dekat produk dibagi berurutan ke baris satuan dasarnya, sama dengan server.
+  Cart _applyNearExpiry(Cart cart) {
+    final percent = _config?.nearExpiryDiscountPercent ?? 0;
+    if (!cart.items.any((item) => item.nearExpiry > 0 || item.autoDiscount > 0)) {
+      return cart;
+    }
+
+    final left = <int, double>{};
+    return cart.copyWith(
+      items: [
+        for (final item in cart.items)
+          if (item.unitId != null || item.nearExpiry <= 0)
+            item.copyWith(autoDiscount: 0)
+          else
+            item.copyWith(autoDiscount: _takeNearExpiry(left, item, percent)),
+      ],
+    );
+  }
+
+  int _takeNearExpiry(Map<int, double> left, CartItem item, double percent) {
+    final available = left[item.productId] ?? item.nearExpiry;
+    left[item.productId] = available - item.quantity > 0 ? double.parse((available - item.quantity).toStringAsFixed(3)) : 0;
+
+    return nearExpiryDiscount(item.unitPrice, item.quantity, available, percent);
+  }
+
+  Cart _applyGrosir(Cart cart) {
     if (!cart.items.any((item) => item.tiers.isNotEmpty || item.tierPrice != null)) {
       return cart;
     }
@@ -272,7 +300,8 @@ class CartController extends Notifier<Cart> {
         basePrice: product.price,
         requiresPrescription: product.requiresPrescription,
         tiers: (_config?.tieredPriceEnabled ?? false) ? product.tiers : const [],
-        modifierGroups: (_config?.modifiersEnabled ?? false) ? product.modifierGroups : const [],
+modifierGroups: (_config?.modifiersEnabled ?? false) ? product.modifierGroups : const [],
+        nearExpiry: product.nearExpiry,
       );
       final options = {
         for (final group in product.modifierGroups)
@@ -342,6 +371,15 @@ class CartController extends Notifier<Cart> {
                 )
               else
                 item,
+          ],
+        );
+      case 'near_expiry_changed':
+        ref.invalidate(posConfigProvider);
+        final nearExpiry = context['near_expiry'] as Map<String, dynamic>? ?? const {};
+        state = state.copyWith(
+          items: [
+            for (final item in state.items)
+              if (nearExpiry['${item.productId}'] case {'quantity': final num quantity}) item.copyWith(nearExpiry: quantity.toDouble()) else item,
           ],
         );
       case 'serial_unavailable':
