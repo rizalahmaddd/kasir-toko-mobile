@@ -6,6 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/constants/app_icons.dart';
 import '../../../core/constants/app_strings.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_sizes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/state_views.dart';
@@ -80,6 +82,8 @@ class _SerialScanScreenState extends ConsumerState<SerialScanScreen> {
   Widget build(BuildContext context) {
     final queue = ref.watch(countQueueProvider);
     final pendingIds = queue.pending.map((item) => item.clientUuid).toSet();
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -95,53 +99,167 @@ class _SerialScanScreenState extends ConsumerState<SerialScanScreen> {
       body: Column(
         children: [
           if (_camera)
-            SizedBox(
-              height: 220,
-              child: BarcodeScannerView(continuous: true, hintText: StockCountStrings.serialInput, onDetect: _record),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s4),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.r16),
+                  border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate300, width: 1.5),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(AppRadius.r14),
+                  child: SizedBox(
+                    height: 220,
+                    child: BarcodeScannerView(continuous: true, hintText: StockCountStrings.serialInput, onDetect: _record),
+                  ),
+                ),
+              ),
             ),
           Padding(
-            padding: const EdgeInsets.all(AppSpacing.s16),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(StockCountStrings.serialHint, style: Theme.of(context).textTheme.bodySmall),
+                Text(StockCountStrings.serialHint, style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
                 const SizedBox(height: AppSizes.s8),
-                TextField(
-                  controller: _input,
-                  autofocus: !_camera,
-                  textCapitalization: TextCapitalization.characters,
-                  decoration: InputDecoration(
-                    labelText: StockCountStrings.serialInput,
-                    suffixIcon: IconButton(icon: const Icon(AppIcons.plus), onPressed: () => _record(_input.text)),
-                  ),
-                  onSubmitted: _record,
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _input,
+                        autofocus: !_camera,
+                        textCapitalization: TextCapitalization.characters,
+                        decoration: const InputDecoration(
+                          labelText: StockCountStrings.serialInput,
+                          prefixIcon: Icon(AppIcons.barcode, size: AppSizes.s18),
+                          isDense: true,
+                        ),
+                        onSubmitted: _record,
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.s8),
+                    FilledButton(
+                      style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s14),
+                      ),
+                      onPressed: () => _record(_input.text),
+                      child: const Icon(AppIcons.plus, size: AppSizes.s18),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppSizes.s8),
-                Text(StockCountStrings.serialCount(_scanned.length), style: Theme.of(context).textTheme.labelMedium),
+                const SizedBox(height: AppSizes.s10),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s8, vertical: AppSpacing.s4),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.r6),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(AppIcons.boxes, size: AppSizes.s14, color: theme.colorScheme.primary),
+                          const SizedBox(width: AppSizes.s4),
+                          Text(
+                            StockCountStrings.serialCount(_scanned.length),
+                            style: theme.textTheme.labelMedium?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
+          const Divider(height: 1),
           Expanded(
-            child: ListView.separated(
-              itemCount: _scanned.length,
-              separatorBuilder: (_, _) => const Divider(height: 1),
-              itemBuilder: (context, index) {
-                final item = _scanned[index];
-                final result = queue.serialResults[item.clientUuid];
-                final waiting = pendingIds.contains(item.clientUuid);
+            child: _scanned.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(AppSpacing.s24),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(AppIcons.barcode, size: AppSizes.s48, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4)),
+                          const SizedBox(height: AppSizes.s12),
+                          Text(
+                            StockCountStrings.noSerials,
+                            style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: _scanned.length,
+                    padding: const EdgeInsets.symmetric(vertical: AppSpacing.s6),
+                    itemBuilder: (context, index) {
+                      final item = _scanned[index];
+                      final result = queue.serialResults[item.clientUuid];
+                      final waiting = pendingIds.contains(item.clientUuid);
 
-                return ListTile(
-                  title: Text('${item.payload['serial']}'),
-                  subtitle: Text(waiting ? StockCountStrings.serialQueued : StockCountStrings.serialResults[result] ?? ''),
-                  trailing: waiting
-                      ? IconButton(tooltip: StockCountStrings.minusOne, icon: const Icon(AppIcons.minus), onPressed: () => _undo(item))
-                      : StatusBadge(
-                          label: (StockCountStrings.serialResults[result] ?? '').toUpperCase(),
-                          tone: result == 'matched' ? BadgeTone.success : BadgeTone.warning,
+                      return Container(
+                        margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s10),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColors.slate800 : Colors.white,
+                          borderRadius: BorderRadius.circular(AppRadius.r8),
+                          border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate200),
                         ),
-                );
-              },
-            ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(AppSpacing.s6),
+                              decoration: BoxDecoration(
+                                color: (waiting ? AppColors.amber500 : AppColors.emerald500).withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(AppRadius.r6),
+                              ),
+                              child: Icon(
+                                waiting ? AppIcons.cloudUpload : AppIcons.check,
+                                size: AppSizes.s14,
+                                color: waiting ? AppColors.amber500 : AppColors.emerald500,
+                              ),
+                            ),
+                            const SizedBox(width: AppSizes.s10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '${item.payload['serial']}',
+                                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, fontFamily: 'monospace'),
+                                  ),
+                                  const SizedBox(height: AppSizes.s2),
+                                  Text(
+                                    waiting ? StockCountStrings.serialQueued : StockCountStrings.serialResults[result] ?? '',
+                                    style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (waiting)
+                              IconButton(
+                                visualDensity: VisualDensity.compact,
+                                tooltip: StockCountStrings.minusOne,
+                                icon: const Icon(AppIcons.minus, size: AppSizes.s16),
+                                onPressed: () => _undo(item),
+                              )
+                            else
+                              StatusBadge(
+                                label: (StockCountStrings.serialResults[result] ?? '').toUpperCase(),
+                                tone: result == 'matched' ? BadgeTone.success : BadgeTone.warning,
+                              ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
           ),
         ],
       ),

@@ -35,7 +35,7 @@ class CategoriesScreen extends ConsumerWidget {
         onSearchChanged: ref.read(categoriesSearchProvider.notifier).set,
       ),
       floatingActionButton: canManage
-          ? FloatingActionButton.extended(
+          ? AppFloatingActionButton.extended(
               onPressed: () => FormSheet.show<void>(context, const _CategorySheet()),
               icon: const Icon(AppIcons.plus),
               label: const Text(ProductStrings.labelCategory),

@@ -35,7 +35,7 @@ class OutletsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text(OutletStrings.screenTitle)),
       floatingActionButton: canManage && canAdd
-          ? FloatingActionButton.extended(
+          ? AppFloatingActionButton.extended(
               onPressed: () => FormSheet.show<void>(context, OutletFormSheet(outlets: outlets.value ?? const [])),
               icon: const Icon(AppIcons.plus),
               label: const Text(OutletStrings.addOutlet),

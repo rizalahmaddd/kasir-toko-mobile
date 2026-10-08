@@ -30,7 +30,7 @@ class ModifierGroupsScreen extends ConsumerWidget {
         onSearchChanged: ref.read(modifierGroupsSearchProvider.notifier).set,
       ),
       floatingActionButton: canManage
-          ? FloatingActionButton.extended(
+          ? AppFloatingActionButton.extended(
               onPressed: () => context.push(AppRoutes.modifierGroupNew),
               icon: const Icon(AppIcons.plus),
               label: const Text(ModifierStrings.newGroup),

@@ -20,6 +20,7 @@ import '../products_providers.dart';
 import 'product_widgets.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_sizes.dart';
+import 'package:web_pos_mobile/core/theme/app_radius.dart';
 
 class StockScreen extends ConsumerWidget {
   const StockScreen({super.key});
@@ -58,10 +59,38 @@ class StockScreen extends ConsumerWidget {
         header: Column(
           children: [
             for (final count in openCounts)
-              MaterialBanner(
-                leading: const Icon(AppIcons.clipboardCheck),
-                content: Text(StockCountStrings.openBanner(count.number)),
-                actions: [TextButton(onPressed: () => context.push(AppRoutes.stockCountDetail(count.id)), child: const Text(StockCountStrings.openAction))],
+              Container(
+                margin: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s4),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s8),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(AppRadius.r10),
+                  border: Border.all(color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(AppIcons.clipboardCheck, size: AppSizes.s20, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: AppSizes.s10),
+                    Expanded(
+                      child: Text(
+                        StockCountStrings.openBanner(count.number),
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    FilledButton.tonal(
+                      style: FilledButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12),
+                      ),
+                      onPressed: () => context.push(AppRoutes.stockCountDetail(count.id)),
+                      child: const Text(StockCountStrings.openAction, style: TextStyle(fontSize: 12)),
+                    ),
+                  ],
+                ),
               ),
             if (summary != null)
               Padding(

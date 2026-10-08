@@ -11,14 +11,16 @@ import '../../../core/constants/app_routes.dart';
 import '../../../core/constants/app_strings.dart';
 import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_radius.dart';
 import '../../../core/theme/app_sizes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
-import '../../pos/presentation/widgets/barcode_scanner_view.dart';
 import '../../outlets/outlet_controller.dart';
+import '../../pos/presentation/widgets/barcode_scanner_view.dart';
+import '../../products/presentation/product_widgets.dart';
 import '../count_queue.dart';
 import '../data/stock_count_models.dart';
 import '../data/stock_count_repository.dart';
@@ -276,6 +278,8 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
     final queue = ref.watch(countQueueProvider);
     final pending = queue.pendingFor(_id);
     final closed = queue.closedFor(_id);
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -321,7 +325,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                 Padding(padding: const EdgeInsets.all(AppSpacing.s16), child: Text(StockCountStrings.closed, style: Theme.of(context).textTheme.bodyMedium))
               else ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s6),
                   child: SegmentedButton<_Mode>(
                     segments: const [
                       ButtonSegment(value: _Mode.scan, icon: Icon(AppIcons.scanBarcode), label: Text(StockCountStrings.scanMode)),
@@ -333,18 +337,43 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                   ),
                 ),
                 if (_feedback != null)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-                    child: Text(
-                      _feedback!,
-                      style: TextStyle(color: _feedbackError ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s8),
+                    decoration: BoxDecoration(
+                      color: _feedbackError
+                          ? theme.colorScheme.errorContainer
+                          : theme.colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(AppRadius.r8),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          _feedbackError ? AppIcons.circleAlert : AppIcons.circleCheck,
+                          size: AppSizes.s16,
+                          color: _feedbackError ? theme.colorScheme.error : theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppSizes.s8),
+                        Expanded(
+                          child: Text(
+                            _feedback!,
+                            style: TextStyle(
+                              color: _feedbackError
+                                  ? theme.colorScheme.onErrorContainer
+                                  : theme.colorScheme.onPrimaryContainer,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 Expanded(
                   child: switch (_mode) {
                     _Mode.scan => _ScanPane(
                         camera: _camera,
-                        recent: _recent.take(5).toList(),
+                        recent: _recent.take(8).toList(),
                         pendingIds: pending.map((item) => item.clientUuid).toSet(),
                         onToggleCamera: () => setState(() => _camera = !_camera),
                         onCode: _handleCode,
@@ -357,18 +386,30 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
                         onSubmit: _handleCode,
                         onPick: _openEntry,
                       ),
-                    _Mode.list => _ItemsPane(countId: _id, canSeeSystem: count.canSeeSystem, onPick: (item) => _openEntry(item.toCatalog(), countedQty: item.countedQty, systemQty: count.canSeeSystem ? item.systemQty : null)),
+                    _Mode.list => _ItemsPane(
+                        countId: _id,
+                        canSeeSystem: count.canSeeSystem,
+                        onPick: (item) => _openEntry(
+                          item.toCatalog(),
+                          countedQty: item.countedQty,
+                          systemQty: count.canSeeSystem ? item.systemQty : null,
+                        ),
+                      ),
                   },
                 ),
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
+                Container(
+                  padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
+                  decoration: BoxDecoration(
+                    color: isDark ? AppColors.slate900 : Colors.white,
+                    border: Border(top: BorderSide(color: isDark ? AppColors.slate800 : AppColors.slate200)),
+                  ),
+                  child: SafeArea(
+                    top: false,
                     child: SizedBox(
                       width: double.infinity,
                       child: FilledButton.icon(
                         onPressed: () => _finish(count),
-                        icon: const Icon(AppIcons.check),
+                        icon: const Icon(AppIcons.check, size: AppSizes.s18),
                         label: Text(count.canManage && count.status == StockCountStatuses.counting ? StockCountStrings.toReview : StockCountStrings.finishCounting),
                       ),
                     ),
@@ -395,9 +436,26 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final colors = StatusColors.of(context);
+    final percent = (count.progress * 100).toInt();
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s12, AppSpacing.s16, AppSpacing.s4),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s4),
+      padding: const EdgeInsets.all(AppSpacing.s12),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.slate800 : Colors.white,
+        borderRadius: BorderRadius.circular(AppRadius.r12),
+        border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate200),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 1),
+            ),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -405,29 +463,65 @@ class _Header extends StatelessWidget {
             children: [
               StatusBadge(label: count.statusLabel.toUpperCase(), tone: stockCountTone(count.status)),
               const SizedBox(width: AppSizes.s8),
-              Expanded(child: Text(StockCountStrings.progress(thousands(count.countedCount), thousands(count.itemsCount)), style: theme.textTheme.bodySmall)),
+              if (count.outletName != null) ...[
+                Icon(AppIcons.briefcaseBusiness, size: AppSizes.s12, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: AppSizes.s4),
+                Text(
+                  count.outletName!,
+                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500),
+                ),
+              ],
+              const Spacer(),
+              Text(
+                '$percent% (${thousands(count.countedCount)}/${thousands(count.itemsCount)})',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: AppSizes.s6),
-          LinearProgressIndicator(value: count.progress, minHeight: 4),
-          const SizedBox(height: AppSizes.s6),
-          InkWell(
-            onTap: pending > 0 ? onSync : null,
-            child: Row(
-              children: [
-                Icon(pending > 0 ? AppIcons.cloudUpload : AppIcons.cloudCheck, size: AppSizes.s16),
-                const SizedBox(width: AppSizes.s6),
-                Expanded(
-                  child: Text(
-                    pending > 0 ? StockCountStrings.pending(pending) : StockCountStrings.allSent,
-                    style: theme.textTheme.labelMedium,
-                  ),
-                ),
-                if (syncing) const SizedBox(width: AppSizes.s14, height: AppSizes.s14, child: CircularProgressIndicator(strokeWidth: 2)),
-              ],
+          const SizedBox(height: AppSizes.s8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.r4),
+            child: LinearProgressIndicator(
+              value: count.progress,
+              minHeight: 6,
+              backgroundColor: isDark ? AppColors.slate700 : AppColors.slate200,
             ),
           ),
-          if (failed != null) Text(failed!, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error)),
+          const SizedBox(height: AppSizes.s8),
+          InkWell(
+            borderRadius: BorderRadius.circular(AppRadius.r6),
+            onTap: pending > 0 ? onSync : null,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.s2),
+              child: Row(
+                children: [
+                  Icon(
+                    pending > 0 ? AppIcons.cloudUpload : AppIcons.cloudCheck,
+                    size: AppSizes.s14,
+                    color: pending > 0 ? colors.warning : colors.success,
+                  ),
+                  const SizedBox(width: AppSizes.s6),
+                  Expanded(
+                    child: Text(
+                      pending > 0 ? StockCountStrings.pending(pending) : StockCountStrings.allSent,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: pending > 0 ? colors.warning : colors.success,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                  if (syncing) const SizedBox(width: AppSizes.s12, height: AppSizes.s12, child: CircularProgressIndicator(strokeWidth: 2)),
+                ],
+              ),
+            ),
+          ),
+          if (failed != null) ...[
+            const SizedBox(height: AppSizes.s4),
+            Text(failed!, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.error)),
+          ],
         ],
       ),
     );
@@ -435,7 +529,14 @@ class _Header extends StatelessWidget {
 }
 
 class _ScanPane extends StatelessWidget {
-  const _ScanPane({required this.camera, required this.recent, required this.pendingIds, required this.onToggleCamera, required this.onCode, required this.onUndo});
+  const _ScanPane({
+    required this.camera,
+    required this.recent,
+    required this.pendingIds,
+    required this.onToggleCamera,
+    required this.onCode,
+    required this.onUndo,
+  });
 
   final bool camera;
   final List<QueuedCount> recent;
@@ -446,42 +547,111 @@ class _ScanPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return ListView(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s8),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.s6),
       children: [
         if (camera)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppSizes.s12),
-              child: SizedBox(height: 220, child: BarcodeScannerView(continuous: true, hintText: StockCountStrings.scanHint, onDetect: onCode)),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.r16),
+                border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate300, width: 1.5),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppRadius.r14),
+                child: SizedBox(
+                  height: 220,
+                  child: BarcodeScannerView(
+                    continuous: true,
+                    hintText: StockCountStrings.scanHint,
+                    onDetect: onCode,
+                  ),
+                ),
+              ),
             ),
           ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s4),
           child: Row(
             children: [
               Expanded(
-                child: SearchField(hint: StockCountStrings.searchHint, onSubmitted: (value) => onCode(value), debounceDuration: Duration.zero),
+                child: SearchField(
+                  hint: StockCountStrings.searchHint,
+                  onSubmitted: (value) => onCode(value),
+                  debounceDuration: Duration.zero,
+                  dense: true,
+                ),
               ),
-              IconButton(
+              const SizedBox(width: AppSizes.s8),
+              IconButton.outlined(
                 tooltip: camera ? StockCountStrings.cameraOff : StockCountStrings.cameraOn,
                 onPressed: onToggleCamera,
-                icon: Icon(camera ? AppIcons.camera : AppIcons.scanBarcode),
+                icon: Icon(camera ? AppIcons.camera : AppIcons.scanBarcode, size: AppSizes.s20),
               ),
             ],
           ),
         ),
-        const SectionTitle(StockCountStrings.recentScans),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+          child: SectionTitle(StockCountStrings.recentScans),
+        ),
         if (recent.isEmpty)
-          const Padding(padding: EdgeInsets.all(AppSpacing.s16), child: Text(StockCountStrings.noScans))
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.s20),
+            child: Center(
+              child: Text(
+                StockCountStrings.noScans,
+                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          )
         else
           for (final item in recent)
-            ListTile(
-              dense: true,
-              title: Text(item.label),
-              subtitle: Text(pendingIds.contains(item.clientUuid) ? StockCountStrings.serialQueued : timeOnly(item.createdAt)),
-              trailing: IconButton(tooltip: StockCountStrings.minusOne, icon: const Icon(AppIcons.minus), onPressed: () => onUndo(item)),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s12, vertical: AppSpacing.s8),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.slate800 : Colors.white,
+                borderRadius: BorderRadius.circular(AppRadius.r8),
+                border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate200),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(AppSpacing.s6),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.r6),
+                    ),
+                    child: Icon(AppIcons.check, size: AppSizes.s14, color: theme.colorScheme.primary),
+                  ),
+                  const SizedBox(width: AppSizes.s10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(item.label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                        const SizedBox(height: AppSizes.s2),
+                        Text(
+                          pendingIds.contains(item.clientUuid) ? StockCountStrings.serialQueued : timeOnly(item.createdAt),
+                          style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: StockCountStrings.minusOne,
+                    icon: const Icon(AppIcons.minus, size: AppSizes.s16),
+                    onPressed: () => onUndo(item),
+                  ),
+                ],
+              ),
             ),
       ],
     );
@@ -489,7 +659,13 @@ class _ScanPane extends StatelessWidget {
 }
 
 class _TypePane extends StatelessWidget {
-  const _TypePane({required this.catalog, required this.search, required this.onSearch, required this.onSubmit, required this.onPick});
+  const _TypePane({
+    required this.catalog,
+    required this.search,
+    required this.onSearch,
+    required this.onSubmit,
+    required this.onPick,
+  });
 
   final AsyncValue<CountCatalog?> catalog;
   final String search;
@@ -499,13 +675,22 @@ class _TypePane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final items = catalog.value?.search(search) ?? const <CountCatalogItem>[];
 
     return Column(
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
-          child: SearchField(hint: StockCountStrings.searchHint, initialValue: search, onChanged: onSearch, onSubmitted: onSubmit, autofocus: true),
+          child: SearchField(
+            hint: StockCountStrings.searchHint,
+            initialValue: search,
+            onChanged: onSearch,
+            onSubmitted: onSubmit,
+            autofocus: false,
+            dense: true,
+          ),
         ),
         Expanded(
           child: catalog.isLoading && !catalog.hasValue
@@ -514,13 +699,90 @@ class _TypePane extends StatelessWidget {
                   ? const EmptyState(icon: AppIcons.packageSearch, title: StockCountStrings.notInCatalogOffline)
                   : ListView.builder(
                       itemCount: items.length,
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s24),
                       itemBuilder: (context, index) {
                         final item = items[index];
-                        return ListTile(
-                          title: Text(item.name),
-                          subtitle: Text([item.sku, item.barcode].nonNulls.where((value) => value.isNotEmpty).join(' · ')),
-                          trailing: Icon(item.trackSerial ? AppIcons.scanBarcode : AppIcons.chevronRight),
-                          onTap: () => onPick(item),
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.slate800 : Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.r10),
+                            border: Border.all(color: isDark ? AppColors.slate700 : AppColors.slate200),
+                            boxShadow: [
+                              if (!isDark)
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
+                                ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(AppRadius.r10),
+                              onTap: () => onPick(item),
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppSpacing.s12),
+                                child: Row(
+                                  children: [
+                                    ProductThumb(name: item.name, size: 42),
+                                    const SizedBox(width: AppSizes.s12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.name,
+                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: AppSizes.s4),
+                                          Wrap(
+                                            spacing: AppSizes.s8,
+                                            runSpacing: AppSizes.s2,
+                                            crossAxisAlignment: WrapCrossAlignment.center,
+                                            children: [
+                                              if (item.sku != null && item.sku!.isNotEmpty)
+                                                Text(
+                                                  item.sku!,
+                                                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                                ),
+                                              if (item.barcode != null && item.barcode!.isNotEmpty)
+                                                Text(
+                                                  item.barcode!,
+                                                  style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                                ),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s6, vertical: AppSpacing.s2),
+                                                decoration: BoxDecoration(
+                                                  color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                                ),
+                                                child: Text(
+                                                  [item.unit, ...item.units.map((u) => u.name)].join('/'),
+                                                  style: theme.textTheme.labelSmall?.copyWith(
+                                                    color: theme.colorScheme.primary,
+                                                    fontWeight: FontWeight.w700,
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      item.trackSerial ? AppIcons.scanBarcode : AppIcons.chevronRight,
+                                      size: AppSizes.s18,
+                                      color: theme.colorScheme.onSurfaceVariant,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         );
                       },
                     ),
@@ -594,6 +856,10 @@ class _ItemsPaneState extends ConsumerState<_ItemsPane> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final status = StatusColors.of(context);
+
     final filters = [
       (null, StockCountStrings.filterAll),
       ('uncounted', StockCountStrings.filterUncounted),
@@ -620,6 +886,7 @@ class _ItemsPaneState extends ConsumerState<_ItemsPane> {
               _search = term;
               _reload();
             },
+            dense: true,
           ),
         ),
         Expanded(
@@ -636,36 +903,137 @@ class _ItemsPaneState extends ConsumerState<_ItemsPane> {
                     },
                     child: ListView.builder(
                       itemCount: _items.length + (_loading ? 1 : 0),
+                      padding: const EdgeInsets.only(bottom: AppSpacing.s24),
                       itemBuilder: (context, index) {
                         if (index >= _items.length) {
                           return const Padding(padding: EdgeInsets.all(AppSpacing.s16), child: Center(child: CircularProgressIndicator()));
                         }
                         final item = _items[index];
                         final variance = item.varianceQty;
-                        final status = StatusColors.of(context);
 
-                        return ListTile(
-                          title: Text(item.displayName),
-                          subtitle: Text(
-                            [
-                              if (item.sku != null) item.sku!,
-                              if (widget.canSeeSystem && item.systemQty != null) StockCountStrings.system('${quantity(item.systemQty!)} ${item.unit}'),
-                              if (item.needsRecount) StockCountStrings.recount,
-                            ].join(' · '),
-                          ),
-                          trailing: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(item.countedQty == null ? StockCountStrings.notCounted : '${quantity(item.countedQty!)} ${item.unit}'),
-                              if (variance != null && variance != 0)
-                                Text(
-                                  '${variance > 0 ? '+' : ''}${quantity(variance)}',
-                                  style: TextStyle(color: variance < 0 ? status.danger : status.success, fontWeight: FontWeight.w700),
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s4),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColors.slate800 : Colors.white,
+                            borderRadius: BorderRadius.circular(AppRadius.r10),
+                            border: Border.all(
+                              color: item.needsRecount
+                                  ? status.warning.withValues(alpha: 0.7)
+                                  : isDark
+                                      ? AppColors.slate700
+                                      : AppColors.slate200,
+                            ),
+                            boxShadow: [
+                              if (!isDark)
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.02),
+                                  blurRadius: 4,
+                                  offset: const Offset(0, 1),
                                 ),
                             ],
                           ),
-                          onTap: () => widget.onPick(item),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(AppRadius.r10),
+                              onTap: () => widget.onPick(item),
+                              child: Padding(
+                                padding: const EdgeInsets.all(AppSpacing.s12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            item.displayName,
+                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        if (item.needsRecount)
+                                          StatusBadge(label: StockCountStrings.recount.toUpperCase(), tone: BadgeTone.warning)
+                                        else if (item.countedQty == null)
+                                          const StatusBadge(label: StockCountStrings.badgeUncounted, tone: BadgeTone.muted)
+                                        else
+                                          const StatusBadge(label: StockCountStrings.badgeCounted, tone: BadgeTone.success),
+                                      ],
+                                    ),
+                                    const SizedBox(height: AppSizes.s4),
+                                    if (item.sku != null && item.sku!.isNotEmpty)
+                                      Text(
+                                        item.sku!,
+                                        style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+                                      ),
+                                    const SizedBox(height: AppSizes.s8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s6),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? AppColors.slate900.withValues(alpha: 0.5) : AppColors.slate100,
+                                        borderRadius: BorderRadius.circular(AppRadius.r6),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(StockCountStrings.labelCounted, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10)),
+                                                const SizedBox(height: AppSizes.s2),
+                                                Text(
+                                                  item.countedQty == null ? '-' : '${quantity(item.countedQty!)} ${item.unit}',
+                                                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (widget.canSeeSystem) ...[
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(StockCountStrings.labelSystem, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10)),
+                                                  const SizedBox(height: AppSizes.s2),
+                                                  Text(
+                                                    item.systemQty == null ? '-' : '${quantity(item.systemQty!)} ${item.unit}',
+                                                    style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.end,
+                                                children: [
+                                                  Text(StockCountStrings.labelVariance, style: theme.textTheme.labelSmall?.copyWith(color: theme.colorScheme.onSurfaceVariant, fontSize: 10)),
+                                                  const SizedBox(height: AppSizes.s2),
+                                                  Text(
+                                                    variance == null || variance == 0
+                                                        ? '0'
+                                                        : '${variance > 0 ? '+' : ''}${quantity(variance)}',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w800,
+                                                      fontSize: 13,
+                                                      color: variance == null || variance == 0
+                                                          ? theme.colorScheme.onSurfaceVariant
+                                                          : variance < 0
+                                                              ? status.danger
+                                                              : status.success,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
                         );
                       },
                     ),

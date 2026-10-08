@@ -17,7 +17,7 @@ import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../../data_changes.dart';
 import '../../outlets/data/outlet_models.dart';
-import '../../pos/presentation/camera_scanner_screen.dart';
+import '../../pos/presentation/widgets/barcode_scanner_dialog.dart';
 import '../data/product_meta.dart';
 import '../data/product_models.dart';
 import 'product_business_section.dart';
@@ -344,7 +344,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                                       child: Icon(AppIcons.scanBarcode, size: AppSizes.s16, color: theme.colorScheme.primary),
                                     ),
                                     onPressed: () async {
-                                      final code = await CameraScannerScreen.open(context);
+                                      final code = await BarcodeScannerDialog.open(context);
                                       if (code != null && code.isNotEmpty) {
                                         _barcode.text = code;
                                         if (mounted) setState(() {});

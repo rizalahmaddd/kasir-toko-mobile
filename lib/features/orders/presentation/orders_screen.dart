@@ -37,7 +37,7 @@ class OrdersScreen extends ConsumerWidget {
         initialSearch: query.search,
         onSearchChanged: (term) => notifier.set((search: term, status: query.status)),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: AppFloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.orderNew),
         icon: const Icon(AppIcons.plus),
         label: const Text(OrderStrings.newTitle),

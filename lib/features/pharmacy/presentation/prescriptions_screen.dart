@@ -33,7 +33,7 @@ class PrescriptionsScreen extends ConsumerWidget {
         onSearchChanged: (term) => notifier.set((search: term, status: query.status)),
       ),
       floatingActionButton: canManage
-          ? FloatingActionButton.extended(
+          ? AppFloatingActionButton.extended(
               onPressed: () => context.push(AppRoutes.prescriptionNew),
               icon: const Icon(AppIcons.plus),
               label: const Text(PharmacyStrings.newTitle),
