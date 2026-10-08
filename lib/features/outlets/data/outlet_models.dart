@@ -15,6 +15,11 @@ class OutletInfo {
     this.priority = 0,
     this.usersCount,
     this.userIds,
+    this.storeType,
+    this.effectiveStoreType,
+    this.effectiveStoreTypeLabel,
+    this.capabilities,
+    this.disabledFeatures = const [],
   });
 
   factory OutletInfo.fromJson(Map<String, dynamic> json) => OutletInfo(
@@ -29,6 +34,11 @@ class OutletInfo {
         priority: asInt(json['priority']),
         usersCount: json['users_count'] == null ? null : asInt(json['users_count']),
         userIds: json['user_ids'] is List ? (json['user_ids'] as List).map(asInt).toList() : null,
+        storeType: json['store_type'] as String?,
+        effectiveStoreType: json['effective_store_type'] as String?,
+        effectiveStoreTypeLabel: json['effective_store_type_label'] as String?,
+        capabilities: json['capabilities'] is List ? (json['capabilities'] as List).cast<String>() : null,
+        disabledFeatures: (json['disabled_features'] as List? ?? const []).cast<String>(),
       );
 
   final int id;
@@ -42,6 +52,17 @@ class OutletInfo {
   final int priority;
   final int? usersCount;
   final List<int>? userIds;
+
+  /// Null when the outlet follows the shop's store type ([effectiveStoreType]).
+  final String? storeType;
+  final String? effectiveStoreType;
+  final String? effectiveStoreTypeLabel;
+
+  /// Business capabilities switched on at this outlet; null on servers older than per-outlet features.
+  final List<String>? capabilities;
+
+  /// Cashier features the outlet switched off on its own, e.g. `pos.receivables`.
+  final List<String> disabledFeatures;
 
   /// Active but over the plan limit.
   bool get isLocked => isActive && !isOperational;
@@ -58,6 +79,11 @@ class OutletInfo {
         'priority': priority,
         'users_count': usersCount,
         'user_ids': userIds,
+        'store_type': storeType,
+        'effective_store_type': effectiveStoreType,
+        'effective_store_type_label': effectiveStoreTypeLabel,
+        'capabilities': capabilities,
+        'disabled_features': disabledFeatures,
       };
 }
 
@@ -78,6 +104,17 @@ class OutletSettingsData {
     this.autoPrint = false,
     this.qrisInherit = true,
     this.qrisPayload = '',
+    this.hasRules = false,
+    this.rulesInherit = true,
+    this.allowCredit = false,
+    this.allowNegativeStock = false,
+    this.quickCash = const [],
+    this.pharmacyInherit = true,
+    this.prescriptionMode = 'strict',
+    this.allowControlledDrugs = false,
+    this.blockExpiredSale = true,
+    this.nearExpiryPercent = '0',
+    this.nearExpiryDays = '2',
   });
 
   factory OutletSettingsData.fromJson(Map<String, dynamic> json) {
@@ -85,6 +122,8 @@ class OutletSettingsData {
     final payments = asMap(json['payments']);
     final receipt = asMap(json['receipt']);
     final qris = asMap(json['qris']);
+    final rules = asMap(json['rules']);
+    final pharmacy = asMap(json['pharmacy']);
 
     return OutletSettingsData(
       taxInherit: tax['inherit'] as bool? ?? true,
@@ -100,6 +139,17 @@ class OutletSettingsData {
       autoPrint: receipt['auto_print'] as bool? ?? false,
       qrisInherit: qris['inherit'] as bool? ?? true,
       qrisPayload: qris['payload'] as String? ?? '',
+      hasRules: json['rules'] is Map,
+      rulesInherit: rules['inherit'] as bool? ?? true,
+      allowCredit: rules['allow_credit'] as bool? ?? false,
+      allowNegativeStock: rules['allow_negative_stock'] as bool? ?? false,
+      quickCash: (rules['quick_cash'] as List? ?? const []).map(asInt).toList(),
+      pharmacyInherit: pharmacy['inherit'] as bool? ?? true,
+      prescriptionMode: pharmacy['prescription_mode'] as String? ?? 'strict',
+      allowControlledDrugs: pharmacy['allow_controlled_drugs'] as bool? ?? false,
+      blockExpiredSale: pharmacy['block_expired_sale'] as bool? ?? true,
+      nearExpiryPercent: '${pharmacy['near_expiry_discount_percent'] ?? '0'}',
+      nearExpiryDays: '${pharmacy['near_expiry_discount_days'] ?? '2'}',
     );
   }
 
@@ -117,11 +167,36 @@ class OutletSettingsData {
   final bool qrisInherit;
   final String qrisPayload;
 
+  /// False on servers that cannot override cashier and pharmacy rules per outlet; those sections are
+  /// then neither shown nor sent.
+  final bool hasRules;
+  final bool rulesInherit;
+  final bool allowCredit;
+  final bool allowNegativeStock;
+  final List<int> quickCash;
+  final bool pharmacyInherit;
+  final String prescriptionMode;
+  final bool allowControlledDrugs;
+  final bool blockExpiredSale;
+  final String nearExpiryPercent;
+  final String nearExpiryDays;
+
   Map<String, dynamic> toJson() => {
         'tax': {'inherit': taxInherit, 'enabled': taxEnabled, 'rate': taxRate, 'label': taxLabel},
         'payments': {'inherit': paymentsInherit, 'methods': paymentMethods},
         'receipt': {'inherit': receiptInherit, 'width': receiptWidth, 'header': receiptHeader, 'footer': receiptFooter, 'auto_print': autoPrint},
         'qris': {'inherit': qrisInherit, 'payload': qrisPayload},
+        if (hasRules) ...{
+          'rules': {'inherit': rulesInherit, 'allow_credit': allowCredit, 'allow_negative_stock': allowNegativeStock, 'quick_cash': quickCash},
+          'pharmacy': {
+            'inherit': pharmacyInherit,
+            'prescription_mode': prescriptionMode,
+            'allow_controlled_drugs': allowControlledDrugs,
+            'block_expired_sale': blockExpiredSale,
+            'near_expiry_discount_percent': nearExpiryPercent,
+            'near_expiry_discount_days': nearExpiryDays,
+          },
+        },
       };
 }
 

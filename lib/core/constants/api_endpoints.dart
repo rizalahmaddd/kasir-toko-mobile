@@ -26,6 +26,7 @@ abstract final class ApiEndpoints {
   static String outletUsers(int id) => 'outlets/$id/users';
   static String outletCopy(int id) => 'outlets/$id/copy';
   static String outletSettings(int id) => 'outlets/$id/settings';
+  static String outletCapabilities(int id) => 'outlets/$id/capabilities';
 
   // Umum
   static const dashboard = 'dashboard';

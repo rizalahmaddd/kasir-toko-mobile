@@ -371,10 +371,14 @@ int get _remaining => (_due - _committed).clamp(0, _due);
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(posConfigProvider).requireValue;
+    final cart = ref.watch(cartProvider);
     final colors = StatusColors.of(context);
     final total = _due;
     final remaining = _remaining;
     final change = _isCash ? _entered - remaining : 0;
+    final paidSoFar = _lines.fold(0, (sum, line) => sum + line.amount) + _entered;
+    final shortage = _due - paidSoFar;
+    final isKasbon = shortage > 0 && (_entered > 0 || _lines.isNotEmpty);
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -553,17 +557,63 @@ int get _remaining => (_due - _committed).clamp(0, _due);
                           decoration: const InputDecoration(labelText: PosStrings.referenceFieldLabel, hintText: PosStrings.referenceFieldHint),
                         ),
                       ],
+                      if (isKasbon) ...[
+                        const SizedBox(height: AppSizes.s10),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.s12),
+                          decoration: BoxDecoration(
+                            color: colors.warning.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(AppRadius.r10),
+                            border: Border.all(color: colors.warning.withValues(alpha: 0.25)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(AppIcons.info, size: AppSizes.s18, color: colors.warning),
+                              const SizedBox(width: AppSizes.s10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Kekurangan ${rupiah(shortage)} dicatat sebagai Kasbon/Piutang',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.warning),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    if (cart.customer != null) ...[
+                                      Text(
+                                        'Pelanggan: ${cart.customer!.name}'
+                                        '${cart.customer!.creditRoom != null ? ' · Sisa limit: ${rupiah(cart.customer!.creditRoom!)}' : ''}',
+                                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                      ),
+                                    ] else ...[
+                                      Text(
+                                        'Pilih pelanggan terlebih dahulu untuk mencatat piutang.',
+                                        style: TextStyle(fontSize: 11, color: colors.danger, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (_error != null) ...[
                         const SizedBox(height: AppSizes.s8),
                         Text(_error!, style: TextStyle(color: colors.danger)),
                       ],
                       const SizedBox(height: AppSizes.s16),
                       FilledButton(
-                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
+                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                         onPressed: _busy ? null : _submit,
                         child: _busy
                             ? const SizedBox.square(dimension: AppSizes.s22, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(_method == PaymentMethods.qris ? PosStrings.qrisPaidButton : PosStrings.finishPaymentButton),
+                            : Text(
+                                _method == PaymentMethods.qris && !isKasbon
+                                    ? PosStrings.qrisPaidButton
+                                    : (isKasbon ? 'Simpan dengan Kasbon (${rupiah(shortage)})' : PosStrings.finishPaymentButton),
+                              ),
                       ),
                       if (config.paymentMethods.length > 1) ...[
                         const SizedBox(height: AppSizes.s4),

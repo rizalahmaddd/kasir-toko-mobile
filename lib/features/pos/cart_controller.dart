@@ -8,6 +8,7 @@ import '../../core/network/api_exception.dart';
 import '../../core/storage/app_storage.dart';
 import '../../core/utils/formatters.dart' as fmt;
 import '../auth/access.dart';
+import '../outlets/outlet_controller.dart';
 import '../auth/auth_controller.dart';
 import 'data/pos_models.dart';
 import 'cart_math.dart';
@@ -95,7 +96,7 @@ class CartController extends Notifier<Cart> {
 
   bool get _allowNegativeStock => _config?.allowNegativeStock ?? false;
 
-  bool get _multiUnit => ref.read(currentUserProvider)?.usesMultiUnit ?? false;
+  bool get _multiUnit => ref.read(currentUserProvider)?.usesMultiUnitAt(ref.read(currentOutletIdProvider)) ?? false;
 
   /// Jumlah satuan dasar produk ini di baris lain keranjang.
   double _otherBase(int productId, String exceptKey) =>

@@ -103,8 +103,9 @@ class ProductsRepository {
         snapshotFirst: false,
       );
 
-  Future<CategoryRecord> saveCategory({int? id, required String name, required int sortOrder, required bool isActive}) async {
-    final data = {'name': name, 'sort_order': sortOrder, 'is_active': isActive};
+  /// [outletIds] empty opens the category to every outlet; null leaves the current choice untouched.
+  Future<CategoryRecord> saveCategory({int? id, required String name, required int sortOrder, required bool isActive, List<int>? outletIds}) async {
+    final data = {'name': name, 'sort_order': sortOrder, 'is_active': isActive, 'outlet_ids': ?outletIds};
     final body = id == null ? await _api.post(ApiEndpoints.categories, data: data) : await _api.put(ApiEndpoints.category(id), data: data);
 
     return CategoryRecord.fromJson(ApiClient.data(body));

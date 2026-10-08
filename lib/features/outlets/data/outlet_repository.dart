@@ -15,13 +15,28 @@ class OutletRepository {
   Future<List<OutletInfo>> list({bool all = false}) async =>
       ApiClient.list(await _api.get(ApiEndpoints.outlets, query: {'scope': all ? 'all' : null}, offlineCopy: false)).map(OutletInfo.fromJson).toList();
 
-  Future<OutletInfo> save({int? id, required String name, required String code, String? address, String? phone, int? copyFromOutletId}) async {
+  /// [storeType] on a new outlet applies that store type's preset to this outlet only; on an existing
+  /// outlet it adds the preset's categories and features without removing the old ones.
+  Future<OutletInfo> save({
+    int? id,
+    required String name,
+    required String code,
+    String? address,
+    String? phone,
+    int? copyFromOutletId,
+    String? storeType,
+    bool includeSampleProducts = true,
+    List<String>? capabilities,
+  }) async {
     final payload = {
       'name': name,
       'code': code,
       'address': address,
       'phone': phone,
       if (id == null && copyFromOutletId != null) 'copy_from_outlet_id': copyFromOutletId,
+      'store_type': ?storeType,
+      if (id == null && storeType != null) 'include_sample_products': includeSampleProducts,
+      if (id == null && storeType != null && capabilities != null) 'capabilities': capabilities,
     };
     final body = id == null ? await _api.post(ApiEndpoints.outlets, data: payload) : await _api.put(ApiEndpoints.outlet(id), data: payload);
 
@@ -41,6 +56,9 @@ class OutletRepository {
   Future<void> saveAccess(int id, List<int> userIds) => _api.put(ApiEndpoints.outletUsers(id), data: {'user_ids': userIds});
 
   Future<void> copyFrom(int id, int sourceId) => _api.post(ApiEndpoints.outletCopy(id), data: {'source_outlet_id': sourceId});
+
+  Future<OutletInfo> saveCapabilities(int id, List<String> capabilities) async =>
+      OutletInfo.fromJson(ApiClient.data(await _api.put(ApiEndpoints.outletCapabilities(id), data: {'capabilities': capabilities})));
 
   Future<OutletSettingsData> settings(int id) async =>
       OutletSettingsData.fromJson(ApiClient.data(await _api.get(ApiEndpoints.outletSettings(id), offlineCopy: false)));

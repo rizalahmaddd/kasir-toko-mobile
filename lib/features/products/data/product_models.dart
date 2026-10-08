@@ -2,7 +2,7 @@ import '../../../core/utils/json.dart';
 import '../../pos/cart_math.dart';
 
 class CategoryRecord {
-  const CategoryRecord({required this.id, required this.name, this.sortOrder = 0, this.isActive = true, this.productsCount});
+  const CategoryRecord({required this.id, required this.name, this.sortOrder = 0, this.isActive = true, this.productsCount, this.outletIds});
 
   factory CategoryRecord.fromJson(Map<String, dynamic> json) => CategoryRecord(
         id: json['id'] as int,
@@ -10,6 +10,7 @@ class CategoryRecord {
         sortOrder: asInt(json['sort_order']),
         isActive: json['is_active'] as bool? ?? true,
         productsCount: json['products_count'] == null ? null : asInt(json['products_count']),
+        outletIds: json['outlet_ids'] is List ? (json['outlet_ids'] as List).map(asInt).toList() : null,
       );
 
   final int id;
@@ -17,6 +18,9 @@ class CategoryRecord {
   final int sortOrder;
   final bool isActive;
   final int? productsCount;
+
+  /// Outlets whose cashier shows this category; empty means every outlet, null an older server.
+  final List<int>? outletIds;
 }
 
 class ProductRecord {

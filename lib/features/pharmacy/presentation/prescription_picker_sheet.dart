@@ -11,6 +11,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
+import '../../outlets/outlet_controller.dart';
 import '../../auth/auth_controller.dart';
 import '../../pos/cart_controller.dart';
 import '../../pos/data/pos_models.dart';
@@ -47,7 +48,7 @@ class _PrescriptionPickerSheetState extends ConsumerState<PrescriptionPickerShee
 
   PosConfig? get _config => ref.read(posConfigProvider).value;
 
-  bool get _canView => ref.read(currentUserProvider)?.canViewPrescriptions ?? false;
+  bool get _canView => ref.read(currentUserProvider)?.canViewPrescriptionsAt(ref.read(currentOutletIdProvider)) ?? false;
 
   bool get _canDraft => _config?.canDraftPrescription ?? false;
 

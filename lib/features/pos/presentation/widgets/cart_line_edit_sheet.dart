@@ -76,21 +76,19 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
     Navigator.pop(context);
   }
 
-  /// Edit sheet ditutup dulu karena kunci baris ikut berubah saat pilihan tambahannya diganti.
   Future<void> _editModifiers() async {
     final item = widget.item;
-    final navigator = Navigator.of(context);
     final cart = ref.read(cartProvider.notifier);
-    navigator.pop();
     final picked = await ModifierPickerSheet.show(
-      navigator.context,
+      context,
       title: item.name,
       groups: item.modifierGroups,
       selected: item.modifiers,
       confirmLabel: PosStrings.modifierSave,
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       cart.setModifiers(item.key, picked);
+      Navigator.pop(context);
     }
   }
 
@@ -123,10 +121,12 @@ class _CartLineEditSheetState extends ConsumerState<CartLineEditSheet> {
                         ),
                       ),
                       OutlinedButton(
-                        onPressed: () {
-                          final navigator = Navigator.of(context);
-                          navigator.pop();
-                          editLineSerials(navigator.context, ref, widget.item);
+                        onPressed: () async {
+                          final sheetContext = context;
+                          await editLineSerials(sheetContext, ref, widget.item);
+                          if (sheetContext.mounted) {
+                            Navigator.pop(sheetContext);
+                          }
                         },
                         child: const Text(PosStrings.serialPick),
                       ),

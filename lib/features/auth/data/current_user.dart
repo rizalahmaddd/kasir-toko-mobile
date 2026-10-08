@@ -103,7 +103,27 @@ class CurrentUser {
 
   bool can(String permission) => isSuperadmin || permissions.contains(permission);
 
+  /// Shop-wide switch: on when any outlet uses it. Drives master data screens.
   bool hasFeature(String feature) => enabledFeatures.contains(feature);
+
+  /// Switch at one outlet, for the cashier and operational menus. Read from the outlet list so it
+  /// follows an outlet switch at once, also offline, without waiting for auth/me.
+  bool hasFeatureAt(String feature, int? outletId) {
+    if (!hasFeature(feature)) {
+      return false;
+    }
+
+    final outlet = outletById(outletId);
+    if (outlet == null) {
+      return true;
+    }
+
+    if (feature.startsWith('business.')) {
+      return outlet.capabilities?.contains(feature) ?? true;
+    }
+
+    return !outlet.disabledFeatures.contains(feature);
+  }
 
   String get roleLabel => roles.isEmpty ? '-' : roles.first;
 

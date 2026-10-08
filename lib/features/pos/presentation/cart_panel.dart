@@ -9,6 +9,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
+import '../../outlets/outlet_controller.dart';
 import '../../auth/auth_controller.dart';
 import '../../offline/offline_queue.dart';
 import '../../pharmacy/presentation/prescription_picker_sheet.dart';
@@ -86,7 +87,7 @@ class CartPanel extends ConsumerWidget {
 
   Future<void> _pay(BuildContext context, WidgetRef ref) async {
     final cart = ref.read(cartProvider);
-    final usesPrescriptions = ref.read(currentUserProvider)?.usesPrescriptions ?? false;
+    final usesPrescriptions = ref.read(currentUserProvider)?.usesPrescriptionsAt(ref.read(currentOutletIdProvider)) ?? false;
     if (usesPrescriptions && cart.needsPrescription && !cart.hasPrescription) {
       showMessage(context, PosStrings.prescriptionRequiredBeforePay, isError: true);
       await PrescriptionPickerSheet.show(context);
@@ -230,7 +231,7 @@ class CartPanel extends ConsumerWidget {
               onPressed: () => ref.read(cartProvider.notifier).clearCustomerOrder(),
             ),
           ),
-        if ((ref.watch(currentUserProvider)?.usesPrescriptions ?? false) && (cart.needsPrescription || cart.hasPrescription)) _PrescriptionBar(cart: cart),
+        if ((ref.watch(currentUserProvider)?.usesPrescriptionsAt(ref.watch(currentOutletIdProvider)) ?? false) && (cart.needsPrescription || cart.hasPrescription)) _PrescriptionBar(cart: cart),
         if (!cart.isEmpty)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s14, vertical: AppSpacing.s6),

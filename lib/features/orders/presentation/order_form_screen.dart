@@ -12,6 +12,9 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_sizes.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/theme/app_typography.dart';
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../pos/data/pos_models.dart';
@@ -21,9 +24,15 @@ import '../data/orders_repository.dart';
 import '../orders_providers.dart';
 
 class _Line {
-  _Line({this.productId, String name = '', String price = ''})
+  _Line({this.productId, String name = '', String price = '', VoidCallback? onChanged})
       : name = TextEditingController(text: name),
-        price = TextEditingController(text: price);
+        price = TextEditingController(text: price) {
+    if (onChanged != null) {
+      this.name.addListener(onChanged);
+      quantity.addListener(onChanged);
+      this.price.addListener(onChanged);
+    }
+  }
 
   final int? productId;
   final TextEditingController name;
@@ -69,6 +78,28 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
   String? _error;
 
   @override
+  void initState() {
+    super.initState();
+    _deposit.addListener(() {
+      if (mounted) setState(() {});
+    });
+  }
+
+  int get _estimatedTotal {
+    var sum = 0;
+    for (final line in _lines) {
+      final qty = double.tryParse(line.quantity.text.trim().replaceAll(',', '.')) ?? 1;
+      final prc = parseRupiah(line.price.text);
+      sum += (qty * prc).round();
+    }
+    return sum;
+  }
+
+  int get _depositAmount => parseRupiah(_deposit.text);
+
+  int get _remainingPayment => (_estimatedTotal - _depositAmount).clamp(0, _estimatedTotal);
+
+  @override
   void dispose() {
     for (final controller in [_name, _phone, _device, _serial, _complaint, _notes, _deposit]) {
       controller.dispose();
@@ -91,7 +122,14 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
   Future<void> _addProduct() async {
     final product = await showModalBottomSheet<Product>(context: context, isScrollControlled: true, builder: (_) => const _ProductPickerSheet());
     if (product != null) {
-      setState(() => _lines.add(_Line(productId: product.id, name: product.name, price: thousands(product.price))));
+      setState(() => _lines.add(_Line(
+            productId: product.id,
+            name: product.name,
+            price: thousands(product.price),
+            onChanged: () {
+              if (mounted) setState(() {});
+            },
+          )));
     }
   }
 
@@ -141,6 +179,8 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
   @override
   Widget build(BuildContext context) {
     final methods = ref.watch(posConfigProvider).value?.paymentMethods ?? const [];
+    final colors = StatusColors.of(context);
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text(OrderStrings.newTitle)),
@@ -156,97 +196,248 @@ class _OrderFormScreenState extends ConsumerState<OrderFormScreen> {
               selected: {_type},
               onSelectionChanged: (value) => setState(() => _type = value.first),
             ),
-            const SectionTitle(OrderStrings.customer),
-            TextField(controller: _name, decoration: const InputDecoration(labelText: OrderStrings.customerName)),
-            const SizedBox(height: AppSizes.s12),
-            TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: OrderStrings.phone)),
-            const SizedBox(height: AppSizes.s12),
-            OutlinedButton.icon(
-              onPressed: _pickPickup,
-              icon: const Icon(AppIcons.calendar, size: AppSizes.s16),
-              label: Text(_pickupAt == null ? (_type == 'service' ? OrderStrings.estimatedDone : OrderStrings.pickupLabel) : dateTime(_pickupAt!)),
-            ),
-            if (_type == 'service') ...[
-              const SectionTitle(OrderStrings.device),
-              TextField(controller: _device, decoration: const InputDecoration(labelText: OrderStrings.device)),
-              const SizedBox(height: AppSizes.s12),
-              TextField(controller: _serial, decoration: const InputDecoration(labelText: 'IMEI / SN')),
-              const SizedBox(height: AppSizes.s12),
-              TextField(controller: _complaint, maxLines: 2, decoration: const InputDecoration(labelText: OrderStrings.complaint)),
-            ],
-            SectionTitle(
-              OrderStrings.items,
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextButton(onPressed: () => setState(() => _lines.add(_Line())), child: const Text(OrderStrings.freeLine)),
-                  TextButton.icon(onPressed: _addProduct, icon: const Icon(AppIcons.plus, size: AppSizes.s16), label: const Text(OrderStrings.addProduct)),
-                ],
+            const SizedBox(height: AppSizes.s14),
+
+            // Card 1: Data Pemesan
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(AppIcons.user, size: AppSizes.s18, color: theme.colorScheme.primary),
+                        const SizedBox(width: AppSizes.s8),
+                        Text(OrderStrings.customer, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.s12),
+                    TextField(controller: _name, decoration: const InputDecoration(labelText: OrderStrings.customerName)),
+                    const SizedBox(height: AppSizes.s12),
+                    TextField(controller: _phone, keyboardType: TextInputType.phone, decoration: const InputDecoration(labelText: OrderStrings.phone)),
+                    const SizedBox(height: AppSizes.s12),
+                    OutlinedButton.icon(
+                      onPressed: _pickPickup,
+                      icon: const Icon(AppIcons.calendar, size: AppSizes.s16),
+                      label: Text(_pickupAt == null ? (_type == 'service' ? OrderStrings.estimatedDone : OrderStrings.pickupLabel) : dateTime(_pickupAt!)),
+                    ),
+                  ],
+                ),
               ),
             ),
-            for (final (index, line) in _lines.indexed)
+            const SizedBox(height: AppSizes.s14),
+
+            // Card 2: Detail Servis (hanya jika mode servis)
+            if (_type == 'service') ...[
               Card(
-                key: ObjectKey(line),
-                margin: const EdgeInsets.only(top: AppSpacing.s8),
                 child: Padding(
-                  padding: const EdgeInsets.all(AppSpacing.s12),
+                  padding: const EdgeInsets.all(AppSpacing.s14),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Row(
                         children: [
-                          Expanded(child: TextField(controller: line.name, readOnly: line.productId != null, decoration: const InputDecoration(labelText: OrderStrings.itemName))),
-                          IconButton(onPressed: () => setState(() => _lines.removeAt(index).dispose()), icon: const Icon(AppIcons.trash2, size: AppSizes.s18)),
+                          Icon(AppIcons.wrench, size: AppSizes.s18, color: theme.colorScheme.primary),
+                          const SizedBox(width: AppSizes.s8),
+                          Text(OrderStrings.device, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
                         ],
                       ),
-                      Row(
-                        children: [
-                          SizedBox(
-                            width: 80,
-                            child: TextField(
-                              controller: line.quantity,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(labelText: OrderStrings.qty),
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.s12),
-                          Expanded(child: TextField(controller: line.price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: OrderStrings.price, prefixText: 'Rp '))),
-                        ],
-                      ),
-                      TextField(controller: line.note, decoration: const InputDecoration(labelText: OrderStrings.lineNote)),
+                      const SizedBox(height: AppSizes.s12),
+                      TextField(controller: _device, decoration: const InputDecoration(labelText: OrderStrings.device)),
+                      const SizedBox(height: AppSizes.s12),
+                      TextField(controller: _serial, decoration: const InputDecoration(labelText: 'IMEI / SN')),
+                      const SizedBox(height: AppSizes.s12),
+                      TextField(controller: _complaint, maxLines: 2, decoration: const InputDecoration(labelText: OrderStrings.complaint)),
                     ],
                   ),
                 ),
               ),
-            const SectionTitle(OrderStrings.notes),
-            TextField(controller: _notes, maxLines: 2, decoration: const InputDecoration(hintText: OrderStrings.notesHint)),
-            const SectionTitle(OrderStrings.deposit),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _deposit,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: const InputDecoration(labelText: OrderStrings.amount, prefixText: 'Rp '),
-                  ),
+              const SizedBox(height: AppSizes.s14),
+            ],
+
+            // Card 3: Barang & Layanan
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(AppIcons.package, size: AppSizes.s18, color: theme.colorScheme.primary),
+                        const SizedBox(width: AppSizes.s8),
+                        Expanded(child: Text(OrderStrings.items, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700))),
+                        TextButton(
+                          onPressed: () => setState(() => _lines.add(_Line(onChanged: () {
+                                if (mounted) setState(() {});
+                              }))),
+                          child: const Text(OrderStrings.freeLine),
+                        ),
+                        TextButton.icon(
+                          onPressed: _addProduct,
+                          icon: const Icon(AppIcons.plus, size: AppSizes.s16),
+                          label: const Text(OrderStrings.addProduct),
+                        ),
+                      ],
+                    ),
+                    if (_lines.isEmpty) ...[
+                      const SizedBox(height: AppSizes.s12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: AppSpacing.s20, horizontal: AppSpacing.s16),
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                          borderRadius: BorderRadius.circular(AppRadius.r8),
+                          border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.5)),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Belum ada barang / jasa ditambahkan.',
+                            style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                          ),
+                        ),
+                      ),
+                    ] else ...[
+                      const SizedBox(height: AppSizes.s8),
+                      for (final (index, line) in _lines.indexed)
+                        Container(
+                          margin: const EdgeInsets.only(top: AppSpacing.s8),
+                          padding: const EdgeInsets.all(AppSpacing.s10),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(AppRadius.r8),
+                            border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.4)),
+                          ),
+                          child: Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(child: TextField(controller: line.name, readOnly: line.productId != null, decoration: const InputDecoration(labelText: OrderStrings.itemName))),
+                                  IconButton(onPressed: () => setState(() => _lines.removeAt(index).dispose()), icon: const Icon(AppIcons.trash2, size: AppSizes.s18)),
+                                ],
+                              ),
+                              const SizedBox(height: AppSizes.s8),
+                              Row(
+                                children: [
+                                  SizedBox(
+                                    width: 80,
+                                    child: TextField(
+                                      controller: line.quantity,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: const InputDecoration(labelText: OrderStrings.qty),
+                                    ),
+                                  ),
+                                  const SizedBox(width: AppSizes.s10),
+                                  Expanded(child: TextField(controller: line.price, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: OrderStrings.price, prefixText: 'Rp '))),
+                                ],
+                              ),
+                              const SizedBox(height: AppSizes.s8),
+                              TextField(controller: line.note, decoration: const InputDecoration(labelText: OrderStrings.lineNote)),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ],
                 ),
-                const SizedBox(width: AppSizes.s12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _method,
-                    decoration: const InputDecoration(labelText: OrderStrings.method),
-                    items: [for (final option in methods) DropdownMenuItem(value: option.value, child: Text(option.label))],
-                    onChanged: (value) => setState(() => _method = value ?? _method),
-                  ),
-                ),
-              ],
+              ),
             ),
+            const SizedBox(height: AppSizes.s14),
+
+            // Card 4: Uang Muka DP & Catatan
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.s14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(AppIcons.wallet, size: AppSizes.s18, color: theme.colorScheme.primary),
+                        const SizedBox(width: AppSizes.s8),
+                        Text(OrderStrings.deposit, style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700)),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.s12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _deposit,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            decoration: const InputDecoration(labelText: OrderStrings.amount, prefixText: 'Rp '),
+                          ),
+                        ),
+                        const SizedBox(width: AppSizes.s12),
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue: _method,
+                            decoration: const InputDecoration(labelText: OrderStrings.method),
+                            items: [for (final option in methods) DropdownMenuItem(value: option.value, child: Text(option.label))],
+                            onChanged: (value) => setState(() => _method = value ?? _method),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: AppSizes.s12),
+                    TextField(controller: _notes, maxLines: 2, decoration: const InputDecoration(labelText: OrderStrings.notes, hintText: OrderStrings.notesHint)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSizes.s14),
+
+            // Card 5: Ringkasan Perhitungan (Live Calculation Footer)
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.s14),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+                borderRadius: BorderRadius.circular(AppRadius.r12),
+                border: Border.all(color: theme.colorScheme.outline.withValues(alpha: 0.6)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Estimasi Total', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
+                      Text(rupiah(_estimatedTotal), style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.s6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Uang Muka (DP)', style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 13)),
+                      Text(rupiah(_depositAmount), style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: _depositAmount > 0 ? colors.success : null)),
+                    ],
+                  ),
+                  const Padding(padding: EdgeInsets.symmetric(vertical: AppSpacing.s8), child: Divider()),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Sisa Tagihan Pelunasan', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14)),
+                      Text(
+                        rupiah(_remainingPayment),
+                        style: AppTypography.money(fontSize: 18, fontWeight: FontWeight.w800, color: theme.colorScheme.primary),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
             if (_error != null) ...[
               const SizedBox(height: AppSizes.s12),
-              Text(_error!, style: TextStyle(color: Theme.of(context).colorScheme.error)),
+              Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
             ],
             const SizedBox(height: AppSizes.s20),
-            FilledButton(onPressed: _saving ? null : _save, child: Text(_saving ? OrderStrings.saving : OrderStrings.save)),
+            FilledButton(
+              style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+              onPressed: _saving ? null : _save,
+              child: Text(_saving ? OrderStrings.saving : OrderStrings.save),
+            ),
           ],
         ),
       ),

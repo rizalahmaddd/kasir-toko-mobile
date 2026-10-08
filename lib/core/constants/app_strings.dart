@@ -1691,6 +1691,24 @@ abstract final class OutletStrings {
   static String deactivateMessage(String outlet) => 'Outlet $outlet tidak bisa dipakai bertransaksi sampai diaktifkan lagi. Data dan riwayatnya tetap aman.';
   static const deactivateConfirm = 'Nonaktifkan';
   static const savedMessage = 'Outlet disimpan.';
+  static const categoryOutletsLabel = 'Dijual di outlet';
+  static const categoryOutletsHelp = 'Biarkan semua tidak dipilih agar kategori ini tampil di kasir semua outlet.';
+  static String categoryOnlyAt(String outlets) => 'Hanya di $outlets';
+
+  // Jenis usaha & fitur khusus
+  static const storeTypeLabel = 'Outlet ini usaha apa?';
+  static String storeTypeSame(String? type) => type == null ? 'Sama seperti outlet lain' : 'Sama seperti outlet lain ($type)';
+  static const storeTypeSameHelp = 'Fitur usaha mengikuti outlet yang disalin, atau outlet utama.';
+  static String storeTypePresetHelp(String type) => 'Kategori $type dibuat khusus untuk outlet ini, jadi tidak muncul di kasir outlet lain. Pajak toko tidak berubah.';
+  static const includeSamples = 'Isi dengan produk contoh';
+  static String includeSamplesHelp(int count) => '$count produk dengan harga perkiraan dan stok 0. Bisa diubah atau dihapus nanti.';
+  static String capabilitiesSummary(int count) => 'Fitur khusus usaha: $count dinyalakan';
+  static const actionBusiness = 'Jenis usaha & fitur khusus';
+  static const businessSubtitle = 'Hanya berlaku di kasir outlet ini';
+  static String storeTypeFollowShop(String? type) => type == null ? 'Ikut jenis toko' : 'Ikut jenis toko ($type)';
+  static const storeTypeChangeHelp = 'Mengganti jenis usaha menambahkan kategori dan fitur yang disarankan. Kategori dan fitur lama tidak dihapus.';
+  static const businessSaved = 'Fitur usaha outlet disimpan.';
+  static const presetsFailed = 'Daftar jenis usaha belum bisa dimuat. Coba lagi saat online.';
 
   // Akses
   static const accessTitle = 'Akses pengguna';
@@ -1724,6 +1742,19 @@ abstract final class OutletStrings {
   static const qrisPayload = 'Teks QRIS statis outlet';
   static const qrisHelp = 'Kosongkan untuk mematikan QRIS bernominal di outlet ini.';
   static const settingsSaved = 'Pengaturan outlet disimpan.';
+  static const inheritRules = 'Aturan kasir ikut pengaturan toko';
+  static const allowCredit = 'Boleh kasbon di outlet ini';
+  static const allowNegativeStock = 'Tetap bisa jual saat stok habis';
+  static const quickCash = 'Tombol uang cepat';
+  static const quickCashHint = '10000, 20000, 50000, 100000';
+  static const inheritPharmacy = 'Aturan obat & kedaluwarsa ikut pengaturan toko';
+  static const prescriptionMode = 'Obat wajib resep';
+  static const prescriptionStrict = 'Ketat: wajib resep terverifikasi';
+  static const prescriptionWarn = 'Peringatan: cukup nama dokter & pasien';
+  static const allowControlledDrugs = 'Boleh jual narkotika & psikotropika lewat kasir';
+  static const blockExpiredSale = 'Tolak penjualan barang kedaluwarsa';
+  static const nearExpiryPercent = 'Diskon ED dekat (%)';
+  static const nearExpiryDays = 'Berlaku H- (hari)';
 
   // Harga per outlet di form produk
   static const productPricesTitle = 'Harga per outlet';

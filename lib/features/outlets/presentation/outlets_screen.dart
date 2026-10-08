@@ -15,9 +15,11 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
+import '../../onboarding/onboarding.dart';
 import '../data/outlet_models.dart';
 import '../data/outlet_repository.dart';
 import '../outlet_controller.dart';
+import 'outlet_business_sheet.dart';
 
 class OutletsScreen extends ConsumerWidget {
   const OutletsScreen({super.key});
@@ -154,6 +156,7 @@ class _OutletCard extends StatelessWidget {
                           Text(outlet.code, style: TextStyle(fontSize: 11.5, color: muted, fontFamily: 'monospace')),
                         ],
                       ),
+                      if (outlet.effectiveStoreTypeLabel != null) Text(outlet.effectiveStoreTypeLabel!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: muted)),
                       if ((outlet.address ?? '').isNotEmpty) Text(outlet.address!, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 12, color: muted)),
                       const SizedBox(height: AppSizes.s6),
                       Wrap(
@@ -223,6 +226,8 @@ class _OutletActions extends ConsumerWidget {
         _ActionTile(icon: AppIcons.pencil, label: OutletStrings.actionEdit, onTap: () => act((c) => FormSheet.show<void>(c, OutletFormSheet(outlet: outlet, outlets: outlets)))),
         _ActionTile(icon: AppIcons.slidersHorizontal, label: OutletStrings.actionSettings, onTap: () => act((c) async => c.push(AppRoutes.outletSettings(outlet.id)))),
         _ActionTile(icon: AppIcons.users, label: OutletStrings.actionAccess, onTap: () => act((c) => FormSheet.show<void>(c, OutletAccessSheet(outlet: outlet)))),
+        if (outlet.capabilities != null)
+          _ActionTile(icon: AppIcons.briefcaseBusiness, label: OutletStrings.actionBusiness, onTap: () => act((c) => FormSheet.show<void>(c, OutletBusinessSheet(outlet: outlet)))),
         if (outlets.length > 1) _ActionTile(icon: AppIcons.copy, label: OutletStrings.actionCopy, onTap: () => act((c) => FormSheet.show<void>(c, OutletCopySheet(outlet: outlet, outlets: outlets)))),
         if (!outlet.isPrimary && outlet.isActive)
           _ActionTile(
@@ -303,8 +308,21 @@ class _OutletFormSheetState extends ConsumerState<OutletFormSheet> {
   late final _address = TextEditingController(text: widget.outlet?.address);
   late final _phone = TextEditingController(text: widget.outlet?.phone);
   int? _copyFrom;
+  String? _storeType;
+  bool _includeSamples = true;
+  final Set<String> _capabilities = {};
   bool _busy = false;
   ApiException? _error;
+
+  void _pickStoreType(String? value, List<StorePreset> presets) {
+    setState(() {
+      _storeType = value;
+      _includeSamples = true;
+      _capabilities
+        ..clear()
+        ..addAll([for (final capability in capabilityOptionsFor(presets, value)) if (capability.defaultOn) capability.key]);
+    });
+  }
 
   @override
   void dispose() {
@@ -329,6 +347,9 @@ class _OutletFormSheetState extends ConsumerState<OutletFormSheet> {
             address: _address.text.trim().isEmpty ? null : _address.text.trim(),
             phone: _phone.text.trim().isEmpty ? null : _phone.text.trim(),
             copyFromOutletId: _copyFrom,
+            storeType: _storeType,
+            includeSampleProducts: _includeSamples,
+            capabilities: _storeType == null ? null : _capabilities.toList(),
           );
       await ref.read(authControllerProvider.notifier).refreshProfile();
       ref.invalidate(managedOutletsProvider);
@@ -343,6 +364,60 @@ class _OutletFormSheetState extends ConsumerState<OutletFormSheet> {
         setState(() => _busy = false);
       }
     }
+  }
+
+  /// One question for the owner; the preset fills in categories, features, and cashier rules.
+  List<Widget> _storeTypeFields(BuildContext context) {
+    final presets = ref.watch(storePresetsProvider).value;
+    if (presets == null) {
+      return const [];
+    }
+
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final baseType = widget.outlets.where((outlet) => outlet.isPrimary).firstOrNull?.effectiveStoreType;
+    final preset = presets.where((preset) => preset.key == _storeType).firstOrNull;
+
+    return [
+      const SizedBox(height: AppSizes.s12),
+      DropdownButtonFormField<String?>(
+        key: const ValueKey('outlet-store-type'),
+        initialValue: _storeType,
+        isExpanded: true,
+        decoration: InputDecoration(
+          labelText: OutletStrings.storeTypeLabel,
+          helperText: preset == null ? OutletStrings.storeTypeSameHelp : OutletStrings.storeTypePresetHelp(preset.label),
+          helperMaxLines: 3,
+        ),
+        items: [
+          DropdownMenuItem<String?>(child: Text(OutletStrings.storeTypeSame(presets.where((option) => option.key == baseType).firstOrNull?.label))),
+          for (final option in presets)
+            if (option.key != baseType) DropdownMenuItem<String?>(value: option.key, child: Text(option.label)),
+        ],
+        onChanged: _busy ? null : (value) => _pickStoreType(value, presets),
+      ),
+      if (preset != null) ...[
+        if (preset.sampleProductCount > 0)
+          AppSwitchListTile(
+            value: _includeSamples,
+            onChanged: _busy ? null : (value) => setState(() => _includeSamples = value),
+            title: const Text(OutletStrings.includeSamples, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+            subtitle: Text(OutletStrings.includeSamplesHelp(preset.sampleProductCount), style: const TextStyle(fontSize: 11.5)),
+          ),
+        ExpansionTile(
+          tilePadding: EdgeInsets.zero,
+          childrenPadding: EdgeInsets.zero,
+          title: Text(OutletStrings.capabilitiesSummary(_capabilities.length), style: TextStyle(fontSize: 13, color: muted)),
+          children: [
+            OutletCapabilityList(
+              options: preset.capabilities,
+              selected: _capabilities,
+              enabled: !_busy,
+              onToggle: (key) => setState(() => _capabilities.contains(key) ? _capabilities.remove(key) : _capabilities.add(key)),
+            ),
+          ],
+        ),
+      ],
+    ];
   }
 
   @override
@@ -391,6 +466,7 @@ class _OutletFormSheetState extends ConsumerState<OutletFormSheet> {
             onChanged: (value) => setState(() => _copyFrom = value),
           ),
         ],
+        if (isNew && widget.outlets.isNotEmpty && widget.outlets.first.capabilities != null) ..._storeTypeFields(context),
         if (generalError != null) ...[
           const SizedBox(height: AppSizes.s8),
           Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),

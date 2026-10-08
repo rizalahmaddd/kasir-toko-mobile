@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:web_pos_mobile/core/constants/feature_keys.dart';
 import 'package:web_pos_mobile/core/constants/status_values.dart';
 import 'package:web_pos_mobile/core/theme/app_sizes.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
@@ -31,17 +32,21 @@ class OutletSettingsScreen extends ConsumerWidget {
       body: AsyncView(
         value: settings,
         onRetry: () => ref.invalidate(outletSettingsProvider(outletId)),
-        data: (data) => _SettingsForm(outletId: outletId, initial: data),
+        data: (data) => _SettingsForm(outletId: outletId, initial: data, showPharmacy: _usesPharmacyRules(ref.watch(managedOutletsProvider).value?.where((o) => o.id == outletId).firstOrNull ?? ref.watch(currentUserProvider)?.outletById(outletId))),
       ),
     );
   }
 }
 
+bool _usesPharmacyRules(OutletInfo? outlet) =>
+    outlet?.capabilities?.any((key) => key == FeatureKeys.prescription || key == FeatureKeys.batchExpiry) ?? false;
+
 class _SettingsForm extends ConsumerStatefulWidget {
-  const _SettingsForm({required this.outletId, required this.initial});
+  const _SettingsForm({required this.outletId, required this.initial, required this.showPharmacy});
 
   final int outletId;
   final OutletSettingsData initial;
+  final bool showPharmacy;
 
   @override
   ConsumerState<_SettingsForm> createState() => _SettingsFormState();
@@ -67,6 +72,16 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
   late bool _autoPrint = widget.initial.autoPrint;
   late bool _qrisInherit = widget.initial.qrisInherit;
   late final _qris = TextEditingController(text: widget.initial.qrisPayload);
+  late bool _rulesInherit = widget.initial.rulesInherit;
+  late bool _allowCredit = widget.initial.allowCredit;
+  late bool _allowNegativeStock = widget.initial.allowNegativeStock;
+  late final _quickCash = TextEditingController(text: widget.initial.quickCash.join(', '));
+  late bool _pharmacyInherit = widget.initial.pharmacyInherit;
+  late String _prescriptionMode = widget.initial.prescriptionMode;
+  late bool _allowControlledDrugs = widget.initial.allowControlledDrugs;
+  late bool _blockExpiredSale = widget.initial.blockExpiredSale;
+  late final _nearPercent = TextEditingController(text: widget.initial.nearExpiryPercent);
+  late final _nearDays = TextEditingController(text: widget.initial.nearExpiryDays);
   bool _busy = false;
   ApiException? _error;
 
@@ -77,6 +92,9 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
     _header.dispose();
     _footer.dispose();
     _qris.dispose();
+    _quickCash.dispose();
+    _nearPercent.dispose();
+    _nearDays.dispose();
     super.dispose();
   }
 
@@ -94,6 +112,17 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
         autoPrint: _autoPrint,
         qrisInherit: _qrisInherit,
         qrisPayload: _qris.text.trim(),
+        hasRules: widget.initial.hasRules,
+        rulesInherit: _rulesInherit,
+        allowCredit: _allowCredit,
+        allowNegativeStock: _allowNegativeStock,
+        quickCash: _quickCash.text.split(RegExp(r'[\s,;]+')).map(int.tryParse).whereType<int>().where((value) => value > 0).toList(),
+        pharmacyInherit: _pharmacyInherit,
+        prescriptionMode: _prescriptionMode,
+        allowControlledDrugs: _allowControlledDrugs,
+        blockExpiredSale: _blockExpiredSale,
+        nearExpiryPercent: _nearPercent.text.trim().replaceAll(',', '.'),
+        nearExpiryDays: _nearDays.text.trim(),
       );
 
   Future<void> _save() async {
@@ -191,6 +220,56 @@ class _SettingsFormState extends ConsumerState<_SettingsForm> {
               decoration: InputDecoration(labelText: OutletStrings.qrisPayload, helperText: OutletStrings.qrisHelp, errorText: _error?.fieldError('qris.payload')),
             ),
         ]),
+        if (widget.initial.hasRules)
+          _section([
+            AppSwitchListTile(title: const Text(OutletStrings.inheritRules), value: _rulesInherit, onChanged: (value) => setState(() => _rulesInherit = value)),
+            if (!_rulesInherit) ...[
+              AppSwitchListTile(title: const Text(OutletStrings.allowCredit), value: _allowCredit, onChanged: (value) => setState(() => _allowCredit = value)),
+              AppSwitchListTile(title: const Text(OutletStrings.allowNegativeStock), value: _allowNegativeStock, onChanged: (value) => setState(() => _allowNegativeStock = value)),
+              TextField(
+                controller: _quickCash,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(labelText: OutletStrings.quickCash, hintText: OutletStrings.quickCashHint, errorText: _error?.fieldError('rules.quick_cash')),
+              ),
+            ],
+          ]),
+        if (widget.initial.hasRules && widget.showPharmacy)
+          _section([
+            AppSwitchListTile(title: const Text(OutletStrings.inheritPharmacy), value: _pharmacyInherit, onChanged: (value) => setState(() => _pharmacyInherit = value)),
+            if (!_pharmacyInherit) ...[
+              DropdownButtonFormField<String>(
+                initialValue: _prescriptionMode,
+                isExpanded: true,
+                decoration: const InputDecoration(labelText: OutletStrings.prescriptionMode),
+                items: const [
+                  DropdownMenuItem(value: 'strict', child: Text(OutletStrings.prescriptionStrict)),
+                  DropdownMenuItem(value: 'warn', child: Text(OutletStrings.prescriptionWarn)),
+                ],
+                onChanged: (value) => setState(() => _prescriptionMode = value ?? 'strict'),
+              ),
+              AppSwitchListTile(title: const Text(OutletStrings.allowControlledDrugs), value: _allowControlledDrugs, onChanged: (value) => setState(() => _allowControlledDrugs = value)),
+              AppSwitchListTile(title: const Text(OutletStrings.blockExpiredSale), value: _blockExpiredSale, onChanged: (value) => setState(() => _blockExpiredSale = value)),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _nearPercent,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(labelText: OutletStrings.nearExpiryPercent, errorText: _error?.fieldError('pharmacy.near_expiry_discount_percent')),
+                    ),
+                  ),
+                  const SizedBox(width: AppSizes.s12),
+                  Expanded(
+                    child: TextField(
+                      controller: _nearDays,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(labelText: OutletStrings.nearExpiryDays, errorText: _error?.fieldError('pharmacy.near_expiry_discount_days')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ]),
         if (generalError != null) Padding(padding: const EdgeInsets.only(bottom: AppSpacing.s8), child: Text(generalError, style: TextStyle(color: StatusColors.of(context).danger))),
         FilledButton(onPressed: _busy ? null : _save, child: const Text(OutletStrings.save)),
       ],

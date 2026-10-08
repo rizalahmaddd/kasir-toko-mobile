@@ -41,3 +41,16 @@ extension Access on CurrentUser {
   bool get canManageOrders => _gate(FeatureKeys.preOrder, PermissionKeys.ordersManage);
   bool get usesDeliveryNotes => _gate(FeatureKeys.deliveryNote, PermissionKeys.posSell);
 }
+
+/// Operational checks that follow the outlet the app works in: the cashier and the menus for
+/// kitchen, orders, and prescriptions. Master data and history screens stay on the shop-wide getters
+/// above, so a product edited at one outlet keeps the fields another outlet uses.
+extension OutletAccess on CurrentUser {
+  bool _gateAt(String feature, String permission, int? outletId) => hasFeatureAt(feature, outletId) && can(permission);
+
+  bool usesMultiUnitAt(int? outletId) => hasFeatureAt(FeatureKeys.multiUnit, outletId);
+  bool usesPrescriptionsAt(int? outletId) => hasFeatureAt(FeatureKeys.prescription, outletId);
+  bool canViewPrescriptionsAt(int? outletId) => _gateAt(FeatureKeys.prescription, PermissionKeys.prescriptionView, outletId);
+  bool canViewKitchenAt(int? outletId) => _gateAt(FeatureKeys.orderType, PermissionKeys.kitchenView, outletId);
+  bool canManageOrdersAt(int? outletId) => _gateAt(FeatureKeys.preOrder, PermissionKeys.ordersManage, outletId);
+}

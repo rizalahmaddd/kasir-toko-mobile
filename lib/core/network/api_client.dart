@@ -49,10 +49,11 @@ const outletHeader = 'X-Outlet-Id';
 
 final dioProvider = Provider<Dio>((ref) {
   final serverUrl = ref.watch(serverUrlProvider);
+  final base = serverUrl.isEmpty ? 'http://localhost' : serverUrl;
 
   final dio = Dio(
     BaseOptions(
-      baseUrl: '$serverUrl/api/v1/',
+      baseUrl: '$base/api/v1/',
       connectTimeout: AppDurations.seconds10,
       receiveTimeout: AppDurations.seconds30,
       headers: {'Accept': 'application/json'},

@@ -14,6 +14,7 @@ import '../../auth/auth_controller.dart';
 import '../../auth/data/current_user.dart';
 import '../../notifications/notifications.dart';
 import '../../offline/offline_queue.dart';
+import '../../outlets/outlet_controller.dart';
 import '../../outlets/presentation/outlet_picker.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_radius.dart';
@@ -47,6 +48,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
       return const SizedBox.shrink();
     }
 
+    final outletId = ref.watch(currentOutletIdProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final unread = ref.watch(unreadCountProvider).value ?? 0;
@@ -100,7 +102,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               badgeColor: null,
               isPro: true,
             ),
-          if (user.canViewKitchen)
+          if (user.canViewKitchenAt(outletId))
             (
               icon: AppIcons.chefHat,
               label: KitchenStrings.screenTitle,
@@ -111,7 +113,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               badgeColor: null,
               isPro: false,
             ),
-          if (user.canManageOrders)
+          if (user.canManageOrdersAt(outletId))
             (
               icon: AppIcons.clipboardList,
               label: HomeStrings.menuOrdersLabel,
@@ -122,7 +124,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               badgeColor: null,
               isPro: false,
             ),
-          if (user.canViewPrescriptions)
+          if (user.canViewPrescriptionsAt(outletId))
             (
               icon: AppIcons.fileHeart,
               label: HomeStrings.menuPrescriptionsLabel,
