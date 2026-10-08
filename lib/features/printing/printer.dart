@@ -14,6 +14,7 @@ import '../sales/data/sale_models.dart';
 import '../sales/data/sales_repository.dart';
 import '../shift/data/shift_models.dart';
 import 'receipt_layout.dart';
+import '../kitchen/data/kitchen_models.dart';
 
 
 class PrinterSettings {
@@ -198,6 +199,17 @@ class PrinterService {
     final settings = _ref.read(printerSettingsProvider);
 
     return saleReceipt(sale, profile: profile, paperWidth: settings.paperWidth, showStoreInfo: settings.showStoreInfo);
+  }
+
+  Future<void> printKitchenTicket(KitchenTicket ticket) async {
+    await printLines(kitchenTicketLines(ticket, paperWidth: _ref.read(printerSettingsProvider).paperWidth), copies: 1);
+  }
+
+  Future<void> printDeliveryNote(SaleDetail sale, DeliveryNoteInfo note) async {
+    final settings = _ref.read(printerSettingsProvider);
+    final profile = await _ref.read(receiptProfileProvider.future);
+
+    await printLines(deliveryNoteLines(sale, note, profile: profile, paperWidth: settings.paperWidth), copies: 2);
   }
 
   Future<void> printShift(Shift shift) async {

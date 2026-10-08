@@ -839,6 +839,7 @@ class HeldOrder {
     this.cart,
     this.tableLabel,
     this.isMine = true,
+    this.kitchenTicketId,
   });
 
   factory HeldOrder.fromJson(Map<String, dynamic> json) => HeldOrder(
@@ -862,6 +863,11 @@ class HeldOrder {
   /// Open bill meja: terlihat semua kasir di outlet itu.
   final String? tableLabel;
   final bool isMine;
+
+  /// Tiket dapur yang baru dibuat saat transaksi ini ditunda (hanya di respons tunda).
+  final int? kitchenTicketId;
+
+  HeldOrder withKitchenTicket(int? id) => HeldOrder(id: this.id, label: label, itemCount: itemCount, total: total, createdAt: createdAt, cart: cart, tableLabel: tableLabel, isMine: isMine, kitchenTicketId: id);
 }
 
 class QrisPayment {

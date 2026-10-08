@@ -11,6 +11,9 @@ import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
 import '../pos_providers.dart';
+import '../../kitchen/data/kitchen_repository.dart';
+import '../../printing/presentation/printer_screen.dart';
+import '../../printing/printer.dart';
 import 'widgets/modifier_picker_sheet.dart';
 import 'widgets/serial_picker_sheet.dart';
 import 'widgets/variant_picker_sheet.dart';
@@ -117,5 +120,24 @@ Future<void> editLineSerials(BuildContext context, WidgetRef ref, CartItem item)
   final warning = ref.read(cartProvider.notifier).setSerials(item.key, picked);
   if (warning != null) {
     showMessage(context, warning, isError: true);
+  }
+}
+
+/// Cetak tiket dapur otomatis bila printer & cetak otomatis aktif; selain itu tiket cukup tampil di Layar Dapur.
+Future<void> printKitchenTicketIfAuto(BuildContext context, WidgetRef ref, int ticketId) async {
+  final settings = ref.read(printerSettingsProvider);
+  if (!settings.isConfigured || !settings.autoPrint) {
+    return;
+  }
+
+  try {
+    final ticket = await ref.read(kitchenRepositoryProvider).show(ticketId);
+    if (context.mounted) {
+      await runPrint(context, () => ref.read(printerServiceProvider).printKitchenTicket(ticket), success: PrintingStrings.kitchenTicketPrinted);
+    }
+  } on ApiException catch (error) {
+    if (context.mounted) {
+      showError(context, error);
+    }
   }
 }

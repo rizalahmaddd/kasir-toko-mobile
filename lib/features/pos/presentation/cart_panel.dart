@@ -55,7 +55,10 @@ class CartPanel extends ConsumerWidget {
       ref.read(cartProvider.notifier).clear();
       ref.invalidate(posConfigProvider);
       if (context.mounted) {
-        showMessage(context, PosStrings.holdSuccessMessage);
+        showMessage(context, heldOrder.kitchenTicketId == null ? PosStrings.holdSuccessMessage : PosStrings.holdSentToKitchen);
+      }
+      if (heldOrder.kitchenTicketId != null && context.mounted) {
+        await printKitchenTicketIfAuto(context, ref, heldOrder.kitchenTicketId!);
       }
     } on ApiException catch (error) {
       if (context.mounted) {

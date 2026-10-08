@@ -135,17 +135,18 @@ class PosRepository {
 
   Future<List<HeldOrder>> heldOrders() async => ApiClient.list(await _api.get(ApiEndpoints.posHeldOrders)).map(HeldOrder.fromJson).toList();
 
-  Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label, PosConfig? config}) async => HeldOrder.fromJson(
-    ApiClient.data(
-      await _api.post(
-        ApiEndpoints.posHeldOrders,
-        data: {
-          'label': label,
-          'cart': {...cart.toJson(total: total), 'orderType': ?cart.orderTypeFor(config)},
-        },
-      ),
-    ),
-  );
+  Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label, PosConfig? config}) async {
+    final body = await _api.post(
+      ApiEndpoints.posHeldOrders,
+      data: {
+        'label': label,
+        'cart': {...cart.toJson(total: total), 'orderType': ?cart.orderTypeFor(config)},
+      },
+    );
+    final ticketId = ((body as Map<String, dynamic>)['meta'] as Map<String, dynamic>?)?['kitchen_ticket_id'];
+
+    return HeldOrder.fromJson(ApiClient.data(body)).withKitchenTicket(ticketId is num ? ticketId.toInt() : null);
+  }
 
   Future<HeldOrder> resumeHeldOrder(int id) async => HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrderResume(id))));
 

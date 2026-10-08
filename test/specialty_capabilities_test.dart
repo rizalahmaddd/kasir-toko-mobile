@@ -1,14 +1,17 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_pos_mobile/core/network/api_exception.dart';
 import 'package:web_pos_mobile/core/storage/app_storage.dart';
+import 'package:web_pos_mobile/features/kitchen/data/kitchen_models.dart';
 import 'package:web_pos_mobile/features/modifiers/data/modifier_groups_repository.dart';
 import 'package:web_pos_mobile/features/orders/data/order_models.dart';
 import 'package:web_pos_mobile/features/pos/cart_controller.dart';
 import 'package:web_pos_mobile/features/pos/data/pos_models.dart';
 import 'package:web_pos_mobile/features/pos/data/pos_repository.dart';
 import 'package:web_pos_mobile/features/pos/pos_providers.dart';
+import 'package:web_pos_mobile/features/printing/receipt_layout.dart';
 import 'package:web_pos_mobile/features/sales/data/sale_models.dart';
 
 const _config = PosConfig(
@@ -185,5 +188,40 @@ void main() {
     expect(group.maxSelect, isNull);
     expect(group.products.single.name, 'Latte');
     expect(group.options.single.toJson(), {'id': 9, 'name': 'Extra Shot', 'price': 6000, 'product_id': 30, 'ingredient_quantity': '18.000', 'is_active': true});
+  });
+
+  test('kitchen tickets and delivery notes print without prices', () async {
+    await initializeDateFormatting('id_ID');
+    final ticket = KitchenTicket.fromJson({
+      'id': 1,
+      'label': 'Meja 5',
+      'order_type_label': 'Makan di Tempat',
+      'status': 'pending',
+      'items': [
+        {'name': 'Latte', 'quantity': 2, 'unit': 'cup', 'modifiers': ['Large'], 'note': 'Less ice'},
+      ],
+      'created_at': '2026-10-08T10:00:00+07:00',
+    });
+    final kitchen = kitchenTicketLines(ticket, paperWidth: '58').map((l) => l.text).join('\n');
+    expect(kitchen, contains('2x Latte'));
+    expect(kitchen, contains('+ Large'));
+    expect(kitchen, contains('! Less ice'));
+    expect(kitchen, isNot(contains('Rp')));
+
+    final sale = SaleDetail.fromJson({
+      'id': 1, 'number': 'TRX-9', 'status': 'completed', 'status_label': 'Selesai', 'sold_at': '2026-10-08T10:00:00+07:00', 'cashier': {'name': 'Kasir'},
+      'subtotal': 650000, 'discount_amount': 0, 'tax_rate': '0', 'tax_amount': 0, 'total': 650000, 'paid_amount': 650000, 'cash_received': 0, 'change_amount': 0, 'due_amount': 0,
+      'items': [
+        {'product_name': 'Semen 50kg', 'unit': 'sak', 'quantity': '10.000', 'price': 65000, 'discount_amount': 0, 'total': 650000},
+      ],
+      'payments': [], 'abilities': <String, dynamic>{},
+    });
+    const note = DeliveryNoteInfo(id: 1, number: 'SJ-00001', recipient: 'Pak Budi', address: 'Jl. Melati 5', status: 'sent', driver: 'Joko');
+    const profile = ReceiptProfile(storeName: 'Toko Bangunan', outletName: '', address: '', phone: '', header: '', footer: '', taxLabel: 'PPN', paperWidth: '58');
+    final printed = deliveryNoteLines(sale, note, profile: profile, paperWidth: '58').map((l) => l.text).join('\n');
+    expect(printed, contains('SURAT JALAN'));
+    expect(printed, contains('Semen 50kg'));
+    expect(printed, contains('Kepada: Pak Budi'));
+    expect(printed, isNot(contains('65.000')));
   });
 }

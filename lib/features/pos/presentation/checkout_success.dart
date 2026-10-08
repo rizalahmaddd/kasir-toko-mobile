@@ -36,11 +36,26 @@ class _CheckoutSuccessState extends ConsumerState<CheckoutSuccess> {
   void initState() {
     super.initState();
     if (ref.read(printerSettingsProvider).autoPrint) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _print());
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        await _print();
+        if (mounted && sale.kitchenTickets.isNotEmpty) {
+          await _printKitchen();
+        }
+      });
     }
   }
 
-  void _print() => runPrint(context, () => ref.read(printerServiceProvider).printSale(sale.id));
+  Future<void> _print() => runPrint(context, () => ref.read(printerServiceProvider).printSale(sale.id));
+
+  Future<void> _printKitchen() => runPrint(
+        context,
+        () async {
+          for (final ticket in sale.kitchenTickets) {
+            await ref.read(printerServiceProvider).printKitchenTicket(ticket);
+          }
+        },
+        success: PrintingStrings.kitchenTicketPrinted,
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -141,6 +156,10 @@ class _CheckoutSuccessState extends ConsumerState<CheckoutSuccess> {
               if (hasPrinter) ...[
                 const SizedBox(height: AppSizes.s8),
                 OutlinedButton.icon(onPressed: _print, icon: const Icon(AppIcons.printer, size: AppSizes.s18), label: const Text(PosStrings.printReceiptButton)),
+                if (sale.kitchenTickets.isNotEmpty) ...[
+                  const SizedBox(height: AppSizes.s8),
+                  OutlinedButton.icon(onPressed: _printKitchen, icon: const Icon(AppIcons.chefHat, size: AppSizes.s18), label: const Text(PosStrings.printKitchenTicket)),
+                ],
               ],
               const SizedBox(height: AppSizes.s8),
               FilledButton(onPressed: () => Navigator.pop(context), child: const Text(PosStrings.newTransactionButton)),

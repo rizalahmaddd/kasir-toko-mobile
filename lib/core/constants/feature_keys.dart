@@ -41,4 +41,5 @@ abstract final class PermissionKeys {
   static const prescriptionManage = 'pharmacy.prescription.manage';
   static const prescriptionVerify = 'pharmacy.prescription.verify';
   static const ordersManage = 'orders.manage';
+  static const kitchenView = 'kitchen.view';
 }

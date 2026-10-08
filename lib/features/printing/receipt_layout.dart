@@ -6,6 +6,7 @@ import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../core/storage/app_storage.dart';
 import '../../core/utils/formatters.dart';
+import '../kitchen/data/kitchen_models.dart';
 import '../sales/data/sale_models.dart';
 import '../shift/data/shift_models.dart';
 
@@ -233,6 +234,58 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
   }
 
   return lines;
+}
+
+/// Tiket dapur tanpa harga, nama menu dicetak tebal supaya terbaca dari jauh.
+List<PrintLine> kitchenTicketLines(KitchenTicket ticket, {required String paperWidth}) {
+  final width = charsPerLine(paperWidth);
+
+  return [
+    const PrintLine(PrintingStrings.kitchenTicketTitle, bold: true, align: LineAlign.center),
+    for (final line in wrap(ticket.label, width ~/ 2)) PrintLine(line, bold: true, align: LineAlign.center, large: true),
+    if (ticket.orderTypeLabel != null) PrintLine(ticket.orderTypeLabel!.toUpperCase(), bold: true, align: LineAlign.center),
+    const PrintLine.rule(),
+    for (final l in columns(PrintingStrings.receiptDateLabel, dateTime(ticket.createdAt), width)) PrintLine(l),
+    if (ticket.saleNumber != null) for (final l in columns(PrintingStrings.receiptNoLabel, ticket.saleNumber!, width)) PrintLine(l),
+    if (ticket.cashier != null) for (final l in columns(PrintingStrings.receiptCashierLabel, ticket.cashier!, width)) PrintLine(l),
+    const PrintLine.rule(),
+    for (final item in ticket.items) ...[
+      for (final line in wrap('${quantity(item.quantity)}x ${item.name}', width)) PrintLine(line, bold: true),
+      for (final modifier in item.modifiers) ...wrap('  + $modifier', width).map(PrintLine.new),
+      if (item.note != null && item.note!.isNotEmpty) ...wrap('  ! ${item.note}', width).map((l) => PrintLine(l, bold: true)),
+    ],
+  ];
+}
+
+/// Surat jalan: penerima, alamat, dan barang tanpa harga, ditutup kolom tanda tangan.
+List<PrintLine> deliveryNoteLines(SaleDetail sale, DeliveryNoteInfo note, {required ReceiptProfile profile, required String paperWidth}) {
+  final width = charsPerLine(paperWidth);
+
+  return [
+    ...storeHeader(profile, width, showHeader: false),
+    const PrintLine.rule(),
+    const PrintLine(PrintingStrings.deliveryNoteTitle, bold: true, align: LineAlign.center),
+    for (final l in columns(PrintingStrings.receiptNoLabel, note.number, width)) PrintLine(l),
+    for (final l in columns(PrintingStrings.deliveryNoteSale, sale.number, width)) PrintLine(l),
+    for (final l in columns(PrintingStrings.receiptDateLabel, dateOnly(sale.soldAt), width)) PrintLine(l),
+    const PrintLine.rule(),
+    ...wrap('${PrintingStrings.deliveryNoteTo}: ${note.recipient}', width).map((l) => PrintLine(l, bold: true)),
+    if (note.phone != null && note.phone!.isNotEmpty) ...wrap('Telp: ${note.phone}', width).map(PrintLine.new),
+    ...wrap(note.address, width).map(PrintLine.new),
+    if (note.project != null && note.project!.isNotEmpty) ...wrap('${PrintingStrings.deliveryNoteProject}: ${note.project}', width).map(PrintLine.new),
+    if ((note.driver ?? '').isNotEmpty || (note.vehicle ?? '').isNotEmpty)
+      ...wrap('${PrintingStrings.deliveryNoteDriver}: ${[note.driver, note.vehicle].whereType<String>().where((s) => s.isNotEmpty).join(' / ')}', width).map(PrintLine.new),
+    const PrintLine.rule(),
+    for (final item in sale.items) ...[
+      ...columns(item.productName, '${quantity(item.quantity)} ${item.unit}', width).map(PrintLine.new),
+      if (item.serials.isNotEmpty) ...wrap('  SN: ${item.serials.join(', ')}', width).map(PrintLine.new),
+    ],
+    const PrintLine.rule(),
+    ...columns(PrintingStrings.deliveryNoteSender, PrintingStrings.deliveryNoteReceiver, width).map(PrintLine.new),
+    const PrintLine(''),
+    const PrintLine(''),
+    ...columns('(..........)', '(..........)', width).map(PrintLine.new),
+  ];
 }
 
 const _methodLabels = {PaymentMethods.qris: PrintingStrings.methodQris, PaymentMethods.transfer: PrintingStrings.methodTransfer, PaymentMethods.card: PrintingStrings.methodCard};

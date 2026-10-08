@@ -145,6 +145,20 @@ class SaleDetailScreen extends ConsumerWidget {
           onVoid: () => _void(context, ref, sale),
           onDeliver: (ref.watch(currentUserProvider)?.usesDeliveryNotes ?? false) && !sale.isVoided ? () => _deliver(context, ref, sale) : null,
           onDelivered: (ref.watch(currentUserProvider)?.usesDeliveryNotes ?? false) ? (id) => _delivered(context, ref, id) : null,
+          onPrintDelivery: ref.watch(printerSettingsProvider).isConfigured
+              ? (note) => runPrint(context, () => ref.read(printerServiceProvider).printDeliveryNote(sale, note), success: PrintingStrings.deliveryNotePrinted)
+              : null,
+          onPrintKitchen: ref.watch(printerSettingsProvider).isConfigured
+              ? () => runPrint(
+                    context,
+                    () async {
+                      for (final ticket in sale.kitchenTickets) {
+                        await ref.read(printerServiceProvider).printKitchenTicket(ticket);
+                      }
+                    },
+                    success: PrintingStrings.kitchenTicketPrinted,
+                  )
+              : null,
         ),
       ),
     );
@@ -152,13 +166,15 @@ class SaleDetailScreen extends ConsumerWidget {
 }
 
 class _Body extends StatelessWidget {
-  const _Body({required this.sale, required this.onVoid, this.showOutlet = false, this.onDeliver, this.onDelivered});
+  const _Body({required this.sale, required this.onVoid, this.showOutlet = false, this.onDeliver, this.onDelivered, this.onPrintDelivery, this.onPrintKitchen});
 
   final SaleDetail sale;
   final bool showOutlet;
   final VoidCallback onVoid;
   final VoidCallback? onDeliver;
   final void Function(int noteId)? onDelivered;
+  final void Function(DeliveryNoteInfo note)? onPrintDelivery;
+  final VoidCallback? onPrintKitchen;
 
   @override
   Widget build(BuildContext context) {
@@ -483,11 +499,22 @@ if (sale.serviceChargeAmount > 0) _Row(PosStrings.serviceLabel(quantity(sale.ser
                       leading: const Icon(AppIcons.truck),
                       title: Text('${note.number} · ${note.recipient}'),
                       subtitle: Text(note.address, maxLines: 2, overflow: TextOverflow.ellipsis),
-                      trailing: note.isDelivered || onDelivered == null
-                          ? StatusBadge(label: note.isDelivered ? SalesStrings.delivered : SalesStrings.sent, tone: note.isDelivered ? BadgeTone.success : BadgeTone.info)
-                          : TextButton(onPressed: () => onDelivered!(note.id), child: const Text(SalesStrings.markDelivered)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if (onPrintDelivery != null)
+                            IconButton(tooltip: SalesStrings.printDeliveryNote, onPressed: () => onPrintDelivery!(note), icon: const Icon(AppIcons.printer, size: AppSizes.s18)),
+                          note.isDelivered || onDelivered == null
+                              ? StatusBadge(label: note.isDelivered ? SalesStrings.delivered : SalesStrings.sent, tone: note.isDelivered ? BadgeTone.success : BadgeTone.info)
+                              : TextButton(onPressed: () => onDelivered!(note.id), child: const Text(SalesStrings.markDelivered)),
+                        ],
+                      ),
                     ),
                   const SizedBox(height: AppSizes.s12),
+                ],
+                if (onPrintKitchen != null && sale.kitchenTickets.isNotEmpty) ...[
+                  OutlinedButton.icon(onPressed: onPrintKitchen, icon: const Icon(AppIcons.chefHat, size: AppSizes.s18), label: const Text(PosStrings.printKitchenTicket)),
+                  const SizedBox(height: AppSizes.s10),
                 ],
                 if (onDeliver != null) ...[
                   OutlinedButton.icon(onPressed: onDeliver, icon: const Icon(AppIcons.truck, size: AppSizes.s18), label: const Text(SalesStrings.createDeliveryNote)),

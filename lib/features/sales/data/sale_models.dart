@@ -1,5 +1,7 @@
 import 'package:web_pos_mobile/core/constants/status_values.dart';
 
+import '../../kitchen/data/kitchen_models.dart';
+
 int _int(dynamic value) => value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 
 double _double(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
@@ -56,7 +58,7 @@ class SaleItem {
 }
 
 class DeliveryNoteInfo {
-  const DeliveryNoteInfo({required this.id, required this.number, required this.recipient, required this.address, required this.status});
+  const DeliveryNoteInfo({required this.id, required this.number, required this.recipient, required this.address, required this.status, this.phone, this.project, this.driver, this.vehicle});
 
   factory DeliveryNoteInfo.fromJson(Map<String, dynamic> json) => DeliveryNoteInfo(
         id: _int(json['id']),
@@ -64,6 +66,10 @@ class DeliveryNoteInfo {
         recipient: json['recipient'] as String? ?? '',
         address: json['address'] as String? ?? '',
         status: json['status'] as String? ?? 'sent',
+        phone: json['phone'] as String?,
+        project: json['project'] as String?,
+        driver: json['driver'] as String?,
+        vehicle: json['vehicle'] as String?,
       );
 
   final int id;
@@ -71,6 +77,10 @@ class DeliveryNoteInfo {
   final String recipient;
   final String address;
   final String status;
+  final String? phone;
+  final String? project;
+  final String? driver;
+  final String? vehicle;
 
   bool get isDelivered => status == 'delivered';
 }
@@ -195,6 +205,7 @@ class SaleDetail {
     this.queueNumber,
     this.deliveryNotes = const [],
     this.customerOrderNumber,
+    this.kitchenTickets = const [],
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> json) {
@@ -239,6 +250,7 @@ class SaleDetail {
       queueNumber: json['queue_number'] == null ? null : _int(json['queue_number']),
       deliveryNotes: (json['delivery_notes'] as List? ?? const []).cast<Map<String, dynamic>>().map(DeliveryNoteInfo.fromJson).toList(),
       customerOrderNumber: (json['customer_order'] as Map<String, dynamic>?)?['number'] as String?,
+      kitchenTickets: (json['kitchen_tickets'] as List? ?? const []).cast<Map<String, dynamic>>().map(KitchenTicket.fromJson).toList(),
     );
   }
 
@@ -282,6 +294,8 @@ class SaleDetail {
   final int? queueNumber;
   final List<DeliveryNoteInfo> deliveryNotes;
   final String? customerOrderNumber;
+  final List<KitchenTicket> kitchenTickets;
+
 
   /// Mis. "Dine-in · Meja 5" atau "Bawa Pulang · Antrean 012".
   String? get orderLabel {

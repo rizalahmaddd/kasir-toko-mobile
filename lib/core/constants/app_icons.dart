@@ -146,6 +146,7 @@ abstract final class AppIcons {
   static const warehouse = LucideIcons.warehouse;
   static const x = LucideIcons.x;
   static const clipboardList = LucideIcons.clipboardList;
+  static const chefHat = LucideIcons.chefHat;
   static const listPlus = LucideIcons.listPlus;
   static const truck = LucideIcons.truck;
   static const wrench = LucideIcons.wrench;

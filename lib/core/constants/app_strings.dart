@@ -530,6 +530,8 @@ abstract final class PosStrings {
   static String orderSettling(String number, String deposit) => 'Pelunasan $number · DP $deposit';
   static String amountDueLabel(String deposit) => 'Sisa bayar (DP $deposit sudah diterima)';
   static const orderUnlink = 'Lepas pesanan';
+  static const holdSentToKitchen = 'Transaksi ditunda dan tambahannya dikirim ke dapur.';
+  static const printKitchenTicket = 'Cetak Tiket Dapur';
   static String creditLimitExceeded(String name, String room) => 'Melewati batas kasbon $name (sisa $room).';
   static const modifierAdd = 'Tambah ke Keranjang';
   static String modifierAddWithPrice(String extra) => 'Tambah (+$extra)';
@@ -984,7 +986,8 @@ abstract final class SalesStrings {
   static const recipientPhone = 'Telepon penerima';
   static const deliveryAddress = 'Alamat kirim';
   static const deliveryProject = 'Proyek / keterangan';
-  static const deliveryNoteCreated = 'Surat jalan dibuat. Cetak dari web bila perlu.';
+  static const deliveryNoteCreated = 'Surat jalan dibuat.';
+  static const printDeliveryNote = 'Cetak surat jalan';
   // Status & badge
   static const allStatuses = 'Semua Status';
   static const statusCompleted = 'Selesai';
@@ -1363,6 +1366,16 @@ abstract final class ShiftStrings {
 }
 
 abstract final class PrintingStrings {
+  static const kitchenTicketTitle = 'TIKET DAPUR';
+  static const kitchenTicketPrinted = 'Tiket dapur dicetak.';
+  static const deliveryNoteTitle = 'SURAT JALAN';
+  static const deliveryNoteSale = 'Transaksi';
+  static const deliveryNoteTo = 'Kepada';
+  static const deliveryNoteProject = 'Proyek';
+  static const deliveryNoteDriver = 'Sopir';
+  static const deliveryNoteSender = 'Pengirim';
+  static const deliveryNoteReceiver = 'Penerima';
+  static const deliveryNotePrinted = 'Surat jalan dicetak (2 lembar).';
   // Aksi cetak
   static const receiptPrinted = 'Struk dicetak.';
   static const testPageSent = 'Halaman tes dikirim ke printer.';
@@ -1896,4 +1909,19 @@ abstract final class ModifierStrings {
   static const deleteTitle = 'Hapus grup pilihan ini?';
   static const deleteHint = 'Grup dilepas dari semua produk. Transaksi lama tetap menyimpan nama & harga pilihannya.';
   static const deleted = 'Grup pilihan dihapus.';
+}
+
+abstract final class KitchenStrings {
+  static const screenTitle = 'Layar Dapur';
+  static const pending = 'Menunggu';
+  static const doneToday = 'Selesai hari ini';
+  static const empty = 'Tidak ada pesanan menunggu';
+  static const emptyDone = 'Belum ada pesanan selesai hari ini';
+  static const emptyHint = 'Tiket dibuat saat kasir menunda pesanan (open bill) atau menyelesaikan pembayaran dengan tipe pesanan.';
+  static String minutes(int value) => '$value mnt';
+  static const markDone = 'Tandai Selesai';
+  static String markedDone(String label) => 'Pesanan $label selesai.';
+  static const reopen = 'Kembalikan ke Antrean';
+  static const reopened = 'Tiket dikembalikan ke antrean.';
+  static const menuCaption = 'Tiket pesanan untuk dapur';
 }

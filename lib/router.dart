@@ -37,6 +37,7 @@ import 'features/reports/presentation/activity_log_screen.dart';
 import 'features/reports/presentation/sales_report_screen.dart';
 import 'features/sales/presentation/sale_detail_screen.dart';
 import 'features/sales/presentation/sales_screen.dart';
+import 'features/kitchen/presentation/kitchen_screen.dart';
 import 'features/modifiers/presentation/modifier_group_form_screen.dart';
 import 'features/modifiers/presentation/modifier_groups_screen.dart';
 import 'features/orders/presentation/order_detail_screen.dart';
@@ -96,6 +97,9 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under(AppRoutes.posSettings)) {
     return user.canManagePosSettings;
+  }
+  if (under(AppRoutes.kitchen)) {
+    return user.canViewKitchen;
   }
   if (under(AppRoutes.modifierGroups)) {
     return user.usesModifiers && user.canViewProducts;
@@ -202,6 +206,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page(AppRoutes.outlets, (_) => const OutletsScreen()),
       _page(AppRoutes.outletSettingsPattern, (state) => OutletSettingsScreen(outletId: _id(state))),
       _page(AppRoutes.offline, (_) => const OfflineScreen()),
+      _page(AppRoutes.kitchen, (_) => const KitchenScreen()),
       _page(AppRoutes.modifierGroups, (_) => const ModifierGroupsScreen()),
       _page(AppRoutes.modifierGroupNew, (_) => const ModifierGroupFormScreen()),
       _page(AppRoutes.modifierGroupPattern, (state) => ModifierGroupFormScreen(groupId: _id(state))),
