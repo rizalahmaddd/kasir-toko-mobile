@@ -17,6 +17,8 @@ extension Access on CurrentUser {
   bool get canViewStock => canViewProducts && _gate(FeatureKeys.inventoryStock, PermissionKeys.masterDataView);
   bool get canManageMasterData => can(PermissionKeys.masterDataManage);
   bool get canAdjustStock => canViewStock && can(PermissionKeys.inventoryManage);
+  bool get canCountStock => _gate(FeatureKeys.inventoryOpname, PermissionKeys.opnameCount) && hasFeature(FeatureKeys.inventoryStock);
+  bool get canManageStockCount => canCountStock && can(PermissionKeys.opnameManage);
 
   bool get canViewSalesReport => _gate(FeatureKeys.reportsSales, PermissionKeys.reportsSalesView);
   bool get canViewActivityLog => _gate(FeatureKeys.reportsActivityLog, PermissionKeys.reportsActivityView);

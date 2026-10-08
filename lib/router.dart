@@ -41,6 +41,9 @@ import 'features/kitchen/presentation/kitchen_screen.dart';
 import 'features/modifiers/presentation/modifier_group_form_screen.dart';
 import 'features/modifiers/presentation/modifier_groups_screen.dart';
 import 'features/orders/presentation/order_detail_screen.dart';
+import 'features/stock_count/presentation/stock_count_review_screen.dart';
+import 'features/stock_count/presentation/stock_count_screen.dart';
+import 'features/stock_count/presentation/stock_counts_screen.dart';
 import 'features/orders/presentation/order_form_screen.dart';
 import 'features/orders/presentation/orders_screen.dart';
 import 'features/pharmacy/presentation/prescription_detail_screen.dart';
@@ -73,6 +76,12 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under(AppRoutes.stock)) {
     return user.canViewStock;
+  }
+  if (location.endsWith('/review') && under(AppRoutes.stockCount)) {
+    return user.canManageStockCount;
+  }
+  if (under(AppRoutes.stockCounts) || under(AppRoutes.stockCount)) {
+    return user.canCountStock;
   }
   if (under(AppRoutes.customers) || under(AppRoutes.customer)) {
     return user.canViewCustomers;
@@ -210,6 +219,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page(AppRoutes.modifierGroups, (_) => const ModifierGroupsScreen()),
       _page(AppRoutes.modifierGroupNew, (_) => const ModifierGroupFormScreen()),
       _page(AppRoutes.modifierGroupPattern, (state) => ModifierGroupFormScreen(groupId: _id(state))),
+      _page(AppRoutes.stockCounts, (_) => const StockCountsScreen()),
+      _page(AppRoutes.stockCountPattern, (state) => StockCountScreen(countId: _id(state))),
+      _page(AppRoutes.stockCountReviewPattern, (state) => StockCountReviewScreen(countId: _id(state))),
       _page(AppRoutes.orders, (_) => const OrdersScreen()),
       _page(AppRoutes.orderNew, (_) => const OrderFormScreen()),
       _page(AppRoutes.orderPattern, (state) => OrderDetailScreen(orderId: _id(state))),

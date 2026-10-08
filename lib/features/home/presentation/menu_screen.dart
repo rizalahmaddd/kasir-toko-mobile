@@ -184,6 +184,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               badgeColor: null,
               isPro: false,
             ),
+          if (user.canCountStock)
+            (
+              icon: AppIcons.clipboardCheck,
+              label: HomeStrings.menuStockCountLabel,
+              path: AppRoutes.stockCounts,
+              caption: HomeStrings.menuStockCountCaption,
+              color: AppColors.emerald500,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
           if (user.canViewCustomers)
             (
               icon: AppIcons.users,

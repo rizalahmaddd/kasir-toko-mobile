@@ -283,6 +283,8 @@ abstract final class HomeStrings {
   static const menuStockCaption = 'Posisi stok, menipis, & habis';
   static const menuStockCardLabel = 'Kartu stok';
   static const menuStockCardCaption = 'Riwayat & audit mutasi stok';
+  static const menuStockCountLabel = 'Stok opname';
+  static const menuStockCountCaption = 'Hitung stok fisik & selisih';
   static const menuCustomersLabel = 'Pelanggan';
   static const menuCustomersCaption = 'Data kontak & tempo piutang';
   static const menuSalesReportLabel = 'Laporan penjualan';
@@ -1973,4 +1975,132 @@ abstract final class KitchenStrings {
   static const reopen = 'Kembalikan ke Antrean';
   static const reopened = 'Tiket dikembalikan ke antrean.';
   static const menuCaption = 'Tiket pesanan untuk dapur';
+}
+
+abstract final class StockCountStrings {
+  static const screenTitle = 'Stok Opname';
+  static const empty = 'Tidak ada opname yang berjalan';
+  static const emptyHint = 'Opname dimulai oleh pengelola dari web atau aplikasi. Setelah dimulai, semua penghitung bisa mengisi hitungan dari sini.';
+  static const start = 'Mulai Opname';
+  static const startTitle = 'Barang apa yang mau dihitung?';
+  static const scopeAll = 'Semua barang';
+  static const scopeHint = 'Kategori atau barang tertentu bisa dipilih dari web.';
+  static const blindCount = 'Sembunyikan stok sistem dari penghitung';
+  static const holdAdjustments = 'Tahan stok masuk/keluar manual selama opname';
+  static const note = 'Catatan';
+  static const startAction = 'Mulai Menghitung';
+  static const tabOpen = 'Berjalan';
+  static const tabPosted = 'Selesai';
+  static const tabCancelled = 'Dibatalkan';
+  static String progress(String counted, String total) => 'Dihitung $counted dari $total';
+  static String pending(int count) => '$count hitungan menunggu terkirim';
+  static const allSent = 'Semua hitungan sudah terkirim';
+  static const scanMode = 'Scan';
+  static const typeMode = 'Ketik';
+  static const listMode = 'Daftar';
+  static const scanHint = 'Arahkan ke barcode. Tiap scan +1';
+  static const cameraOff = 'Kamera mati';
+  static const cameraOn = 'Nyalakan kamera';
+  static const searchHint = 'Cari nama, SKU, atau barcode';
+  static const recentScans = 'Scan terakhir';
+  static const noScans = 'Belum ada yang di-scan. Scan barcode atau ketik nama barang.';
+  static const minusOne = '-1';
+  static const edit = 'Ubah';
+  static String scanned(String unit, String name) => '+1 $unit $name';
+  static String notInCatalog(String code) => 'Kode $code tidak ada di daftar opname ini.';
+  static const notInCatalogOffline = 'Kode ini tidak ada di daftar opname. Coba lagi saat online untuk mengenali nomor seri atau barang baru.';
+  static String addToCount(String name) => '$name belum masuk opname ini. Tambahkan?';
+  static const add = 'Tambahkan';
+  static String notTracked(String name) => 'Stok $name tidak dilacak. Aktifkan Lacak stok di data produk dulu.';
+  static const unknownTitle = 'Barang tak dikenal';
+  static const unknownHint = 'Dicatat supaya bisa dibuatkan produknya nanti. Stok tidak berubah.';
+  static const unknownSaved = 'Barang tak dikenal dicatat.';
+  static const barcode = 'Barcode';
+  static const quantity = 'Jumlah';
+  static const noteHint = 'Mis. rak depan, gudang';
+  static const entryTitle = 'Isi hitungan';
+  static String entryHint(String counted, String unit) => 'Ditambahkan ke hasil sebelumnya ($counted $unit). Isi per satuan bila perlu.';
+  static const batch = 'Batch';
+  static const noBatch = 'Tanpa batch';
+  static const newBatch = 'Batch baru…';
+  static const newBatchNumber = 'Nomor batch';
+  static const newBatchExpiry = 'Kedaluwarsa (opsional)';
+  static const expired = 'kedaluwarsa';
+  static const saveEntry = 'Simpan Hitungan';
+  static const errQuantity = 'Isi jumlah yang dihitung. Ketik 0 bila barangnya tidak ada.';
+  static const errBatchNumber = 'Isi nomor batch baru.';
+  static const serialTitle = 'Scan IMEI / nomor seri';
+  static const serialHint = 'Scan setiap unit. Unit yang tidak ter-scan dianggap hilang saat opname diselesaikan.';
+  static const serialInput = 'IMEI / nomor seri';
+  static String serialCount(int count) => '$count unit di-scan';
+  static const serialMatched = 'Cocok';
+  static const serialQueued = 'Menunggu terkirim';
+  static const serialResults = {
+    'matched': 'Cocok',
+    'unknown': 'Belum tercatat',
+    'other_outlet': 'Tercatat di outlet lain',
+    'sold': 'Tercatat sudah terjual',
+    'removed': 'Tercatat sudah keluar',
+  };
+  static const finishCounting = 'Selesai menghitung';
+  static const toReview = 'Lanjut ke Periksa';
+  static const waitQueue = 'Tunggu semua hitungan terkirim dulu.';
+  static const finished = 'Pemeriksa sudah diberi tahu bahwa Anda selesai menghitung.';
+  static const filterAll = 'Semua';
+  static const filterUncounted = 'Belum dihitung';
+  static const filterCounted = 'Sudah';
+  static const filterVariance = 'Selisih';
+  static const filterRecount = 'Hitung ulang';
+  static const notCounted = 'Belum dihitung';
+  static String system(String qty) => 'Sistem $qty';
+  static String counted(String qty) => 'Hitung $qty';
+  static const recount = 'Hitung ulang';
+  static const closed = 'Opname ini sudah ditutup. Hitungan yang belum terkirim tidak dipakai.';
+  static String closedKept(int count) => '$count hitungan tidak terkirim karena opname sudah ditutup. Salinannya disimpan di HP.';
+  static const shareClosed = 'Bagikan salinan';
+  static const discardClosed = 'Buang';
+  static const reviewTitle = 'Periksa Opname';
+  static const changed = 'Barang berubah';
+  static const shortage = 'Kurang';
+  static const surplus = 'Lebih';
+  static const uncounted = 'Belum dihitung';
+  static const uncountedPolicy = 'Barang yang belum dihitung';
+  static const policyKeep = 'Biarkan stoknya';
+  static const policyZero = 'Anggap habis (0)';
+  static const reason = 'Alasan';
+  static const noReason = 'Tanpa alasan';
+  static const reasons = {
+    'damaged': 'Rusak',
+    'expired': 'Kedaluwarsa',
+    'lost': 'Hilang/dicuri',
+    'input_error': 'Salah catat sebelumnya',
+    'unrecorded_receipt': 'Barang masuk tidak tercatat',
+    'unrecorded_sale': 'Penjualan tidak tercatat',
+    'sample': 'Dipakai/sampel',
+    'other': 'Lainnya',
+  };
+  static const noVariance = 'Tidak ada selisih. Opname bisa langsung diselesaikan.';
+  static const backToCounting = 'Kembali menghitung';
+  static const post = 'Selesaikan & sesuaikan stok';
+  static const postTitle = 'Selesaikan opname?';
+  static String postMessage(String changed, String shortage, String surplus, String uncounted) =>
+      'Stok $changed barang berubah. Kurang $shortage, lebih $surplus. $uncounted Setelah selesai, opname tidak bisa dibatalkan.';
+  static String uncountedKeep(String count) => '$count barang belum dihitung, stoknya dibiarkan.';
+  static String uncountedZero(String count, String value) => '$count barang belum dihitung dianggap habis (kurang $value).';
+  static const posted = 'Opname selesai. Stok sudah disesuaikan.';
+  static const posting = 'Opname sedang diproses. Cek lagi sebentar.';
+  static const cancel = 'Batalkan Opname';
+  static const cancelReason = 'Alasan pembatalan';
+  static const cancelled = 'Opname dibatalkan. Stok tidak berubah.';
+  static const offlineWarning = 'Pastikan semua HP kasir sudah online dan antrean transaksi offline terkirim sebelum menyelesaikan.';
+  static String openBanner(String number) => 'Opname $number sedang berjalan.';
+  static String countingBadge(String number) => 'SEDANG DIHITUNG · $number';
+  static String largeCountMessage(String system) => 'Hitungan ini lebih dari 10× stok sistem ($system). Pastikan tidak salah ketik.';
+  static const largeCountTitle = 'Hitungan sangat besar';
+  static const largeCountConfirm = 'Tetap simpan';
+  static const openAction = 'Buka';
+  static const history = 'Riwayat hitungan';
+  static const voidEntry = 'Batalkan';
+  static const voided = 'Hitungan dibatalkan.';
+  static const tooBig = 'Hitungan ini lebih dari 10× stok sistem. Pastikan tidak salah ketik.';
 }

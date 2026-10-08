@@ -8,6 +8,7 @@ abstract final class FeatureKeys {
   static const masterDataCategories = 'master-data.categories';
   static const masterDataCustomers = 'master-data.customers';
   static const inventoryStock = 'inventory.stock';
+  static const inventoryOpname = 'inventory.opname';
   static const reportsSales = 'reports.sales';
   static const reportsActivityLog = 'reports.activity-log';
   static const settingsOutlets = 'settings.outlets';
@@ -32,6 +33,8 @@ abstract final class PermissionKeys {
   static const masterDataView = 'master-data.view';
   static const masterDataManage = 'master-data.manage';
   static const inventoryManage = 'inventory.manage';
+  static const opnameCount = 'inventory.opname.count';
+  static const opnameManage = 'inventory.opname.manage';
   static const reportsSalesView = 'reports.sales.view';
   static const reportsActivityView = 'reports.activity.view';
   static const settingsPosManage = 'settings.pos.manage';

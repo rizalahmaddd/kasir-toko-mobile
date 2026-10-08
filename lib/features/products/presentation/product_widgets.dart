@@ -93,11 +93,14 @@ class StockLabel extends StatelessWidget {
 }
 
 class ProductTile extends StatelessWidget {
-  const ProductTile({super.key, required this.product, this.onTap, this.showPrice = true});
+  const ProductTile({super.key, required this.product, this.onTap, this.showPrice = true, this.countingNumber});
 
   final ProductRecord product;
   final VoidCallback? onTap;
   final bool showPrice;
+
+  /// Nomor opname yang sedang menghitung produk ini, bila ada.
+  final String? countingNumber;
 
   @override
   Widget build(BuildContext context) {
@@ -153,6 +156,10 @@ class ProductTile extends StatelessWidget {
                           ],
                         ],
                       ),
+                      if (countingNumber != null) ...[
+                        const SizedBox(height: AppSizes.s4),
+                        StatusBadge(label: StockCountStrings.countingBadge(countingNumber!), tone: BadgeTone.info),
+                      ],
                       const SizedBox(height: AppSizes.s4),
                       Row(
                         children: [

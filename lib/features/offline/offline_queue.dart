@@ -17,6 +17,7 @@ import '../data_changes.dart';
 import '../pos/data/pos_repository.dart';
 import '../sales/data/sales_repository.dart';
 import '../sales/sales_controller.dart';
+import '../stock_count/count_queue.dart';
 import 'catalog_snapshot.dart';
 import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
@@ -76,6 +77,14 @@ class QueuedSale {
   final String? error;
 
   String get clientUuid => payload['client_uuid'] as String;
+
+  /// The server needs when the sale really happened (a stock count compares it with when the shelf
+  /// was counted), plus the phone clock at send time so a wrong clock can be corrected.
+  Map<String, dynamic> syncPayload(DateTime now) => {
+        ...payload,
+        'occurred_at': createdAt.toUtc().toIso8601String(),
+        'device_sent_at': now.toUtc().toIso8601String(),
+      };
   int get change => paid > total ? paid - total : 0;
 
   QueuedSale copyWith({QueuedStatus? status, String? error}) => QueuedSale(
@@ -185,7 +194,7 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
     try {
       for (final sale in due) {
         try {
-          await ref.read(posRepositoryProvider).submitCheckout(sale.payload, outletId: sale.outletId, offline: true);
+          await ref.read(posRepositoryProvider).submitCheckout(sale.syncPayload(DateTime.now()), outletId: sale.outletId, offline: true);
           remove(sale.clientUuid);
           sent++;
         } on ApiException catch (error) {
@@ -207,7 +216,7 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
   }
 }
 
-/// Retries queued sales when connectivity returns, when the app comes back to the foreground,
+/// Retries queued sales and stock counts when connectivity returns, when the app comes back to the foreground,
 /// whenever a request reaches the server again, and every minute while anything is waiting.
 /// While the server is unreachable it is checked every 30 seconds; once it answers again the main
 /// screens reload so nothing keeps showing the offline copy.
@@ -215,6 +224,9 @@ final offlineSyncerProvider = Provider<void>((ref) {
   void trigger() {
     if (ref.read(myQueueProvider).any((sale) => sale.status == QueuedStatus.pending)) {
       unawaited(ref.read(offlineQueueProvider.notifier).sync());
+    }
+    if (ref.read(countQueueProvider).pending.any((item) => !item.failed)) {
+      unawaited(ref.read(countQueueProvider.notifier).sync());
     }
   }
 

@@ -67,6 +67,23 @@ void main() {
     expect(allowedLocation(kasir, '/customer/5'), isTrue);
   });
 
+  test('stock counting needs the count permission and the review screen the manage permission', () {
+    final features = {..._allFeatures, 'inventory.opname'};
+    final counter = _user({'master-data.view', 'inventory.opname.count'}, features: features);
+    final manager = _user({'master-data.view', 'inventory.opname.count', 'inventory.opname.manage'}, features: features);
+    final cashier = _user({'pos.sell', 'master-data.view'}, features: features);
+    final serverWithoutModule = _user({'inventory.opname.count', 'inventory.opname.manage'});
+
+    expect(counter.canCountStock, isTrue);
+    expect(counter.canManageStockCount, isFalse);
+    expect(allowedLocation(counter, '/stock-counts'), isTrue);
+    expect(allowedLocation(counter, '/stock-count/3'), isTrue);
+    expect(allowedLocation(counter, '/stock-count/3/review'), isFalse);
+    expect(allowedLocation(manager, '/stock-count/3/review'), isTrue);
+    expect(allowedLocation(cashier, '/stock-counts'), isFalse);
+    expect(serverWithoutModule.canCountStock, isFalse);
+  });
+
   test('pro features require user.isPro in addition to permission', () {
     final proUser = _user(
       {'receivables.manage', 'reports.sales.view', 'reports.activity.view'},

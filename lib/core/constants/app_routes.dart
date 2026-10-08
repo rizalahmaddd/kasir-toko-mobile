@@ -26,6 +26,12 @@ abstract final class AppRoutes {
   // Stok
   static const stock = '/stock';
   static const stockMovements = '/stock/movements';
+  static const stockCounts = '/stock-counts';
+  static const stockCount = '/stock-count';
+  static const stockCountPattern = '/stock-count/:id';
+  static const stockCountReviewPattern = '/stock-count/:id/review';
+  static String stockCountDetail(int id) => '$stockCount/$id';
+  static String stockCountReview(int id) => '$stockCount/$id/review';
 
   // Pelanggan
   static const customers = '/customers';

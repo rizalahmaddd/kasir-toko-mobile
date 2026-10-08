@@ -12,6 +12,10 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../auth/access.dart';
+import '../../auth/auth_controller.dart';
+import '../../stock_count/data/stock_count_models.dart';
+import '../../stock_count/stock_count_providers.dart';
 import '../products_providers.dart';
 import 'product_widgets.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
@@ -26,6 +30,9 @@ class StockScreen extends ConsumerWidget {
     final notifier = ref.read(stockQueryProvider.notifier);
     final summary = ref.watch(stockSummaryProvider).value;
     final colors = StatusColors.of(context);
+    final canCount = ref.watch(currentUserProvider)?.canCountStock ?? false;
+    final openCounts = canCount ? ref.watch(openStockCountsProvider).value ?? const [] : const <StockCountDoc>[];
+    final counting = canCount ? ref.watch(countingProductsProvider).value ?? const <int?, String>{} : const <int?, String>{};
 
     return Scaffold(
       appBar: SearchableAppBar(
@@ -50,6 +57,12 @@ class StockScreen extends ConsumerWidget {
         },
         header: Column(
           children: [
+            for (final count in openCounts)
+              MaterialBanner(
+                leading: const Icon(AppIcons.clipboardCheck),
+                content: Text(StockCountStrings.openBanner(count.number)),
+                actions: [TextButton(onPressed: () => context.push(AppRoutes.stockCountDetail(count.id)), child: const Text(StockCountStrings.openAction))],
+              ),
             if (summary != null)
               Padding(
                 padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s4, AppSpacing.s16, AppSpacing.s8),
@@ -102,7 +115,12 @@ class StockScreen extends ConsumerWidget {
           ],
         ),
         empty: const EmptyState(icon: AppIcons.warehouse, title: ProductStrings.emptyStockTitle, description: ProductStrings.emptyFilterHint),
-        itemBuilder: (context, product) => ProductTile(product: product, showPrice: false, onTap: () => context.push(AppRoutes.productDetail(product.id))),
+        itemBuilder: (context, product) => ProductTile(
+          product: product,
+          showPrice: false,
+          countingNumber: counting[product.id] ?? counting[null],
+          onTap: () => context.push(AppRoutes.productDetail(product.id)),
+        ),
       ),
     );
   }

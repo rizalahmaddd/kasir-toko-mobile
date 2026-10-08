@@ -17,12 +17,19 @@ class BarcodeScannerView extends StatefulWidget {
     this.controller,
     this.hintText = PosStrings.scanHint,
     this.laserColor = AppColors.emerald500,
+    this.continuous = false,
+    this.repeatDelay = const Duration(milliseconds: 800),
   });
 
   final ValueChanged<String> onDetect;
   final MobileScannerController? controller;
   final String hintText;
   final Color laserColor;
+
+  /// Keep scanning after a hit (stock counting). The same code is ignored for [repeatDelay] so one
+  /// barcode held under the camera is not counted many times.
+  final bool continuous;
+  final Duration repeatDelay;
 
   @override
   State<BarcodeScannerView> createState() => _BarcodeScannerViewState();
@@ -33,6 +40,8 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> with SingleTick
   late final AnimationController _animController;
   bool _isInternalController = false;
   bool _hasDetected = false;
+  String? _lastCode;
+  DateTime? _lastAt;
 
   @override
   void initState() {
@@ -40,7 +49,7 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> with SingleTick
     if (widget.controller != null) {
       _controller = widget.controller!;
     } else {
-      _controller = MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates);
+      _controller = MobileScannerController(detectionSpeed: widget.continuous ? DetectionSpeed.normal : DetectionSpeed.noDuplicates);
       _isInternalController = true;
     }
 
@@ -63,6 +72,17 @@ class _BarcodeScannerViewState extends State<BarcodeScannerView> with SingleTick
     if (_hasDetected) return;
     final code = capture.barcodes.map((barcode) => barcode.rawValue).nonNulls.firstOrNull;
     if (code == null || code.isEmpty) return;
+    if (widget.continuous) {
+      final now = DateTime.now();
+      if (code == _lastCode && _lastAt != null && now.difference(_lastAt!) < widget.repeatDelay) {
+        _lastAt = now;
+        return;
+      }
+      _lastCode = code;
+      _lastAt = now;
+      widget.onDetect(code);
+      return;
+    }
     _hasDetected = true;
     widget.onDetect(code);
   }

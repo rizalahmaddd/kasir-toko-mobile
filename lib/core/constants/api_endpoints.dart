@@ -65,6 +65,24 @@ abstract final class ApiEndpoints {
   static String prescriptionCancel(int id) => 'pharmacy/prescriptions/$id/cancel';
   static String prescriptionImage(int id) => 'pharmacy/prescriptions/$id/image';
   static String productBatches(int productId) => 'inventory/products/$productId/batches';
+
+  // Stok opname
+  static const stockCounts = 'inventory/stock-counts';
+  static String stockCount(int id) => 'inventory/stock-counts/$id';
+  static String stockCountItems(int id) => 'inventory/stock-counts/$id/items';
+  static String stockCountItem(int id, int itemId) => 'inventory/stock-counts/$id/items/$itemId';
+  static String stockCountItemEntries(int id, int itemId) => 'inventory/stock-counts/$id/items/$itemId/entries';
+  static String stockCountCatalog(int id) => 'inventory/stock-counts/$id/catalog';
+  static String stockCountLookup(int id) => 'inventory/stock-counts/$id/lookup';
+  static String stockCountEntries(int id) => 'inventory/stock-counts/$id/entries';
+  static String stockCountEntry(int id, int entryId) => 'inventory/stock-counts/$id/entries/$entryId';
+  static String stockCountSerials(int id) => 'inventory/stock-counts/$id/serials';
+  static String stockCountUnknown(int id) => 'inventory/stock-counts/$id/unknown';
+  static String stockCountSubmit(int id) => 'inventory/stock-counts/$id/submit';
+  static String stockCountReopen(int id) => 'inventory/stock-counts/$id/reopen';
+  static String stockCountPreview(int id) => 'inventory/stock-counts/$id/preview';
+  static String stockCountPost(int id) => 'inventory/stock-counts/$id/post';
+  static String stockCountCancel(int id) => 'inventory/stock-counts/$id/cancel';
   static const expiringStock = 'inventory/expiring';
 
   // Master data - kategori

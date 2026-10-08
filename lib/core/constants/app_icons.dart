@@ -48,6 +48,9 @@ abstract final class AppIcons {
   static const circleSlash = LucideIcons.circleSlash;
   static const circleUser = LucideIcons.circleUser;
   static const clipboardCheck = LucideIcons.clipboardCheck;
+  static const keyboard = LucideIcons.keyboard;
+  static const listChecks = LucideIcons.listChecks;
+  static const rotateCcw = LucideIcons.rotateCcw;
   static const clock = LucideIcons.clock;
   static const clockAlert = LucideIcons.clockAlert;
   static const cloudCheck = LucideIcons.cloudCheck;

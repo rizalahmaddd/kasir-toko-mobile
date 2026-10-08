@@ -213,6 +213,22 @@ void main() {
       expect(targets, [(3, true), (4, true), (null, true)]);
     });
 
+    test('a queued sale carries when it happened and the phone clock at send time', () async {
+      final (container, repository) = await _container();
+      final payloads = <Map<String, dynamic>>[];
+      when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenAnswer((invocation) async {
+        payloads.add(invocation.positionalArguments.first as Map<String, dynamic>);
+        return _sale;
+      });
+      container.read(offlineQueueProvider.notifier).add(_queued('a'));
+
+      await container.read(offlineQueueProvider.notifier).sync();
+
+      expect(payloads.single['client_uuid'], 'a');
+      expect(DateTime.parse(payloads.single['occurred_at'] as String).isAtSameMomentAs(DateTime(2026, 10, 1, 10)), isTrue);
+      expect(payloads.single['device_sent_at'], isNotNull);
+    });
+
     test('the outlet and shift of a queued sale survive a restart', () async {
       final (container, _) = await _container();
       container.read(offlineQueueProvider.notifier).add(_queued('a', outletId: 3, shiftId: 11));
