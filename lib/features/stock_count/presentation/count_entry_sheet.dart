@@ -17,6 +17,7 @@ Future<QueuedCount?> showCountEntrySheet(
   BuildContext context, {
   required int countId,
   required int userId,
+  int? outletId,
   required CountCatalogItem item,
   List<CountBatch> batches = const [],
   double? countedQty,
@@ -24,14 +25,15 @@ Future<QueuedCount?> showCountEntrySheet(
 }) =>
     FormSheet.show<QueuedCount>(
       context,
-      _CountEntrySheet(countId: countId, userId: userId, item: item, batches: batches, countedQty: countedQty, systemQty: systemQty),
+      _CountEntrySheet(countId: countId, userId: userId, outletId: outletId, item: item, batches: batches, countedQty: countedQty, systemQty: systemQty),
     );
 
 class _CountEntrySheet extends StatefulWidget {
-  const _CountEntrySheet({required this.countId, required this.userId, required this.item, required this.batches, this.countedQty, this.systemQty});
+  const _CountEntrySheet({required this.countId, required this.userId, this.outletId, required this.item, required this.batches, this.countedQty, this.systemQty});
 
   final int countId;
   final int userId;
+  final int? outletId;
   final CountCatalogItem item;
   final List<CountBatch> batches;
   final double? countedQty;
@@ -110,6 +112,7 @@ class _CountEntrySheetState extends State<_CountEntrySheet> {
         newBatchNumber: _batchId == _newBatch ? _batchNumber.text : null,
         newBatchExpiry: _batchId == _newBatch && _batchExpiry.text.trim().isNotEmpty ? _batchExpiry.text.trim() : null,
         note: _note.text,
+        outletId: widget.outletId,
       ),
     );
   }

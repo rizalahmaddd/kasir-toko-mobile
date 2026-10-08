@@ -126,6 +126,24 @@ void main() {
     verifyNever(() => repository.sendEntries(any(), any(), any()));
   });
 
+  test('a queued count is sent for the outlet it was counted at, even after switching outlet', () async {
+    final (container, repository) = await _container();
+    int? sentFor;
+    when(() => repository.sendEntries(any(), any(), any(), outletId: any(named: 'outletId'))).thenAnswer((invocation) async {
+      sentFor = invocation.namedArguments[#outletId] as int?;
+      return _results(invocation, (_) => 'saved');
+    });
+    final entry = countEntry(countId: 1, userId: 7, item: _item, lines: {null: 2}, outletId: 3);
+    container.read(countQueueProvider.notifier).add(entry);
+
+    final restarted = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(await SharedPreferences.getInstance())]);
+    addTearDown(restarted.dispose);
+    expect(restarted.read(countQueueProvider).pending.single.outletId, 3);
+
+    await container.read(countQueueProvider.notifier).sync();
+    expect(sentFor, 3);
+  });
+
   test('an unsent count can be taken back without the server', () async {
     final (container, _) = await _container();
     final entry = _entry(1);

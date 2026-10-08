@@ -12,6 +12,7 @@ import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../outlets/outlet_controller.dart';
 import '../data/stock_count_models.dart';
 import '../data/stock_count_repository.dart';
 import '../stock_count_providers.dart';
@@ -122,12 +123,14 @@ class _StockCountReviewScreenState extends ConsumerState<StockCountReviewScreen>
     final preview = ref.watch(_previewProvider(_id));
     final items = ref.watch(_varianceProvider(_id));
     final colors = StatusColors.of(context);
+    final ownOutlet = count.value?.belongsTo(ref.watch(currentOutletIdProvider)) ?? true;
+    final locked = _busy || !ownOutlet;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(count.value?.number ?? StockCountStrings.reviewTitle),
         actions: [
-          IconButton(tooltip: StockCountStrings.cancel, onPressed: _busy ? null : _cancel, icon: const Icon(AppIcons.ban)),
+          IconButton(tooltip: StockCountStrings.cancel, onPressed: locked ? null : _cancel, icon: const Icon(AppIcons.ban)),
         ],
       ),
       body: AsyncView<CountPreview>(
@@ -138,6 +141,10 @@ class _StockCountReviewScreenState extends ConsumerState<StockCountReviewScreen>
           child: ListView(
             padding: const EdgeInsets.all(AppSpacing.s16),
             children: [
+              if (!ownOutlet) ...[
+                Text(StockCountStrings.otherOutlet(count.value?.number ?? '', count.value?.outletName ?? ''), style: TextStyle(color: colors.warning)),
+                const SizedBox(height: AppSizes.s12),
+              ],
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
@@ -195,7 +202,7 @@ class _StockCountReviewScreenState extends ConsumerState<StockCountReviewScreen>
               if (count.value?.status == StockCountStatuses.review)
                 Expanded(
                   child: OutlinedButton(
-                    onPressed: _busy ? null : () => _run(() => ref.read(stockCountRepositoryProvider).reopen(_id)),
+                    onPressed: locked ? null : () => _run(() => ref.read(stockCountRepositoryProvider).reopen(_id)),
                     child: const Text(StockCountStrings.backToCounting),
                   ),
                 ),
@@ -203,7 +210,7 @@ class _StockCountReviewScreenState extends ConsumerState<StockCountReviewScreen>
               Expanded(
                 flex: 2,
                 child: FilledButton(
-                  onPressed: _busy || preview.value == null
+                  onPressed: locked || preview.value == null
                       ? null
                       : count.value?.status == StockCountStatuses.counting
                           ? () => _run(() => ref.read(stockCountRepositoryProvider).submit(_id))

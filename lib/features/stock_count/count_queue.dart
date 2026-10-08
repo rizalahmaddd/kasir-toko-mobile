@@ -21,6 +21,7 @@ class QueuedCount {
     required this.payload,
     required this.label,
     required this.createdAt,
+    this.outletId,
     this.failed = false,
     this.error,
   });
@@ -33,6 +34,7 @@ class QueuedCount {
         payload: asMap(json['payload']),
         label: json['label'] as String? ?? '',
         createdAt: DateTime.parse(json['created_at'] as String),
+        outletId: json['outlet_id'] as int?,
         failed: json['failed'] == true,
         error: json['error'] as String?,
       );
@@ -46,6 +48,9 @@ class QueuedCount {
   /// Teks untuk daftar di HP, mis. "Indomie Goreng · 2 dus".
   final String label;
   final DateTime createdAt;
+
+  /// Outlet aktif saat dihitung; antrean dikirim atas nama outlet itu walau pengguna sudah berganti outlet.
+  final int? outletId;
   final bool failed;
   final String? error;
 
@@ -57,6 +62,7 @@ class QueuedCount {
         payload: payload,
         label: label,
         createdAt: createdAt,
+        outletId: outletId,
         failed: true,
         error: message,
       );
@@ -69,6 +75,7 @@ class QueuedCount {
         'payload': payload,
         'label': label,
         'created_at': createdAt.toIso8601String(),
+        'outlet_id': outletId,
         'failed': failed,
         'error': error,
       };
@@ -178,8 +185,8 @@ class CountQueue extends Notifier<CountQueueState> {
             final repository = ref.read(stockCountRepositoryProvider);
             final payloads = [for (final item in chunk) {...item.payload, 'client_uuid': item.clientUuid}];
             results = kind == CountKind.entry
-                ? await repository.sendEntries(countId, payloads, DateTime.now())
-                : await repository.sendSerials(countId, payloads, DateTime.now());
+                ? await repository.sendEntries(countId, payloads, DateTime.now(), outletId: chunk.first.outletId)
+                : await repository.sendSerials(countId, payloads, DateTime.now(), outletId: chunk.first.outletId);
           } on ApiException catch (error) {
             final status = error.statusCode ?? 0;
             if (error.isNetworkError || error.isUnauthenticated || status >= 500 || status == 429) {

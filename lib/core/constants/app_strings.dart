@@ -2094,6 +2094,8 @@ abstract final class StockCountStrings {
   static const cancelled = 'Opname dibatalkan. Stok tidak berubah.';
   static const offlineWarning = 'Pastikan semua HP kasir sudah online dan antrean transaksi offline terkirim sebelum menyelesaikan.';
   static String openBanner(String number) => 'Opname $number sedang berjalan.';
+  static String otherOutlet(String number, String outlet) =>
+      'Opname $number milik outlet $outlet. Pindah ke outlet itu lewat pemilih outlet untuk menghitung atau menyelesaikannya.';
   static String countingBadge(String number) => 'SEDANG DIHITUNG · $number';
   static String largeCountMessage(String system) => 'Hitungan ini lebih dari 10× stok sistem ($system). Pastikan tidak salah ketik.';
   static const largeCountTitle = 'Hitungan sangat besar';

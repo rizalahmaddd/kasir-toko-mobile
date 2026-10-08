@@ -39,11 +39,21 @@ class StockCountRepository {
   Future<void> addItems(int id, List<int> productIds) => _api.post(ApiEndpoints.stockCountItems(id), data: {'product_ids': productIds});
 
   /// Hasil per entri: `{client_uuid, status: saved|duplicate|rejected, reason?, error?, entry_id?}`.
-  Future<List<Map<String, dynamic>>> sendEntries(int id, List<Map<String, dynamic>> entries, DateTime now) async =>
-      ApiClient.list(await _api.post(ApiEndpoints.stockCountEntries(id), data: {'device_sent_at': now.toUtc().toIso8601String(), 'entries': entries}));
+  Future<List<Map<String, dynamic>>> sendEntries(int id, List<Map<String, dynamic>> entries, DateTime now, {int? outletId}) async => ApiClient.list(
+        await _api.post(
+          ApiEndpoints.stockCountEntries(id),
+          data: {'device_sent_at': now.toUtc().toIso8601String(), 'entries': entries},
+          headers: outletId == null ? null : {outletHeader: '$outletId'},
+        ),
+      );
 
-  Future<List<Map<String, dynamic>>> sendSerials(int id, List<Map<String, dynamic>> serials, DateTime now) async =>
-      ApiClient.list(await _api.post(ApiEndpoints.stockCountSerials(id), data: {'device_sent_at': now.toUtc().toIso8601String(), 'serials': serials}));
+  Future<List<Map<String, dynamic>>> sendSerials(int id, List<Map<String, dynamic>> serials, DateTime now, {int? outletId}) async => ApiClient.list(
+        await _api.post(
+          ApiEndpoints.stockCountSerials(id),
+          data: {'device_sent_at': now.toUtc().toIso8601String(), 'serials': serials},
+          headers: outletId == null ? null : {outletHeader: '$outletId'},
+        ),
+      );
 
   Future<void> voidEntry(int id, int entryId) => _api.delete(ApiEndpoints.stockCountEntry(id, entryId));
 

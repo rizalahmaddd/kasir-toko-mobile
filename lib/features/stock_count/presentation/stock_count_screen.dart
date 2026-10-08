@@ -18,6 +18,7 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
 import '../../pos/presentation/widgets/barcode_scanner_view.dart';
+import '../../outlets/outlet_controller.dart';
 import '../count_queue.dart';
 import '../data/stock_count_models.dart';
 import '../data/stock_count_repository.dart';
@@ -46,6 +47,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
   bool _feedbackError = false;
 
   int get _id => widget.countId;
+  int? get _outletId => ref.read(currentOutletIdProvider);
 
   void _say(String message, {bool error = false}) {
     unawaited(error ? HapticFeedback.heavyImpact() : HapticFeedback.lightImpact());
@@ -80,7 +82,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
         }
         return;
       }
-      _enqueue(countEntry(countId: _id, userId: user.id, item: item, lines: {unit?.id: 1}));
+      _enqueue(countEntry(countId: _id, userId: user.id, item: item, lines: {unit?.id: 1}, outletId: _outletId));
       _say(StockCountStrings.scanned(unit?.name ?? item.unit, item.name));
       return;
     }
@@ -92,7 +94,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       }
       switch (found.kind) {
         case 'serial':
-          _enqueue(serialScan(countId: _id, userId: user.id, serial: found.serial ?? code, productId: found.productId, productName: found.productName));
+          _enqueue(serialScan(countId: _id, userId: user.id, serial: found.serial ?? code, productId: found.productId, productName: found.productName, outletId: _outletId));
           _say('${found.productName ?? ''} · ${found.serial}');
         case 'product' when !found.trackStock:
           _say(StockCountStrings.notTracked(found.productName ?? code), error: true);
@@ -142,7 +144,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       await SerialScanScreen.open(context, countId: _id, item: target);
       return;
     }
-    _enqueue(countEntry(countId: _id, userId: user.id, item: target, lines: {found.unitId: 1}));
+    _enqueue(countEntry(countId: _id, userId: user.id, item: target, lines: {found.unitId: 1}, outletId: _outletId));
     _say(StockCountStrings.scanned(target.units.where((unit) => unit.id == found.unitId).firstOrNull?.name ?? target.unit, target.name));
   }
 
@@ -204,7 +206,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
     if (!mounted) {
       return;
     }
-    final entry = await showCountEntrySheet(context, countId: _id, userId: user.id, item: item, batches: batches, countedQty: countedQty, systemQty: systemQty);
+    final entry = await showCountEntrySheet(context, countId: _id, userId: user.id, outletId: _outletId, item: item, batches: batches, countedQty: countedQty, systemQty: systemQty);
     if (entry != null) {
       _enqueue(entry);
       _say(entry.label);
@@ -279,7 +281,7 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       appBar: AppBar(
         title: Text(value.value?.number ?? StockCountStrings.screenTitle),
         actions: [
-          if (value.value?.canManage ?? false)
+          if ((value.value?.canManage ?? false) && (value.value?.belongsTo(ref.watch(currentOutletIdProvider)) ?? false))
             IconButton(
               tooltip: StockCountStrings.reviewTitle,
               icon: const Icon(AppIcons.listChecks),
@@ -290,83 +292,92 @@ class _StockCountScreenState extends ConsumerState<StockCountScreen> {
       body: AsyncView<StockCountDoc>(
         value: value,
         onRetry: () => ref.invalidate(stockCountProvider(_id)),
-        data: (count) => Column(
-          children: [
-            _Header(
-              count: count,
-              pending: pending.length,
-              failed: pending.where((item) => item.failed).map((item) => item.error).nonNulls.firstOrNull,
-              syncing: queue.syncing,
-              onSync: () => ref.read(countQueueProvider.notifier).sync(includeFailed: true),
-            ),
-            if (closed.isNotEmpty)
-              MaterialBanner(
-                content: Text(StockCountStrings.closedKept(closed.length)),
-                actions: [
-                  TextButton(onPressed: () => _shareClosed(closed), child: const Text(StockCountStrings.shareClosed)),
-                  TextButton(onPressed: () => ref.read(countQueueProvider.notifier).discardClosed(_id), child: const Text(StockCountStrings.discardClosed)),
-                ],
+        data: (count) {
+          final ownOutlet = count.belongsTo(ref.watch(currentOutletIdProvider));
+
+          return Column(
+            children: [
+              _Header(
+                count: count,
+                pending: pending.length,
+                failed: pending.where((item) => item.failed).map((item) => item.error).nonNulls.firstOrNull,
+                syncing: queue.syncing,
+                onSync: () => ref.read(countQueueProvider.notifier).sync(includeFailed: true),
               ),
-            if (!count.isEditable)
-              Padding(padding: const EdgeInsets.all(AppSpacing.s16), child: Text(StockCountStrings.closed, style: Theme.of(context).textTheme.bodyMedium))
-            else ...[
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
-                child: SegmentedButton<_Mode>(
-                  segments: const [
-                    ButtonSegment(value: _Mode.scan, icon: Icon(AppIcons.scanBarcode), label: Text(StockCountStrings.scanMode)),
-                    ButtonSegment(value: _Mode.type, icon: Icon(AppIcons.keyboard), label: Text(StockCountStrings.typeMode)),
-                    ButtonSegment(value: _Mode.list, icon: Icon(AppIcons.listChecks), label: Text(StockCountStrings.listMode)),
+              if (closed.isNotEmpty)
+                MaterialBanner(
+                  content: Text(StockCountStrings.closedKept(closed.length)),
+                  actions: [
+                    TextButton(onPressed: () => _shareClosed(closed), child: const Text(StockCountStrings.shareClosed)),
+                    TextButton(onPressed: () => ref.read(countQueueProvider.notifier).discardClosed(_id), child: const Text(StockCountStrings.discardClosed)),
                   ],
-                  selected: {_mode},
-                  onSelectionChanged: (selected) => setState(() => _mode = selected.first),
                 ),
-              ),
-              if (_feedback != null)
+              if (!ownOutlet)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
-                  child: Text(
-                    _feedback!,
-                    style: TextStyle(color: _feedbackError ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600),
+                  padding: const EdgeInsets.all(AppSpacing.s16),
+                  child: Text(StockCountStrings.otherOutlet(count.number, count.outletName ?? ''), style: Theme.of(context).textTheme.bodyMedium),
+                )
+              else if (!count.isEditable)
+                Padding(padding: const EdgeInsets.all(AppSpacing.s16), child: Text(StockCountStrings.closed, style: Theme.of(context).textTheme.bodyMedium))
+              else ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16, vertical: AppSpacing.s8),
+                  child: SegmentedButton<_Mode>(
+                    segments: const [
+                      ButtonSegment(value: _Mode.scan, icon: Icon(AppIcons.scanBarcode), label: Text(StockCountStrings.scanMode)),
+                      ButtonSegment(value: _Mode.type, icon: Icon(AppIcons.keyboard), label: Text(StockCountStrings.typeMode)),
+                      ButtonSegment(value: _Mode.list, icon: Icon(AppIcons.listChecks), label: Text(StockCountStrings.listMode)),
+                    ],
+                    selected: {_mode},
+                    onSelectionChanged: (selected) => setState(() => _mode = selected.first),
                   ),
                 ),
-              Expanded(
-                child: switch (_mode) {
-                  _Mode.scan => _ScanPane(
-                      camera: _camera,
-                      recent: _recent.take(5).toList(),
-                      pendingIds: pending.map((item) => item.clientUuid).toSet(),
-                      onToggleCamera: () => setState(() => _camera = !_camera),
-                      onCode: _handleCode,
-                      onUndo: _undo,
+                if (_feedback != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s16),
+                    child: Text(
+                      _feedback!,
+                      style: TextStyle(color: _feedbackError ? Theme.of(context).colorScheme.error : null, fontWeight: FontWeight.w600),
                     ),
-                  _Mode.type => _TypePane(
-                      catalog: ref.watch(countCatalogProvider(_id)),
-                      search: _search,
-                      onSearch: (term) => setState(() => _search = term),
-                      onSubmit: _handleCode,
-                      onPick: _openEntry,
-                    ),
-                  _Mode.list => _ItemsPane(countId: _id, canSeeSystem: count.canSeeSystem, onPick: (item) => _openEntry(item.toCatalog(), countedQty: item.countedQty, systemQty: count.canSeeSystem ? item.systemQty : null)),
-                },
-              ),
-              SafeArea(
-                top: false,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: () => _finish(count),
-                      icon: const Icon(AppIcons.check),
-                      label: Text(count.canManage && count.status == StockCountStatuses.counting ? StockCountStrings.toReview : StockCountStrings.finishCounting),
+                  ),
+                Expanded(
+                  child: switch (_mode) {
+                    _Mode.scan => _ScanPane(
+                        camera: _camera,
+                        recent: _recent.take(5).toList(),
+                        pendingIds: pending.map((item) => item.clientUuid).toSet(),
+                        onToggleCamera: () => setState(() => _camera = !_camera),
+                        onCode: _handleCode,
+                        onUndo: _undo,
+                      ),
+                    _Mode.type => _TypePane(
+                        catalog: ref.watch(countCatalogProvider(_id)),
+                        search: _search,
+                        onSearch: (term) => setState(() => _search = term),
+                        onSubmit: _handleCode,
+                        onPick: _openEntry,
+                      ),
+                    _Mode.list => _ItemsPane(countId: _id, canSeeSystem: count.canSeeSystem, onPick: (item) => _openEntry(item.toCatalog(), countedQty: item.countedQty, systemQty: count.canSeeSystem ? item.systemQty : null)),
+                  },
+                ),
+                SafeArea(
+                  top: false,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(AppSpacing.s16, AppSpacing.s8, AppSpacing.s16, AppSpacing.s8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: () => _finish(count),
+                        icon: const Icon(AppIcons.check),
+                        label: Text(count.canManage && count.status == StockCountStatuses.counting ? StockCountStrings.toReview : StockCountStrings.finishCounting),
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
+          );
+        },
       ),
     );
   }

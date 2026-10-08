@@ -19,6 +19,7 @@ class StockCountDoc {
     required this.canSeeSystem,
     required this.canManage,
     required this.holdAdjustments,
+    this.outletId,
     this.outletName,
     this.note,
     this.itemsCount = 0,
@@ -37,6 +38,7 @@ class StockCountDoc {
         canSeeSystem: json['can_see_system'] == true,
         canManage: json['can_manage'] == true,
         holdAdjustments: json['hold_adjustments'] == true,
+        outletId: json['outlet'] is Map ? asInt(asMap(json['outlet'])['id']) : null,
         outletName: asMap(json['outlet'])['name'] as String?,
         note: json['note'] as String?,
         itemsCount: asInt(json['items_count']),
@@ -54,6 +56,7 @@ class StockCountDoc {
   final bool canSeeSystem;
   final bool canManage;
   final bool holdAdjustments;
+  final int? outletId;
   final String? outletName;
   final String? note;
   final int itemsCount;
@@ -62,6 +65,9 @@ class StockCountDoc {
   final Map<String, dynamic> summary;
 
   bool get isEditable => status == StockCountStatuses.counting || status == StockCountStatuses.review;
+
+  /// Opname hanya bisa diubah dari outlet dokumennya.
+  bool belongsTo(int? activeOutletId) => outletId == null || activeOutletId == null || outletId == activeOutletId;
   bool get isOpen => isEditable || status == StockCountStatuses.posting;
   double get progress => itemsCount == 0 ? 0 : countedCount / itemsCount;
 }

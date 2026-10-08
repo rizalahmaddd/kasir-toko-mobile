@@ -11,6 +11,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
 import '../../pos/presentation/widgets/barcode_scanner_view.dart';
+import '../../outlets/outlet_controller.dart';
 import '../count_queue.dart';
 import '../data/stock_count_models.dart';
 import '../stock_count_providers.dart';
@@ -51,7 +52,14 @@ class _SerialScanScreenState extends ConsumerState<SerialScanScreen> {
       unawaited(HapticFeedback.heavyImpact());
       return;
     }
-    final queued = serialScan(countId: widget.countId, userId: user.id, serial: serial, productId: widget.item.productId, productName: widget.item.name);
+    final queued = serialScan(
+      countId: widget.countId,
+      userId: user.id,
+      serial: serial,
+      productId: widget.item.productId,
+      productName: widget.item.name,
+      outletId: ref.read(currentOutletIdProvider),
+    );
     ref.read(countQueueProvider.notifier).add(queued);
     unawaited(HapticFeedback.mediumImpact());
     unawaited(SystemSound.play(SystemSoundType.click));

@@ -8,6 +8,7 @@ import '../../core/network/api_exception.dart';
 import '../../core/paging/paged.dart';
 import '../../core/storage/app_storage.dart';
 import '../../core/utils/formatters.dart';
+import '../outlets/outlet_controller.dart';
 import 'count_queue.dart';
 import 'data/stock_count_models.dart';
 import 'data/stock_count_repository.dart';
@@ -18,13 +19,17 @@ final stockCountsProvider = AsyncNotifierProvider<StockCountsNotifier, PagedStat
 
 class StockCountsNotifier extends PagedNotifier<StockCountDoc> {
   @override
-  Future<Paginated<StockCountDoc>> fetch(int page) => ref.read(stockCountRepositoryProvider).list(status: ref.watch(stockCountsTabProvider), page: page);
+  Future<Paginated<StockCountDoc>> fetch(int page) {
+    ref.watch(currentOutletIdProvider);
+    return ref.read(stockCountRepositoryProvider).list(status: ref.watch(stockCountsTabProvider), page: page);
+  }
 }
 
 final stockCountProvider = FutureProvider.autoDispose.family<StockCountDoc, int>((ref, id) => ref.read(stockCountRepositoryProvider).show(id));
 
 /// Opname yang berjalan di outlet aktif, untuk banner di layar Stok.
 final openStockCountsProvider = FutureProvider.autoDispose<List<StockCountDoc>>((ref) async {
+  ref.watch(currentOutletIdProvider);
   try {
     return (await ref.read(stockCountRepositoryProvider).list()).items;
   } on ApiException {
@@ -95,6 +100,7 @@ QueuedCount countEntry({
   String? newBatchExpiry,
   String? note,
   DateTime? countedAt,
+  int? outletId,
 }) {
   final nonEmpty = {for (final entry in lines.entries) if (entry.value >= 0) entry.key: entry.value};
   final payload = <String, dynamic>{
@@ -119,10 +125,12 @@ QueuedCount countEntry({
     payload: payload,
     label: '${item.name} · ${parts.join(' + ')}',
     createdAt: DateTime.now(),
+    outletId: outletId,
   );
 }
 
-QueuedCount serialScan({required int countId, required int userId, required String serial, int? productId, String? productName}) => QueuedCount(
+QueuedCount serialScan({required int countId, required int userId, required String serial, int? productId, String? productName, int? outletId}) =>
+    QueuedCount(
       kind: CountKind.serial,
       countId: countId,
       clientUuid: _uuid.v4(),
@@ -130,4 +138,5 @@ QueuedCount serialScan({required int countId, required int userId, required Stri
       payload: {'serial': serial.trim().toUpperCase(), 'product_id': ?productId, 'scanned_at': DateTime.now().toUtc().toIso8601String()},
       label: [?productName, serial.trim().toUpperCase()].join(' · '),
       createdAt: DateTime.now(),
+      outletId: outletId,
     );
