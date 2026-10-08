@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_pos_mobile/core/network/api_exception.dart';
 import 'package:web_pos_mobile/core/storage/app_storage.dart';
+import 'package:web_pos_mobile/features/modifiers/data/modifier_groups_repository.dart';
 import 'package:web_pos_mobile/features/orders/data/order_models.dart';
 import 'package:web_pos_mobile/features/pos/cart_controller.dart';
 import 'package:web_pos_mobile/features/pos/data/pos_models.dart';
@@ -162,5 +163,27 @@ void main() {
     expect(limited.creditRoom, 100000);
     expect(unlimited.creditRoom, isNull);
     expect(CustomerOption.fromJson({'id': 3, 'name': 'Lewat', 'due': 700000, 'credit_limit': 500000}).creditRoom, 0);
+  });
+
+  test('a modifier group keeps its ingredient settings when sent back from the app', () {
+    final group = ModifierGroupRecord.fromJson({
+      'id': 4,
+      'name': 'Tambahan Kopi',
+      'min_select': 0,
+      'max_select': null,
+      'rule': 'Opsional',
+      'is_active': true,
+      'products_count': 2,
+      'options': [
+        {'id': 9, 'name': 'Extra Shot', 'price': 6000, 'product_id': 30, 'ingredient_quantity': '18.000', 'is_active': true},
+      ],
+      'products': [
+        {'id': 3, 'name': 'Latte'},
+      ],
+    });
+
+    expect(group.maxSelect, isNull);
+    expect(group.products.single.name, 'Latte');
+    expect(group.options.single.toJson(), {'id': 9, 'name': 'Extra Shot', 'price': 6000, 'product_id': 30, 'ingredient_quantity': '18.000', 'is_active': true});
   });
 }

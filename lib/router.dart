@@ -37,6 +37,8 @@ import 'features/reports/presentation/activity_log_screen.dart';
 import 'features/reports/presentation/sales_report_screen.dart';
 import 'features/sales/presentation/sale_detail_screen.dart';
 import 'features/sales/presentation/sales_screen.dart';
+import 'features/modifiers/presentation/modifier_group_form_screen.dart';
+import 'features/modifiers/presentation/modifier_groups_screen.dart';
 import 'features/orders/presentation/order_detail_screen.dart';
 import 'features/orders/presentation/order_form_screen.dart';
 import 'features/orders/presentation/orders_screen.dart';
@@ -94,6 +96,12 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under(AppRoutes.posSettings)) {
     return user.canManagePosSettings;
+  }
+  if (under(AppRoutes.modifierGroups)) {
+    return user.usesModifiers && user.canViewProducts;
+  }
+  if (under(AppRoutes.modifierGroup)) {
+    return user.usesModifiers && user.canManageMasterData;
   }
   if (under(AppRoutes.orders) || under(AppRoutes.order)) {
     return user.canManageOrders;
@@ -194,6 +202,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page(AppRoutes.outlets, (_) => const OutletsScreen()),
       _page(AppRoutes.outletSettingsPattern, (state) => OutletSettingsScreen(outletId: _id(state))),
       _page(AppRoutes.offline, (_) => const OfflineScreen()),
+      _page(AppRoutes.modifierGroups, (_) => const ModifierGroupsScreen()),
+      _page(AppRoutes.modifierGroupNew, (_) => const ModifierGroupFormScreen()),
+      _page(AppRoutes.modifierGroupPattern, (state) => ModifierGroupFormScreen(groupId: _id(state))),
       _page(AppRoutes.orders, (_) => const OrdersScreen()),
       _page(AppRoutes.orderNew, (_) => const OrderFormScreen()),
       _page(AppRoutes.orderPattern, (state) => OrderDetailScreen(orderId: _id(state))),

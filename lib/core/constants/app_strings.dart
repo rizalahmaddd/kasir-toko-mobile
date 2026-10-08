@@ -248,6 +248,7 @@ abstract final class HomeStrings {
   static const menuPrescriptionsLabel = 'Resep';
   static const menuPrescriptionsCaption = 'Resep dokter & verifikasi apoteker';
   static const menuOrdersLabel = 'Pesanan & Servis';
+  static const menuModifiersCaption = 'Ukuran, level gula, topping';
   static const menuOrdersCaption = 'Pre-order, DP, dan tiket servis';
   static const menuSectionProductsStock = 'Produk & Stok';
   static const menuSectionReportsActivity = 'Laporan & Aktivitas';
@@ -1866,4 +1867,33 @@ abstract final class OrderStrings {
   static const back = 'Kembali';
   static String loadedToCart(String number) => 'Pesanan $number dimuat ke kasir. DP dipotong dari total.';
   static String loadedWithSkipped(String names) => 'Tidak dimuat (bukan produk aktif): $names. Tambahkan manual bila perlu.';
+}
+
+abstract final class ModifierStrings {
+  static const screenTitle = 'Pilihan Tambahan';
+  static const searchHint = 'Cari grup pilihan';
+  static const newGroup = 'Grup Baru';
+  static const empty = 'Belum ada grup pilihan';
+  static const emptyHint = 'Mis. Ukuran (Regular / Large +5.000) atau Gula (Normal / Less / No). Pasang ke produk supaya ditanyakan di kasir.';
+  static String productsCount(int count) => '$count produk';
+  static const inactive = 'NONAKTIF';
+  static const name = 'Nama grup';
+  static const nameHint = 'Mis. Ukuran';
+  static const minSelect = 'Minimal pilih';
+  static const maxSelect = 'Maksimal pilih';
+  static const unlimited = 'Bebas';
+  static const ruleHint = 'Minimal 1 = wajib dipilih. Maksimal 1 = cukup satu pilihan. Kosongkan maksimal untuk topping yang boleh banyak.';
+  static const active = 'Grup aktif';
+  static const options = 'Pilihan';
+  static const addOption = 'Tambah pilihan';
+  static const optionName = 'Nama pilihan';
+  static const optionPrice = 'Harga tambahan';
+  static const products = 'Dipakai di produk';
+  static const addProduct = 'Tambah produk';
+  static const save = 'Simpan Grup';
+  static const saved = 'Grup pilihan disimpan.';
+  static const delete = 'Hapus';
+  static const deleteTitle = 'Hapus grup pilihan ini?';
+  static const deleteHint = 'Grup dilepas dari semua produk. Transaksi lama tetap menyimpan nama & harga pilihannya.';
+  static const deleted = 'Grup pilihan dihapus.';
 }

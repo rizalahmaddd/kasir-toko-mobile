@@ -56,6 +56,11 @@ abstract final class AppRoutes {
   static const outlets = '/outlets';
   static const outletSettingsPattern = '/outlets/:id/settings';
   static const offline = '/offline';
+  static const modifierGroups = '/modifier-groups';
+  static const modifierGroup = '/modifier-group';
+  static const modifierGroupNew = '/modifier-group/new';
+  static const modifierGroupPattern = '/modifier-group/:id';
+  static String modifierGroupDetail(int id) => '$modifierGroup/$id';
   static const orders = '/orders';
   static const order = '/order';
   static const orderNew = '/order/new';

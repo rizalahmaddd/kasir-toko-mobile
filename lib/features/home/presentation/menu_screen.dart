@@ -127,6 +127,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
       (
         HomeStrings.menuSectionProductsStock,
         [
+          if (user.usesModifiers && user.canViewProducts)
+            (
+              icon: AppIcons.listPlus,
+              label: ModifierStrings.screenTitle,
+              path: AppRoutes.modifierGroups,
+              caption: HomeStrings.menuModifiersCaption,
+              color: AppColors.sky600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
           if (user.canViewCategories)
             (
               icon: AppIcons.tags,
