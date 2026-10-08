@@ -227,6 +227,20 @@ abstract final class OnboardingStrings {
   static const disabledModulesTitle = 'Modul yang Dimatikan';
   static const applyNote = 'Catatan: Menerapkan preset akan memperbarui pengaturan kasir toko Anda.';
   static const applyButton = 'Terapkan';
+
+  // Wizard Stepper
+  static const nextButton = 'Lanjut';
+  static const prevButton = 'Kembali';
+  static const stepCategoriesTitle = 'Kategori & Sampel';
+  static const stepCategoriesTab = 'Kategori';
+  static const stepCategoriesSubtitle = 'Pilih kategori produk dan contoh produk awal untuk toko.';
+  static const stepCapabilitiesTab = 'Fitur Usaha';
+  static const stepCapabilitiesSubtitle = 'Pilih fitur pendukung operasional khusus bidang usaha Anda.';
+  static const stepSettingsTitle = 'Pengaturan Kasir';
+  static const stepSettingsTab = 'Pengaturan';
+  static const stepSettingsSubtitle = 'Konfigurasi pajak, kasbon, dan aturan penjualan di kasir.';
+  static const presetSummaryTitle = 'Ringkasan Bawaan Preset';
+  static String stepCounter(int current, int total) => 'Langkah $current dari $total';
 }
 
 abstract final class HomeStrings {
@@ -480,6 +494,8 @@ abstract final class PosStrings {
   static const switchCameraTooltip = 'Ganti kamera';
   static const cameraError = 'Kamera tidak bisa dibuka. Izinkan akses kamera di pengaturan perangkat.';
   static const scanHint = 'Posisikan barcode di dalam kotak';
+  static const maximizeScanTooltip = 'Layar penuh';
+  static const closeScanTooltip = 'Tutup scanner';
 
   // Panel katalog
   static const closeSearchTooltip = 'Tutup pencarian';
@@ -1723,6 +1739,8 @@ abstract final class OutletStrings {
   static const copySource = 'Salin dari';
   static const copyConfirm = 'Salin Sekarang';
   static const copyDone = 'Pengaturan dan harga disalin.';
+  static const copyBusiness = 'Ikut salin jenis usaha & fitur khusus';
+  static const copyBusinessHelp = 'Fitur khusus outlet ini diganti dengan milik outlet sumber, mis. resep atau tipe pesanan. Kategori dan data produk tidak berubah.';
 
   // Pengaturan outlet
   static String settingsTitle(String outlet) => 'Pengaturan $outlet';

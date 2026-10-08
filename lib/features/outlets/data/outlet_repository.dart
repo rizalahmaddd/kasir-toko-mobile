@@ -55,7 +55,9 @@ class OutletRepository {
 
   Future<void> saveAccess(int id, List<int> userIds) => _api.put(ApiEndpoints.outletUsers(id), data: {'user_ids': userIds});
 
-  Future<void> copyFrom(int id, int sourceId) => _api.post(ApiEndpoints.outletCopy(id), data: {'source_outlet_id': sourceId});
+  /// [includeBusiness] also copies the store type, business features, and switched-off cashier features.
+  Future<void> copyFrom(int id, int sourceId, {bool includeBusiness = false}) =>
+      _api.post(ApiEndpoints.outletCopy(id), data: {'source_outlet_id': sourceId, if (includeBusiness) 'include_business': true});
 
   Future<OutletInfo> saveCapabilities(int id, List<String> capabilities) async =>
       OutletInfo.fromJson(ApiClient.data(await _api.put(ApiEndpoints.outletCapabilities(id), data: {'capabilities': capabilities})));

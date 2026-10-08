@@ -57,6 +57,7 @@ class PosScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: switch (shift) {
@@ -179,6 +180,7 @@ class _CashierState extends ConsumerState<_Cashier> {
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Expanded(child: CatalogPanel()),
         _CartBar(onOpen: _openCart),

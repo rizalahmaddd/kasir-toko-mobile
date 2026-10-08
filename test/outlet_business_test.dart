@@ -14,6 +14,7 @@ import 'package:web_pos_mobile/features/outlets/data/outlet_models.dart';
 import 'package:web_pos_mobile/features/outlets/data/outlet_repository.dart';
 import 'package:web_pos_mobile/features/outlets/presentation/outlets_screen.dart';
 import 'package:web_pos_mobile/features/products/data/product_models.dart';
+import 'package:web_pos_mobile/features/sales/data/sale_models.dart';
 
 class _MockOutlets extends Mock implements OutletRepository {}
 
@@ -37,7 +38,7 @@ CurrentUser _user(List<Map<String, dynamic>> outlets, {Set<String> features = co
       'name': 'Pemilik',
       'username': 'pemilik',
       'roles': ['superadmin'],
-      'permissions': ['pharmacy.prescription.view', 'kitchen.view', 'orders.manage', 'outlets.view', 'outlets.manage'],
+      'permissions': ['pos.sell', 'pharmacy.prescription.view', 'kitchen.view', 'orders.manage', 'outlets.view', 'outlets.manage'],
       'is_superadmin': false,
       'all_outlets': true,
       'enabled_features': ['settings.outlets', 'pos.cashier', 'pos.receivables', ...features],
@@ -91,6 +92,26 @@ void main() {
 
       expect(old.usesPrescriptionsAt(1), isTrue);
       expect(old.outletById(1)!.capabilities, isNull);
+    });
+
+    test('a new delivery note follows the outlet of the sale, not the active outlet', () {
+      final shop = _user(
+        [
+          _outlet(1, 'Pusat', primary: true, capabilities: const ['business.delivery-note']),
+          _outlet(2, 'Apotek', capabilities: const []),
+        ],
+        features: {'business.delivery-note'},
+      );
+      final sale = SaleDetail.fromJson({
+        'id': 1, 'number': 'TRX-9', 'status': 'completed', 'status_label': 'Selesai', 'sold_at': '2026-10-08T10:00:00+07:00', 'cashier': {'name': 'Kasir'},
+        'subtotal': 0, 'discount_amount': 0, 'tax_rate': '0', 'tax_amount': 0, 'total': 0, 'paid_amount': 0, 'cash_received': 0, 'change_amount': 0, 'due_amount': 0,
+        'items': [], 'payments': [], 'abilities': <String, dynamic>{},
+        'outlet': {'id': 2, 'name': 'Apotek', 'code': 'APT'},
+      });
+
+      expect(sale.outletId, 2);
+      expect(shop.usesDeliveryNotesAt(sale.outletId), isFalse);
+      expect(shop.usesDeliveryNotesAt(1), isTrue);
     });
 
     test('a capability switched off for the whole shop is off at every outlet', () {

@@ -194,6 +194,7 @@ class SaleDetail {
     this.discountType,
     this.discountValue = 0,
     this.shiftNumber,
+    this.outletId,
     this.outletName,
     this.flagLabels = const [],
     this.prescriptionNumber,
@@ -239,6 +240,7 @@ class SaleDetail {
       discountType: json['discount_type'] as String?,
       discountValue: _double(json['discount_value']),
       shiftNumber: (json['shift'] as Map<String, dynamic>?)?['number'] as String?,
+      outletId: (json['outlet'] as Map<String, dynamic>?)?['id'] as int?,
       outletName: (json['outlet'] as Map<String, dynamic>?)?['name'] as String?,
       flagLabels: (json['flag_labels'] as List? ?? const []).cast<String>(),
       prescriptionNumber: (json['prescription'] as Map<String, dynamic>?)?['number'] as String?,
@@ -260,6 +262,7 @@ class SaleDetail {
   final String statusLabel;
   final DateTime soldAt;
   final String cashierName;
+  final int? outletId;
   final String? outletName;
   final SaleCustomer? customer;
   final int subtotal;

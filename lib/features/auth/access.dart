@@ -53,4 +53,5 @@ extension OutletAccess on CurrentUser {
   bool canViewPrescriptionsAt(int? outletId) => _gateAt(FeatureKeys.prescription, PermissionKeys.prescriptionView, outletId);
   bool canViewKitchenAt(int? outletId) => _gateAt(FeatureKeys.orderType, PermissionKeys.kitchenView, outletId);
   bool canManageOrdersAt(int? outletId) => _gateAt(FeatureKeys.preOrder, PermissionKeys.ordersManage, outletId);
+  bool usesDeliveryNotesAt(int? outletId) => _gateAt(FeatureKeys.deliveryNote, PermissionKeys.posSell, outletId);
 }

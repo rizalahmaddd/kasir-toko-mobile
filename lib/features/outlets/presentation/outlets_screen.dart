@@ -570,6 +570,7 @@ class OutletCopySheet extends ConsumerStatefulWidget {
 
 class _OutletCopySheetState extends ConsumerState<OutletCopySheet> {
   int? _source;
+  bool _includeBusiness = false;
   bool _busy = false;
   String? _error;
 
@@ -580,8 +581,12 @@ class _OutletCopySheetState extends ConsumerState<OutletCopySheet> {
     });
 
     try {
-      await ref.read(outletRepositoryProvider).copyFrom(widget.outlet.id, _source!);
+      await ref.read(outletRepositoryProvider).copyFrom(widget.outlet.id, _source!, includeBusiness: _includeBusiness);
       ref.invalidate(outletSettingsProvider(widget.outlet.id));
+      if (_includeBusiness) {
+        await ref.read(authControllerProvider.notifier).refreshProfile();
+        ref.invalidate(managedOutletsProvider);
+      }
       if (mounted) {
         Navigator.pop(context);
         showMessage(context, OutletStrings.copyDone);
@@ -610,6 +615,13 @@ class _OutletCopySheetState extends ConsumerState<OutletCopySheet> {
           items: [for (final outlet in widget.outlets.where((o) => o.id != widget.outlet.id)) DropdownMenuItem(value: outlet.id, child: Text(outlet.name))],
           onChanged: (value) => setState(() => _source = value),
         ),
+        if (widget.outlet.capabilities != null)
+          AppSwitchListTile(
+            value: _includeBusiness,
+            onChanged: _busy ? null : (value) => setState(() => _includeBusiness = value),
+            title: const Text(OutletStrings.copyBusiness, style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13.5)),
+            subtitle: const Text(OutletStrings.copyBusinessHelp, style: TextStyle(fontSize: 11.5)),
+          ),
         if (_error != null) ...[
           const SizedBox(height: AppSizes.s8),
           Text(_error!, style: TextStyle(color: StatusColors.of(context).danger)),

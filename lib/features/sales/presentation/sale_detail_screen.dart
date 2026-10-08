@@ -143,7 +143,7 @@ class SaleDetailScreen extends ConsumerWidget {
           sale: sale,
           showOutlet: ref.watch(currentUserProvider)?.hasMultipleOutlets ?? false,
           onVoid: () => _void(context, ref, sale),
-          onDeliver: (ref.watch(currentUserProvider)?.usesDeliveryNotes ?? false) && !sale.isVoided ? () => _deliver(context, ref, sale) : null,
+          onDeliver: (ref.watch(currentUserProvider)?.usesDeliveryNotesAt(sale.outletId) ?? false) && !sale.isVoided ? () => _deliver(context, ref, sale) : null,
           onDelivered: (ref.watch(currentUserProvider)?.usesDeliveryNotes ?? false) ? (id) => _delivered(context, ref, id) : null,
           onPrintDelivery: ref.watch(printerSettingsProvider).isConfigured
               ? (note) => runPrint(context, () => ref.read(printerServiceProvider).printDeliveryNote(sale, note), success: PrintingStrings.deliveryNotePrinted)

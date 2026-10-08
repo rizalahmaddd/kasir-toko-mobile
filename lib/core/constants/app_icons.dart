@@ -88,6 +88,7 @@ abstract final class AppIcons {
   static const messageSquare = LucideIcons.messageSquare;
   static const messageSquareCode = LucideIcons.messageSquareCode;
   static const minus = LucideIcons.minus;
+  static const maximize = LucideIcons.maximize2;
   static const moon = LucideIcons.moon;
   static const package = LucideIcons.package;
   static const packageCheck = LucideIcons.packageCheck;
