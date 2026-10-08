@@ -217,6 +217,7 @@ class CustomerDetailScreen extends ConsumerWidget {
                               CustomerStrings.paymentTermInfoLabel,
                               customer.paymentTermDays == 0 ? CustomerStrings.cashPayment : CustomerStrings.paymentTermDays(customer.paymentTermDays),
                             ),
+                            InfoRow(CustomerStrings.creditLimitLabel, customer.creditLimit == null ? CustomerStrings.noCreditLimit : rupiah(customer.creditLimit!)),
                           ],
                         ),
                       ),

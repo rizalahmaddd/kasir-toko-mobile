@@ -199,6 +199,11 @@ int get _remaining => (_due - _committed).clamp(0, _due);
         setState(() => _error = PosStrings.paymentShortfallCredit(rupiah(shortfall)));
         return;
       }
+      final room = cart.customer!.creditRoom;
+      if (room != null && shortfall > room) {
+        setState(() => _error = PosStrings.creditLimitExceeded(cart.customer!.name, rupiah(room)));
+        return;
+      }
       final confirmed = await _confirmCredit(cart.customer!.name, shortfall);
       if (!confirmed) {
         return;

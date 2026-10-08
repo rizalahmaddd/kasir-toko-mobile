@@ -154,4 +154,13 @@ void main() {
     expect(sale.items.single.modifiers, ['Large']);
     expect(sale.deliveryNotes.single.isDelivered, isTrue);
   });
+
+  test('a customer credit limit leaves only the remaining room for new credit', () {
+    final limited = CustomerOption.fromJson({'id': 1, 'name': 'Pak Tukang', 'due': 400000, 'credit_limit': 500000});
+    const unlimited = CustomerOption(id: 2, name: 'Bu Warung', due: 900000);
+
+    expect(limited.creditRoom, 100000);
+    expect(unlimited.creditRoom, isNull);
+    expect(CustomerOption.fromJson({'id': 3, 'name': 'Lewat', 'due': 700000, 'credit_limit': 500000}).creditRoom, 0);
+  });
 }

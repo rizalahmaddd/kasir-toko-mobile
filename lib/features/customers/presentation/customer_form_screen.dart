@@ -8,6 +8,7 @@ import '../../../core/network/api_exception.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
+import '../../../core/utils/formatters.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../data_changes.dart';
 import '../customers_providers.dart';
@@ -55,13 +56,14 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
   late final _address = TextEditingController(text: _c?.address);
   late final _npwp = TextEditingController(text: _c?.npwp);
   late final _term = TextEditingController(text: '${_c?.paymentTermDays ?? 0}');
+  late final _creditLimit = TextEditingController(text: _c?.creditLimit == null ? '' : thousands(_c!.creditLimit!));
   late bool _active = _c?.isActive ?? true;
   bool _busy = false;
   ApiException? _error;
 
   @override
   void dispose() {
-    for (final controller in [_code, _name, _type, _contact, _phone, _email, _address, _npwp, _term]) {
+    for (final controller in [_code, _name, _type, _contact, _phone, _email,_address, _npwp, _term, _creditLimit]) {
       controller.dispose();
     }
     super.dispose();
@@ -90,6 +92,7 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
       address: _v(_address),
       npwp: _v(_npwp),
       paymentTermDays: int.tryParse(_term.text) ?? 0,
+      creditLimit: _creditLimit.text.trim().isEmpty ? null : parseRupiah(_creditLimit.text),
       isActive: _active,
     );
 
@@ -151,6 +154,7 @@ class _CustomerFormState extends ConsumerState<_CustomerForm> {
                   _field(_address, CustomerStrings.addressLabel, 'address', maxLines: 2),
                   _field(_npwp, CustomerStrings.npwpLabel, 'npwp', keyboard: TextInputType.number),
                   _field(_term, CustomerStrings.paymentTermLabel, 'payment_term_days', keyboard: TextInputType.number, hint: CustomerStrings.paymentTermHint),
+                  _field(_creditLimit, CustomerStrings.creditLimitLabel, 'credit_limit', keyboard: TextInputType.number, hint: CustomerStrings.creditLimitHint),
                   AppSwitchListTile(contentPadding: EdgeInsets.zero, title: const Text(CustomerStrings.active), value: _active, onChanged: (value) => setState(() => _active = value)),
                   if (generalError != null) Text(generalError, style: TextStyle(color: StatusColors.of(context).danger)),
                   const SizedBox(height: AppSizes.s12),

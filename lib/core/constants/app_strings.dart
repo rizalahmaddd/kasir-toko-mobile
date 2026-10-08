@@ -529,6 +529,7 @@ abstract final class PosStrings {
   static String orderSettling(String number, String deposit) => 'Pelunasan $number · DP $deposit';
   static String amountDueLabel(String deposit) => 'Sisa bayar (DP $deposit sudah diterima)';
   static const orderUnlink = 'Lepas pesanan';
+  static String creditLimitExceeded(String name, String room) => 'Melewati batas kasbon $name (sisa $room).';
   static const modifierAdd = 'Tambah ke Keranjang';
   static String modifierAddWithPrice(String extra) => 'Tambah (+$extra)';
   static const modifierSave = 'Simpan Pilihan';
@@ -1203,6 +1204,9 @@ abstract final class ReportStrings {
 }
 
 abstract final class CustomerStrings {
+  static const creditLimitLabel = 'Batas kasbon';
+  static const creditLimitHint = 'Kosongkan bila tanpa batas';
+  static const noCreditLimit = 'Tanpa batas';
   // Form
   static const newCustomerTitle = 'Pelanggan baru';
   static const editCustomerTitle = 'Ubah pelanggan';

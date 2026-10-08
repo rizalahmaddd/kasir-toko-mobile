@@ -338,7 +338,7 @@ class Product {
 }
 
 class CustomerOption {
-  const CustomerOption({required this.id, required this.name, this.code, this.phone, this.due = 0});
+const CustomerOption({required this.id, required this.name, this.code, this.phone, this.due = 0, this.creditLimit});
 
   factory CustomerOption.fromJson(Map<String, dynamic> json) => CustomerOption(
         id: json['id'] as int,
@@ -346,6 +346,7 @@ class CustomerOption {
         code: json['code'] as String?,
         phone: json['phone'] as String?,
         due: _int(json['due']),
+        creditLimit: json['credit_limit'] == null ? null : _int(json['credit_limit']),
       );
 
   final int id;
@@ -353,6 +354,12 @@ class CustomerOption {
   final String? code;
   final String? phone;
   final int due;
+
+  /// Batas total kasbon; null berarti tanpa batas.
+  final int? creditLimit;
+
+  /// Sisa kasbon yang masih boleh dicatat, null bila tanpa batas.
+  int? get creditRoom => creditLimit == null ? null : (creditLimit! - due).clamp(0, creditLimit!);
 }
 
 class CartItem {
