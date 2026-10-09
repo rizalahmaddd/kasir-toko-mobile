@@ -121,6 +121,27 @@ class _HomeShellState extends ConsumerState<HomeShell> with WidgetsBindingObserv
         }
       }
     });
+    ref.listen<bool>(currentUserProvider.select((user) => user?.updateRequired ?? false), (previous, required) {
+      if (required && previous != true) {
+        showDialog<void>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text(OutletStrings.updateRequiredTitle),
+            content: const Text(OutletStrings.updateRequiredMessage),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text(OutletStrings.updateLater)),
+              FilledButton(
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  ref.read(inAppUpdateServiceProvider.notifier).checkForUpdate(context: context);
+                },
+                child: const Text(OutletStrings.updateAction),
+              ),
+            ],
+          ),
+        );
+      }
+    });
     final tabs = visibleTabs(ref.watch(currentUserProvider));
     final cart = ref.watch(cartProvider);
     final selected = tabs.indexWhere((tab) => tab.branch == widget.shell.currentIndex).clamp(0, tabs.length - 1);

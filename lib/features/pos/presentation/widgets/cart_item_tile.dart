@@ -14,6 +14,7 @@ import '../../../../core/widgets/quantity_stepper.dart';
 import '../../../../core/widgets/state_views.dart';
 import '../../cart_controller.dart';
 import '../../data/pos_models.dart';
+import '../pos_actions.dart';
 import 'cart_line_edit_sheet.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_radius.dart';
@@ -26,7 +27,12 @@ class CartItemTile extends ConsumerWidget {
   final bool canDiscount;
 
   void _onQuantityChanged(BuildContext context, WidgetRef ref, double newQty) {
-    final warning = ref.read(cartProvider.notifier).setQuantity(item.productId, newQty);
+    // Unit bernomor seri bertambah lewat pemilihan nomor seri, bukan tombol plus.
+    if (item.trackSerial && newQty > item.quantity) {
+      unawaited(editLineSerials(context, ref, item));
+      return;
+    }
+    final warning = ref.read(cartProvider.notifier).setQuantity(item.key, newQty);
     if (warning != null) {
       unawaited(HapticFeedback.heavyImpact());
       showMessage(context, warning, isError: true);
@@ -45,7 +51,7 @@ class CartItemTile extends ConsumerWidget {
         : PosStrings.productInitialsFallback;
 
     return Dismissible(
-      key: ValueKey('cart_item_${item.productId}'),
+      key: ValueKey('cart_item_${item.key}'),
       direction: DismissDirection.endToStart,
       background: Container(
         alignment: Alignment.centerRight,
@@ -65,7 +71,7 @@ class CartItemTile extends ConsumerWidget {
       ),
       onDismissed: (_) {
         unawaited(HapticFeedback.mediumImpact());
-        ref.read(cartProvider.notifier).remove(item.productId);
+        ref.read(cartProvider.notifier).remove(item.key);
       },
       child: InkWell(
         onTap: () {
@@ -117,8 +123,17 @@ class CartItemTile extends ConsumerWidget {
                 child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    item.name,
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        if (item.requiresPrescription)
+                          TextSpan(
+                            text: '${PosStrings.prescriptionBadge} ',
+                            style: TextStyle(color: colors.danger, fontWeight: FontWeight.w800),
+                          ),
+                        TextSpan(text: item.name),
+                      ],
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -132,13 +147,20 @@ class CartItemTile extends ConsumerWidget {
                   Row(
                     children: [
                       Text(
-                        PosStrings.pricePerUnit(rupiah(item.price), item.unit),
+                        PosStrings.pricePerUnit(rupiah(item.unitPrice + item.modifiersTotal), item.unit),
                         style: AppTypography.money(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                           color: muted,
                         ),
                       ),
+                      if (item.isTiered) ...[
+                        const SizedBox(width: AppSizes.s6),
+                        Text(
+                          PosStrings.tierBadge,
+                          style: theme.textTheme.labelSmall?.copyWith(color: colors.warning, fontWeight: FontWeight.w800, fontSize: 10),
+                        ),
+                      ],
                       if (item.appliedDiscount > 0) ...[
                         const SizedBox(width: AppSizes.s8),
                         Container(
@@ -159,6 +181,28 @@ class CartItemTile extends ConsumerWidget {
                       ],
                     ],
                   ),
+                  if (item.trackSerial) ...[
+                    const SizedBox(height: AppSizes.s3),
+                    Text(
+                      item.serials.isEmpty ? PosStrings.serialPick : 'SN: ${item.serials.join(', ')}',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: item.needsSerials ? colors.warning : muted,
+                        fontSize: 11,
+                        fontWeight: item.needsSerials ? FontWeight.w700 : null,
+                      ),
+                    ),
+                  ],
+                  if (item.modifiers.isNotEmpty) ...[
+                    const SizedBox(height: AppSizes.s3),
+                    Text(
+                      item.modifierNames,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(color: colors.info, fontSize: 11),
+                    ),
+                  ],
                   if (item.note != null && item.note!.isNotEmpty) ...[
                     const SizedBox(height: AppSizes.s3),
                     Row(

@@ -17,6 +17,7 @@ import '../data_changes.dart';
 import '../pos/data/pos_repository.dart';
 import '../sales/data/sales_repository.dart';
 import '../sales/sales_controller.dart';
+import '../stock_count/count_queue.dart';
 import 'catalog_snapshot.dart';
 import 'package:web_pos_mobile/core/theme/app_durations.dart';
 
@@ -32,6 +33,8 @@ class QueuedSale {
     required this.paid,
     required this.itemCount,
     required this.createdAt,
+    this.outletId,
+    this.shiftId,
     this.customerName,
     this.preview = const {},
     this.status = QueuedStatus.pending,
@@ -46,6 +49,8 @@ class QueuedSale {
         paid: asInt(json['paid']),
         itemCount: asDouble(json['item_count']),
         createdAt: DateTime.parse(json['created_at'] as String),
+        outletId: json['outlet_id'] as int?,
+        shiftId: json['cash_shift_id'] as int?,
         customerName: json['customer_name'] as String?,
         preview: asMap(json['preview']),
         status: json['status'] == QueuedStatusValues.failed ? QueuedStatus.failed : QueuedStatus.pending,
@@ -59,6 +64,11 @@ class QueuedSale {
   final int paid;
   final double itemCount;
   final DateTime createdAt;
+
+  /// Outlet and shift the sale was made in. Entries queued by older app versions carry neither and
+  /// are sent to whichever outlet is selected when they sync.
+  final int? outletId;
+  final int? shiftId;
   final String? customerName;
 
   /// SaleDetail-shaped copy built on the device, for printing a receipt before the server has the sale.
@@ -67,6 +77,14 @@ class QueuedSale {
   final String? error;
 
   String get clientUuid => payload['client_uuid'] as String;
+
+  /// The server needs when the sale really happened (a stock count compares it with when the shelf
+  /// was counted), plus the phone clock at send time so a wrong clock can be corrected.
+  Map<String, dynamic> syncPayload(DateTime now) => {
+        ...payload,
+        'occurred_at': createdAt.toUtc().toIso8601String(),
+        'device_sent_at': now.toUtc().toIso8601String(),
+      };
   int get change => paid > total ? paid - total : 0;
 
   QueuedSale copyWith({QueuedStatus? status, String? error}) => QueuedSale(
@@ -77,6 +95,8 @@ class QueuedSale {
         paid: paid,
         itemCount: itemCount,
         createdAt: createdAt,
+        outletId: outletId,
+        shiftId: shiftId,
         customerName: customerName,
         preview: preview,
         status: status ?? this.status,
@@ -91,6 +111,8 @@ class QueuedSale {
         'paid': paid,
         'item_count': itemCount,
         'created_at': createdAt.toIso8601String(),
+        'outlet_id': outletId,
+        'cash_shift_id': shiftId,
         'customer_name': customerName,
         'preview': preview,
         'status': status.name,
@@ -172,7 +194,7 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
     try {
       for (final sale in due) {
         try {
-          await ref.read(posRepositoryProvider).submitCheckout(sale.payload);
+          await ref.read(posRepositoryProvider).submitCheckout(sale.syncPayload(DateTime.now()), outletId: sale.outletId, offline: true);
           remove(sale.clientUuid);
           sent++;
         } on ApiException catch (error) {
@@ -194,7 +216,7 @@ class OfflineQueue extends Notifier<List<QueuedSale>> {
   }
 }
 
-/// Retries queued sales when connectivity returns, when the app comes back to the foreground,
+/// Retries queued sales and stock counts when connectivity returns, when the app comes back to the foreground,
 /// whenever a request reaches the server again, and every minute while anything is waiting.
 /// While the server is unreachable it is checked every 30 seconds; once it answers again the main
 /// screens reload so nothing keeps showing the offline copy.
@@ -202,6 +224,9 @@ final offlineSyncerProvider = Provider<void>((ref) {
   void trigger() {
     if (ref.read(myQueueProvider).any((sale) => sale.status == QueuedStatus.pending)) {
       unawaited(ref.read(offlineQueueProvider.notifier).sync());
+    }
+    if (ref.read(countQueueProvider).pending.any((item) => !item.failed)) {
+      unawaited(ref.read(countQueueProvider.notifier).sync());
     }
   }
 

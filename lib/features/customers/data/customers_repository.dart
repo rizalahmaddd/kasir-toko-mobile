@@ -19,6 +19,7 @@ class Customer {
     this.npwp,
     required this.paymentTermDays,
     required this.isActive,
+    this.creditLimit,
   });
 
   factory Customer.fromJson(Map<String, dynamic> json) => Customer(
@@ -33,6 +34,7 @@ class Customer {
         npwp: json['npwp'] as String?,
         paymentTermDays: asInt(json['payment_term_days']),
         isActive: json['is_active'] as bool? ?? true,
+        creditLimit: json['credit_limit'] == null ? null : asInt(json['credit_limit']),
       );
 
   final int id;
@@ -47,6 +49,9 @@ class Customer {
   final int paymentTermDays;
   final bool isActive;
 
+  /// Total kasbon belum lunas maksimal; null berarti tanpa batas.
+  final int? creditLimit;
+
   Map<String, dynamic> toJson() => {
         'code': code,
         'name': name,
@@ -57,6 +62,7 @@ class Customer {
         'address': address,
         'npwp': npwp,
         'payment_term_days': paymentTermDays,
+        'credit_limit': creditLimit,
         'is_active': isActive,
       };
 }

@@ -42,8 +42,21 @@ class CatalogSnapshot {
   }
 
   Product? lookup(String code) {
-    final match = products.where((p) => p['barcode'] == code).firstOrNull ?? products.where((p) => p['sku'] == code).firstOrNull;
-    return match == null ? null : Product.fromJson(match);
+    final match = products.where((p) => p['barcode'] == code).firstOrNull;
+    if (match != null) {
+      return Product.fromJson(match);
+    }
+
+    // Barcode satuan jual (mis. box) memilih satuan itu, sama dengan lookup di server.
+    for (final product in products) {
+      final unit = (product['units'] as List? ?? const []).cast<Map<String, dynamic>>().where((unit) => unit['barcode'] == code).firstOrNull;
+      if (unit != null) {
+        return Product.fromJson({...product, 'matched_unit_id': unit['id']});
+      }
+    }
+
+    final bySku = products.where((p) => p['sku'] == code).firstOrNull;
+    return bySku == null ? null : Product.fromJson(bySku);
   }
 
   List<Product> byIds(Iterable<int> ids) {
@@ -154,9 +167,11 @@ final catalogSnapshotProvider = AsyncNotifierProvider<CatalogSnapshotNotifier, C
 class CatalogSnapshotNotifier extends AsyncNotifier<CatalogSnapshot?> {
   OfflineCache get _cache => ref.read(offlineCacheProvider);
 
+  String get _file => StorageKeys.catalogFor(ref.read(offlineOutletProvider));
+
   @override
   Future<CatalogSnapshot?> build() async {
-    final stored = asMap(await ref.watch(offlineCacheProvider).readFile(StorageKeys.catalog));
+    final stored = asMap(await ref.watch(offlineCacheProvider).readFile(StorageKeys.catalogFor(ref.watch(offlineOutletProvider))));
     if (stored.isEmpty) {
       return null;
     }
@@ -198,5 +213,5 @@ class CatalogSnapshotNotifier extends AsyncNotifier<CatalogSnapshot?> {
   }
 
   Future<void> _save(CatalogSnapshot snapshot) =>
-      _cache.writeFile(StorageKeys.catalog, {'products': snapshot.products, 'updated_at': snapshot.updatedAt.toIso8601String()});
+      _cache.writeFile(_file, {'products': snapshot.products, 'updated_at': snapshot.updatedAt.toIso8601String()});
 }

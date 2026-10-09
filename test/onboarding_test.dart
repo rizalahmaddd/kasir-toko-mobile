@@ -8,6 +8,7 @@ import 'package:web_pos_mobile/features/auth/auth_controller.dart';
 import 'package:web_pos_mobile/features/auth/data/current_user.dart';
 import 'package:web_pos_mobile/features/offline/catalog_snapshot.dart';
 import 'package:web_pos_mobile/features/onboarding/onboarding.dart';
+import 'package:web_pos_mobile/core/constants/app_strings.dart';
 import 'package:web_pos_mobile/features/onboarding/presentation/onboarding_screen.dart';
 import 'package:web_pos_mobile/router.dart';
 
@@ -42,6 +43,10 @@ Map<String, dynamic> _presetJson(String key, String label) => {
         'receipt_footer': 'Sampai jumpa',
       },
       'disabled_features': ['pos.receivables'],
+      'capabilities': [
+        {'key': 'business.product-attributes', 'label': 'Atribut Produk Khusus', 'description': 'Isian tambahan', 'default_on': true},
+        {'key': 'business.batch-expiry', 'label': 'Batch & Kedaluwarsa', 'description': 'Stok per batch', 'default_on': false},
+      ],
     };
 
 class _FakeAuth extends AuthController {
@@ -54,6 +59,9 @@ class _FakeAuth extends AuthController {
 
   @override
   Future<void> updateTenant(TenantInfo tenant) async => state = AsyncData(state.value!.withTenant(tenant));
+
+  @override
+  Future<void> refreshProfile() async {}
 
   @override
   Future<void> logout() async => state = const AsyncData(null);
@@ -69,6 +77,7 @@ class _FakeRepository implements OnboardingRepository {
   ApiException? applyError;
   List<String>? lastCategories;
   Map<String, dynamic>? lastSettings;
+  List<String>? lastCapabilities;
 
   @override
   Future<List<StorePreset>> presets() async => [StorePreset.fromJson(_presetJson('kafe', 'Kafe / Coffee Shop'))];
@@ -79,9 +88,11 @@ class _FakeRepository implements OnboardingRepository {
     required bool includeSampleProducts,
     List<String>? categories,
     Map<String, dynamic>? settings,
+    List<String>? capabilities,
   }) async {
     lastCategories = categories;
     lastSettings = settings;
+    lastCapabilities = capabilities;
     calls.add('apply $storeType samples=$includeSampleProducts');
     if (applyError != null) {
       throw applyError!;
@@ -186,10 +197,20 @@ void main() {
 
       await tester.tap(find.text('Kafe / Coffee Shop'));
       await tester.pumpAndSettle();
+
+      // Step 1: Kategori & Sampel
+      await tester.tap(find.text('Sertakan produk contoh'));
+      await tester.pumpAndSettle();
+
+      // Navigate to Step 2 (Fitur Usaha) -> Step 3 (Pengaturan Kasir)
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+
       expect(find.text('PB1 10%'), findsOneWidget);
       expect(find.text('Piutang (kasbon)'), findsOneWidget);
 
-      await tester.tap(find.text('Sertakan produk contoh'));
       await tester.tap(find.text('Terapkan'));
       await tester.pumpAndSettle();
 
@@ -219,6 +240,10 @@ void main() {
 
       await tester.tap(find.text('Kafe / Coffee Shop'));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Terapkan'));
       await tester.pumpAndSettle();
 
@@ -233,11 +258,17 @@ void main() {
       await tester.tap(find.text('Kafe / Coffee Shop'));
       await tester.pumpAndSettle();
 
-      // Uncheck category "Non Kopi"
+      // Step 1: Uncheck category "Non Kopi"
       await tester.tap(find.text('Non Kopi'));
       await tester.pumpAndSettle();
 
-      // Toggle negative stock (currently true in mock, will become false)
+      // Advance to Step 2 -> Step 3
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+
+      // Step 3: Toggle negative stock (currently true in mock, will become false)
       await tester.ensureVisible(find.text('Jual saat stok habis / minus'));
       await tester.tap(find.text('Jual saat stok habis / minus'));
       await tester.pumpAndSettle();
@@ -248,6 +279,94 @@ void main() {
       expect(repository.lastCategories, ['Kopi']);
       expect(repository.lastSettings?['allow_negative_stock'], isFalse);
       expect(container.read(currentUserProvider)?.needsOnboarding, isFalse);
+    });
+
+    testWidgets('sends the business capabilities the owner keeps ticked', (tester) async {
+      final (_, repository) = await _pump(tester);
+
+      await tester.tap(find.text('Kafe / Coffee Shop'));
+      await tester.pumpAndSettle();
+
+      // Navigate to Step 2: Fitur Usaha
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Batch & Kedaluwarsa'));
+      await tester.tap(find.text('Batch & Kedaluwarsa'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Atribut Produk Khusus'));
+      await tester.tap(find.text('Atribut Produk Khusus'));
+      await tester.pumpAndSettle();
+
+      // Advance to Step 3: Pengaturan Kasir
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Terapkan'));
+      await tester.pumpAndSettle();
+
+      expect(repository.lastCapabilities, ['business.batch-expiry']);
+    });
+
+    testWidgets('navigates through wizard steps and back with buttons and indicator tabs', (tester) async {
+      await _pump(tester);
+
+      await tester.tap(find.text('Kafe / Coffee Shop'));
+      await tester.pumpAndSettle();
+
+      // Step 1 is active
+      expect(find.text('Kategori & Sampel'), findsOneWidget);
+
+      // Step forward to Step 2
+      await tester.tap(find.text('Lanjut'));
+      await tester.pumpAndSettle();
+      expect(find.text('Fitur khusus usaha'), findsAtLeastNWidgets(1));
+
+      // Step backward with Kembali button
+      await tester.tap(find.text('Kembali'));
+      await tester.pumpAndSettle();
+      expect(find.text('Kategori & Sampel'), findsOneWidget);
+
+      // Jump directly using Stepper tab pill "Pengaturan"
+      await tester.tap(find.text('Pengaturan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pengaturan Kasir'), findsAtLeastNWidgets(1));
+      expect(find.text('Terapkan'), findsOneWidget);
+    });
+
+    testWidgets('requires at least one category before proceeding to next step', (tester) async {
+      await _pump(tester);
+
+      await tester.tap(find.text('Kafe / Coffee Shop'));
+      await tester.pumpAndSettle();
+
+      // Clear all categories
+      await tester.tap(find.text('Batal Semua'));
+      await tester.pumpAndSettle();
+
+      // Next button should be disabled when selectedCategories is empty
+      final nextBtn = tester.widget<FilledButton>(find.widgetWithText(FilledButton, 'Lanjut'));
+      expect(nextBtn.onPressed, isNull);
+
+      // Tapping step pill "Pengaturan" triggers error message and stays on Step 1
+      await tester.tap(find.text('Pengaturan'));
+      await tester.pumpAndSettle();
+      expect(find.text('Pilih minimal 1 kategori untuk toko Anda.'), findsOneWidget);
+      expect(find.text('Kategori & Sampel'), findsOneWidget);
+    });
+
+    testWidgets('tapping Kembali on step 1 returns to preset picker grid', (tester) async {
+      await _pump(tester);
+
+      await tester.tap(find.text('Kafe / Coffee Shop'));
+      await tester.pumpAndSettle();
+      expect(find.text('Kategori & Sampel'), findsOneWidget);
+
+      await tester.tap(find.text('Kembali'));
+      await tester.pumpAndSettle();
+
+      // Back to picker
+      expect(find.text(OnboardingStrings.pickerHeadingFirstRun), findsOneWidget);
     });
   });
 }

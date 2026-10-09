@@ -85,8 +85,9 @@ class CartSummarySection extends StatelessWidget {
                     valueColor: AppColors.emerald500,
                     icon: AppIcons.tag,
                   ),
-                if ((config?.taxRate ?? 0) > 0)
-                  _SummaryRow(PosStrings.taxLabelRate(config!.taxLabel, quantity(config!.taxRate)), rupiah(totals.taxAmount)),
+                if (totals.serviceAmount > 0)
+                  _SummaryRow(PosStrings.serviceLabel(quantity(config!.serviceRateFor(cart.orderTypeFor(config)))), rupiah(totals.serviceAmount)),
+                if ((config?.taxRate ?? 0) > 0) _SummaryRow(PosStrings.taxLabelRate(config!.taxLabel, quantity(config!.taxRate)), rupiah(totals.taxAmount)),
                 const SizedBox(height: AppSizes.s6),
                 Divider(
                   height: 12,
@@ -106,14 +107,14 @@ class CartSummarySection extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          PosStrings.cartItemCount(quantity(cart.itemCount)),
+                          cart.customerOrder == null ? PosStrings.cartItemCount(quantity(cart.itemCount)) : PosStrings.amountDueLabel(rupiah(cart.customerOrder!.deposit)),
                           style: theme.textTheme.bodySmall?.copyWith(color: muted),
                         ),
                       ],
                     ),
                     const Spacer(),
                     Text(
-                      rupiah(totals.total),
+                      rupiah(cart.amountDue(config)),
                       style: AppTypography.money(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -173,7 +174,7 @@ class CartSummarySection extends StatelessWidget {
                             },
                       icon: const Icon(AppIcons.checkCheck, size: AppSizes.s20),
                       label: Text(
-                        PosStrings.payAmountButton(rupiah(totals.total)),
+PosStrings.payAmountButton(rupiah(cart.amountDue(config))),
                         style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
                       ),
                     ),

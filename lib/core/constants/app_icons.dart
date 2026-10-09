@@ -2,6 +2,9 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Pusat semua ikon aplikasi. Untuk mengganti ikon, cukup ubah di file ini.
 abstract final class AppIcons {
+  static const fileHeart = LucideIcons.fileHeart;
+  static const layers = LucideIcons.layers;
+  static const briefcaseBusiness = LucideIcons.briefcaseBusiness;
   static const alertCircle = LucideIcons.alertCircle;
   static const alertOctagon = LucideIcons.alertOctagon;
   static const alertTriangle = LucideIcons.alertTriangle;
@@ -45,6 +48,9 @@ abstract final class AppIcons {
   static const circleSlash = LucideIcons.circleSlash;
   static const circleUser = LucideIcons.circleUser;
   static const clipboardCheck = LucideIcons.clipboardCheck;
+  static const keyboard = LucideIcons.keyboard;
+  static const listChecks = LucideIcons.listChecks;
+  static const rotateCcw = LucideIcons.rotateCcw;
   static const clock = LucideIcons.clock;
   static const clockAlert = LucideIcons.clockAlert;
   static const cloudCheck = LucideIcons.cloudCheck;
@@ -56,6 +62,7 @@ abstract final class AppIcons {
   static const croissant = LucideIcons.croissant;
   static const download = LucideIcons.download;
   static const externalLink = LucideIcons.externalLink;
+  static const ellipsisVertical = LucideIcons.ellipsisVertical;
   static const eye = LucideIcons.eye;
   static const eyeOff = LucideIcons.eyeOff;
   static const fileClock = LucideIcons.fileClock;
@@ -84,6 +91,7 @@ abstract final class AppIcons {
   static const messageSquare = LucideIcons.messageSquare;
   static const messageSquareCode = LucideIcons.messageSquareCode;
   static const minus = LucideIcons.minus;
+  static const maximize = LucideIcons.maximize2;
   static const moon = LucideIcons.moon;
   static const package = LucideIcons.package;
   static const packageCheck = LucideIcons.packageCheck;
@@ -141,4 +149,9 @@ abstract final class AppIcons {
   static const wallet = LucideIcons.wallet;
   static const warehouse = LucideIcons.warehouse;
   static const x = LucideIcons.x;
+  static const clipboardList = LucideIcons.clipboardList;
+  static const chefHat = LucideIcons.chefHat;
+  static const listPlus = LucideIcons.listPlus;
+  static const truck = LucideIcons.truck;
+  static const wrench = LucideIcons.wrench;
 }

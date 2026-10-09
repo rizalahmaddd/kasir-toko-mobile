@@ -26,6 +26,12 @@ abstract final class AppRoutes {
   // Stok
   static const stock = '/stock';
   static const stockMovements = '/stock/movements';
+  static const stockCounts = '/stock-counts';
+  static const stockCount = '/stock-count';
+  static const stockCountPattern = '/stock-count/:id';
+  static const stockCountReviewPattern = '/stock-count/:id/review';
+  static String stockCountDetail(int id) => '$stockCount/$id';
+  static String stockCountReview(int id) => '$stockCount/$id/review';
 
   // Pelanggan
   static const customers = '/customers';
@@ -53,9 +59,28 @@ abstract final class AppRoutes {
   static const account = '/account';
   static const printer = '/printer';
   static const posSettings = '/pos-settings';
+  static const outlets = '/outlets';
+  static const outletSettingsPattern = '/outlets/:id/settings';
   static const offline = '/offline';
+  static const kitchen = '/kitchen';
+  static const modifierGroups = '/modifier-groups';
+  static const modifierGroup = '/modifier-group';
+  static const modifierGroupNew = '/modifier-group/new';
+  static const modifierGroupPattern = '/modifier-group/:id';
+  static String modifierGroupDetail(int id) => '$modifierGroup/$id';
+  static const orders = '/orders';
+  static const order = '/order';
+  static const orderNew = '/order/new';
+  static const orderPattern = '/order/:id';
+  static String orderDetail(int id) => '$order/$id';
+  static const prescriptions = '/prescriptions';
+  static const prescription = '/prescription';
+  static const prescriptionNew = '/prescription/new';
+  static const prescriptionPattern = '/prescription/:id';
   static const editSuffix = '/edit';
 
+  static String outletSettings(int id) => '$outlets/$id/settings';
+  static String prescriptionDetail(int id) => '$prescription/$id';
   static String saleDetail(int id) => '$sale/$id';
   static String productDetail(int id) => '$product/$id';
   static String productEdit(int id) => '$product/$id/edit';

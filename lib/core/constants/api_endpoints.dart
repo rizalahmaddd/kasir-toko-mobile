@@ -15,6 +15,18 @@ abstract final class ApiEndpoints {
   static const authLogoutAll = 'auth/logout-all';
   static const authMe = 'auth/me';
   static const authLogout = 'auth/logout';
+  static const authCurrentOutlet = 'auth/current-outlet';
+
+  // Outlet
+  static const outlets = 'outlets';
+  static const outletPriorities = 'outlets/priorities';
+  static String outlet(int id) => 'outlets/$id';
+  static String outletPrimary(int id) => 'outlets/$id/primary';
+  static String outletActive(int id) => 'outlets/$id/active';
+  static String outletUsers(int id) => 'outlets/$id/users';
+  static String outletCopy(int id) => 'outlets/$id/copy';
+  static String outletSettings(int id) => 'outlets/$id/settings';
+  static String outletCapabilities(int id) => 'outlets/$id/capabilities';
 
   // Umum
   static const dashboard = 'dashboard';
@@ -36,6 +48,42 @@ abstract final class ApiEndpoints {
   static const products = 'master-data/products';
   static String product(int id) => 'master-data/products/$id';
   static String productImage(int id) => 'master-data/products/$id/image';
+
+  // Farmasi
+  static String posProductSerials(int id) => 'pos/products/$id/serials';
+  static const orders = 'orders';
+  static String order(int id) => 'orders/$id';
+  static String orderPayments(int id) => 'orders/$id/payments';
+  static String orderStatus(int id) => 'orders/$id/status';
+  static String orderCancel(int id) => 'orders/$id/cancel';
+  static String orderCart(int id) => 'orders/$id/cart';
+  static String saleDeliveryNotes(int saleId) => 'sales/$saleId/delivery-notes';
+  static String deliveryNoteDelivered(int id) => 'delivery-notes/$id/delivered';
+  static const prescriptions = 'pharmacy/prescriptions';
+  static String prescription(int id) => 'pharmacy/prescriptions/$id';
+  static String prescriptionVerify(int id) => 'pharmacy/prescriptions/$id/verify';
+  static String prescriptionCancel(int id) => 'pharmacy/prescriptions/$id/cancel';
+  static String prescriptionImage(int id) => 'pharmacy/prescriptions/$id/image';
+  static String productBatches(int productId) => 'inventory/products/$productId/batches';
+
+  // Stok opname
+  static const stockCounts = 'inventory/stock-counts';
+  static String stockCount(int id) => 'inventory/stock-counts/$id';
+  static String stockCountItems(int id) => 'inventory/stock-counts/$id/items';
+  static String stockCountItem(int id, int itemId) => 'inventory/stock-counts/$id/items/$itemId';
+  static String stockCountItemEntries(int id, int itemId) => 'inventory/stock-counts/$id/items/$itemId/entries';
+  static String stockCountCatalog(int id) => 'inventory/stock-counts/$id/catalog';
+  static String stockCountLookup(int id) => 'inventory/stock-counts/$id/lookup';
+  static String stockCountEntries(int id) => 'inventory/stock-counts/$id/entries';
+  static String stockCountEntry(int id, int entryId) => 'inventory/stock-counts/$id/entries/$entryId';
+  static String stockCountSerials(int id) => 'inventory/stock-counts/$id/serials';
+  static String stockCountUnknown(int id) => 'inventory/stock-counts/$id/unknown';
+  static String stockCountSubmit(int id) => 'inventory/stock-counts/$id/submit';
+  static String stockCountReopen(int id) => 'inventory/stock-counts/$id/reopen';
+  static String stockCountPreview(int id) => 'inventory/stock-counts/$id/preview';
+  static String stockCountPost(int id) => 'inventory/stock-counts/$id/post';
+  static String stockCountCancel(int id) => 'inventory/stock-counts/$id/cancel';
+  static const expiringStock = 'inventory/expiring';
 
   // Master data - kategori
   static const categories = 'master-data/categories';
@@ -85,4 +133,5 @@ abstract final class ApiEndpoints {
   // Prefiks untuk aturan cache
   static const posPrefix = 'pos/';
   static const authPrefix = 'auth/';
+  static const outletsPrefix = 'outlets';
 }

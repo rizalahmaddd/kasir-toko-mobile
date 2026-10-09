@@ -6,6 +6,7 @@ import 'package:web_pos_mobile/core/constants/status_values.dart';
 
 import '../../core/storage/app_storage.dart';
 import '../../core/utils/formatters.dart';
+import '../kitchen/data/kitchen_models.dart';
 import '../sales/data/sale_models.dart';
 import '../shift/data/shift_models.dart';
 
@@ -30,6 +31,7 @@ int charsPerLine(String paperWidth) => paperWidth == '80' ? 48 : 32;
 class ReceiptProfile {
   const ReceiptProfile({
     required this.storeName,
+    this.outletName = '',
     this.address = '',
     this.phone = '',
     this.header = '',
@@ -56,6 +58,7 @@ class ReceiptProfile {
 
     return ReceiptProfile(
       storeName: text('store_name').isEmpty ? PrintingStrings.defaultStoreName : text('store_name'),
+      outletName: text('outlet_name'),
       address: text('address'),
       phone: text('phone'),
       header: text('header'),
@@ -80,6 +83,9 @@ class ReceiptProfile {
   }
 
   final String storeName;
+
+  /// Outlet printed under the store name; empty for single-outlet shops.
+  final String outletName;
   final String address;
   final String phone;
   final String header;
@@ -89,6 +95,7 @@ class ReceiptProfile {
 
   Map<String, dynamic> toJson() => {
         'store_name': storeName,
+        'outlet_name': outletName,
         'address': address,
         'phone': phone,
         'header': header,
@@ -144,6 +151,7 @@ List<PrintLine> _centered(String text, int width) =>
 /// Double-size text takes two columns per character, so the store name wraps at half the width.
 List<PrintLine> storeHeader(ReceiptProfile profile, int width, {bool showStoreInfo = true, bool showHeader = true}) => [
       for (final line in wrap(profile.storeName, width ~/ 2)) PrintLine(line, bold: true, align: LineAlign.center, large: true),
+      if (profile.outletName.isNotEmpty) for (final line in wrap(profile.outletName, width)) PrintLine(line, bold: true, align: LineAlign.center),
       if (showStoreInfo && profile.address.isNotEmpty) ..._centered(profile.address, width),
       if (showStoreInfo && profile.phone.isNotEmpty) ..._centered(PrintingStrings.receiptPhoneLine(profile.phone), width),
       if (showHeader && profile.header.isNotEmpty) ..._centered(profile.header, width),
@@ -159,6 +167,7 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
     for (final l in columns(PrintingStrings.receiptDateLabel, dateTime(sale.soldAt), width)) PrintLine(l),
     for (final l in columns(PrintingStrings.receiptCashierLabel, sale.cashierName, width)) PrintLine(l),
     if (sale.customer != null) for (final l in columns(PrintingStrings.receiptCustomerLabel, sale.customer!.name, width)) PrintLine(l),
+    if (sale.orderLabel != null) for (final l in columns(SalesStrings.orderLabel, sale.orderLabel!, width)) PrintLine(l),
     if (sale.isVoided) const PrintLine(PrintingStrings.receiptVoided, bold: true, align: LineAlign.center),
     const PrintLine.rule(),
   ];
@@ -166,6 +175,12 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
   for (final item in sale.items) {
     lines.addAll(wrap(item.productName, width).map(PrintLine.new));
     lines.addAll(columns('  ${quantity(item.quantity)} x ${_money(item.price)}', _money(item.total + item.discountAmount), width).map(PrintLine.new));
+    for (final modifier in item.modifiers) {
+      lines.addAll(wrap('  + $modifier', width).map(PrintLine.new));
+    }
+    if (item.serials.isNotEmpty) {
+      lines.addAll(wrap('  SN: ${item.serials.join(', ')}', width).map(PrintLine.new));
+    }
     if (item.discountAmount > 0) {
       lines.addAll(columns(PrintingStrings.receiptItemDiscountLabel, '-${_money(item.discountAmount)}', width).map(PrintLine.new));
     }
@@ -181,6 +196,9 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
     final label = sale.discountType == DiscountTypes.percent ? PrintingStrings.receiptPercentDiscount(quantity(sale.discountValue)) : PrintingStrings.receiptDiscountLabel;
     lines.addAll(columns(label, '-${_money(sale.discountAmount)}', width).map(PrintLine.new));
   }
+  if (sale.serviceChargeAmount > 0) {
+    lines.addAll(columns(PosStrings.serviceLabel(quantity(sale.serviceChargeRate)), _money(sale.serviceChargeAmount), width).map(PrintLine.new));
+  }
   if (sale.taxAmount > 0) {
     lines.addAll(columns(PrintingStrings.receiptTaxLine(profile.taxLabel, quantity(sale.taxRate)), _money(sale.taxAmount), width).map(PrintLine.new));
   }
@@ -188,6 +206,9 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
     ..addAll(columns(PrintingStrings.receiptTotalLabel, rupiah(sale.total), width).map((l) => PrintLine(l, bold: true)))
     ..add(const PrintLine.rule());
 
+  for (final payment in sale.payments.where((p) => p.kind == 'deposit')) {
+    lines.addAll(columns('DP ${payment.reference ?? ''}'.trim(), _money(payment.amount), width).map(PrintLine.new));
+  }
   for (final payment in sale.payments.where((p) => p.kind == PaymentKinds.sale)) {
     final amount = payment.method == PaymentMethods.cash && sale.cashReceived > 0 ? sale.cashReceived : payment.amount;
     lines.addAll(columns(payment.methodLabel, _money(amount), width).map(PrintLine.new));
@@ -213,6 +234,58 @@ List<PrintLine> saleReceipt(SaleDetail sale, {required ReceiptProfile profile, r
   }
 
   return lines;
+}
+
+/// Tiket dapur tanpa harga, nama menu dicetak tebal supaya terbaca dari jauh.
+List<PrintLine> kitchenTicketLines(KitchenTicket ticket, {required String paperWidth}) {
+  final width = charsPerLine(paperWidth);
+
+  return [
+    const PrintLine(PrintingStrings.kitchenTicketTitle, bold: true, align: LineAlign.center),
+    for (final line in wrap(ticket.label, width ~/ 2)) PrintLine(line, bold: true, align: LineAlign.center, large: true),
+    if (ticket.orderTypeLabel != null) PrintLine(ticket.orderTypeLabel!.toUpperCase(), bold: true, align: LineAlign.center),
+    const PrintLine.rule(),
+    for (final l in columns(PrintingStrings.receiptDateLabel, dateTime(ticket.createdAt), width)) PrintLine(l),
+    if (ticket.saleNumber != null) for (final l in columns(PrintingStrings.receiptNoLabel, ticket.saleNumber!, width)) PrintLine(l),
+    if (ticket.cashier != null) for (final l in columns(PrintingStrings.receiptCashierLabel, ticket.cashier!, width)) PrintLine(l),
+    const PrintLine.rule(),
+    for (final item in ticket.items) ...[
+      for (final line in wrap('${quantity(item.quantity)}x ${item.name}', width)) PrintLine(line, bold: true),
+      for (final modifier in item.modifiers) ...wrap('  + $modifier', width).map(PrintLine.new),
+      if (item.note != null && item.note!.isNotEmpty) ...wrap('  ! ${item.note}', width).map((l) => PrintLine(l, bold: true)),
+    ],
+  ];
+}
+
+/// Surat jalan: penerima, alamat, dan barang tanpa harga, ditutup kolom tanda tangan.
+List<PrintLine> deliveryNoteLines(SaleDetail sale, DeliveryNoteInfo note, {required ReceiptProfile profile, required String paperWidth}) {
+  final width = charsPerLine(paperWidth);
+
+  return [
+    ...storeHeader(profile, width, showHeader: false),
+    const PrintLine.rule(),
+    const PrintLine(PrintingStrings.deliveryNoteTitle, bold: true, align: LineAlign.center),
+    for (final l in columns(PrintingStrings.receiptNoLabel, note.number, width)) PrintLine(l),
+    for (final l in columns(PrintingStrings.deliveryNoteSale, sale.number, width)) PrintLine(l),
+    for (final l in columns(PrintingStrings.receiptDateLabel, dateOnly(sale.soldAt), width)) PrintLine(l),
+    const PrintLine.rule(),
+    ...wrap('${PrintingStrings.deliveryNoteTo}: ${note.recipient}', width).map((l) => PrintLine(l, bold: true)),
+    if (note.phone != null && note.phone!.isNotEmpty) ...wrap('Telp: ${note.phone}', width).map(PrintLine.new),
+    ...wrap(note.address, width).map(PrintLine.new),
+    if (note.project != null && note.project!.isNotEmpty) ...wrap('${PrintingStrings.deliveryNoteProject}: ${note.project}', width).map(PrintLine.new),
+    if ((note.driver ?? '').isNotEmpty || (note.vehicle ?? '').isNotEmpty)
+      ...wrap('${PrintingStrings.deliveryNoteDriver}: ${[note.driver, note.vehicle].whereType<String>().where((s) => s.isNotEmpty).join(' / ')}', width).map(PrintLine.new),
+    const PrintLine.rule(),
+    for (final item in sale.items) ...[
+      ...columns(item.productName, '${quantity(item.quantity)} ${item.unit}', width).map(PrintLine.new),
+      if (item.serials.isNotEmpty) ...wrap('  SN: ${item.serials.join(', ')}', width).map(PrintLine.new),
+    ],
+    const PrintLine.rule(),
+    ...columns(PrintingStrings.deliveryNoteSender, PrintingStrings.deliveryNoteReceiver, width).map(PrintLine.new),
+    const PrintLine(''),
+    const PrintLine(''),
+    ...columns('(..........)', '(..........)', width).map(PrintLine.new),
+  ];
 }
 
 const _methodLabels = {PaymentMethods.qris: PrintingStrings.methodQris, PaymentMethods.transfer: PrintingStrings.methodTransfer, PaymentMethods.card: PrintingStrings.methodCard};

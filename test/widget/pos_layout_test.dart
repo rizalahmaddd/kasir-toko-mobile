@@ -100,7 +100,7 @@ class _FakeCatalog extends CatalogController {
   Future<CatalogPage> build() async => CatalogPage(products: _products, page: 1, hasMore: false);
 }
 
-Future<List<Override>> _overrides() async {
+Future<List<Override>> _overrides({PosConfig? config}) async {
   SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
 
@@ -108,13 +108,13 @@ Future<List<Override>> _overrides() async {
     sharedPreferencesProvider.overrideWithValue(prefs),
     currentUserProvider.overrideWithValue(_user),
     currentShiftProvider.overrideWith(_FakeShift.new),
-    posConfigProvider.overrideWith((ref) async => _config),
+    posConfigProvider.overrideWith((ref) async => config ?? _config),
     posCategoriesProvider.overrideWith((ref) async => const [Category(id: 1, name: 'Sembako'), Category(id: 2, name: 'Minuman')]),
     catalogProvider.overrideWith(_FakeCatalog.new),
   ];
 }
 
-Future<void> _pump(WidgetTester tester, Widget screen, Size size) async {
+Future<void> _pump(WidgetTester tester, Widget screen, Size size, {PosConfig? config}) async {
   await initializeDateFormatting('id_ID');
   tester.view.physicalSize = size;
   tester.view.devicePixelRatio = 1;
@@ -122,7 +122,7 @@ Future<void> _pump(WidgetTester tester, Widget screen, Size size) async {
 
   await tester.pumpWidget(
     ProviderScope(
-      overrides: await _overrides(),
+      overrides: await _overrides(config: config),
       child: MaterialApp(theme: AppTheme.dark(), home: screen),
     ),
   );
@@ -375,6 +375,33 @@ void main() {
     // Verified: cart was popped and we are back on catalog
     expect(find.text('Keranjang'), findsNothing);
     expect(find.text('Produk 3'), findsOneWidget);
+  });
+
+  testWidgets('held orders button is visible when heldOrdersCount > 0 and hidden when 0', (tester) async {
+    // When heldOrdersCount is 2 (default _config)
+    await _pump(tester, const PosScreen(), phone);
+    expect(find.byIcon(AppIcons.clock), findsOneWidget);
+  });
+
+  testWidgets('held orders button is hidden when heldOrdersCount is 0', (tester) async {
+    const zeroHeldConfig = PosConfig(
+      taxRate: 11,
+      taxLabel: 'PPN',
+      allowNegativeStock: false,
+      allowCredit: true,
+      canDiscount: true,
+      receiptWidth: '58',
+      quickCash: [20000, 50000, 100000],
+      paymentMethods: [
+        PaymentMethodOption(value: 'cash', label: 'Tunai'),
+        PaymentMethodOption(value: 'qris', label: 'QRIS'),
+      ],
+      qrisEnabled: false,
+      hasOpenShift: true,
+      heldOrdersCount: 0,
+    );
+    await _pump(tester, const PosScreen(), phone, config: zeroHeldConfig);
+    expect(find.byIcon(AppIcons.clock), findsNothing);
   });
 
   for (final (name, size) in [('phone', phone), ('tablet', tablet)]) {

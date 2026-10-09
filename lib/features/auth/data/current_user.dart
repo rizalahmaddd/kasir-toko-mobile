@@ -1,5 +1,8 @@
 import 'package:web_pos_mobile/core/constants/status_values.dart';
 
+import '../../../core/utils/json.dart';
+import '../../outlets/data/outlet_models.dart';
+
 class CurrentUser {
   const CurrentUser({
     required this.id,
@@ -12,6 +15,11 @@ class CurrentUser {
     required this.isSuperadmin,
     required this.enabledFeatures,
     this.tenant,
+    this.allOutlets = false,
+    this.outlets = const [],
+    this.currentOutletId,
+    this.minSupportedVersion,
+    this.updateRequired = false,
   });
 
   factory CurrentUser.fromJson(Map<String, dynamic> json) => CurrentUser(
@@ -25,6 +33,14 @@ class CurrentUser {
         isSuperadmin: json['is_superadmin'] as bool? ?? false,
         enabledFeatures: (json['enabled_features'] as List? ?? const []).cast<String>().toSet(),
         tenant: json['tenant'] is Map<String, dynamic> ? TenantInfo.fromJson(json['tenant'] as Map<String, dynamic>) : null,
+        allOutlets: json['all_outlets'] as bool? ?? false,
+        outlets: [
+          for (final outlet in json['outlets'] as List? ?? const [])
+            if (outlet is Map<String, dynamic>) OutletInfo.fromJson(outlet),
+        ],
+        currentOutletId: json['current_outlet_id'] as int?,
+        minSupportedVersion: (json['app'] as Map<String, dynamic>?)?['min_supported_version'] as String?,
+        updateRequired: (json['app'] as Map<String, dynamic>?)?['update_required'] as bool? ?? false,
       );
 
   final int id;
@@ -39,6 +55,19 @@ class CurrentUser {
 
   /// Null on self-hosted servers older than multi-tenancy.
   final TenantInfo? tenant;
+
+  /// Owner and admins use every outlet without being assigned to them.
+  final bool allOutlets;
+
+  /// Active outlets this account may use; empty on servers that predate outlets.
+  final List<OutletInfo> outlets;
+
+  /// Outlet the server would pick when the app sends none.
+  final int? currentOutletId;
+  final String? minSupportedVersion;
+
+  /// The shop has several outlets but this app version cannot send the outlet header.
+  final bool updateRequired;
 
   bool get isTenantBlocked => tenant?.blockedReason != null;
 
@@ -56,7 +85,17 @@ class CurrentUser {
         isSuperadmin: isSuperadmin,
         enabledFeatures: enabledFeatures,
         tenant: tenant,
+        allOutlets: allOutlets,
+        outlets: outlets,
+        currentOutletId: currentOutletId,
+        minSupportedVersion: minSupportedVersion,
+        updateRequired: updateRequired,
       );
+
+  /// More than one outlet to choose from: only then the outlet picker and names are shown.
+  bool get hasMultipleOutlets => outlets.length > 1 || (tenant?.isMultiOutlet ?? false);
+
+  OutletInfo? outletById(int? id) => id == null ? null : outlets.where((outlet) => outlet.id == id).firstOrNull;
 
   bool get isPro => tenant?.isPro ?? true;
 
@@ -64,7 +103,27 @@ class CurrentUser {
 
   bool can(String permission) => isSuperadmin || permissions.contains(permission);
 
+  /// Shop-wide switch: on when any outlet uses it. Drives master data screens.
   bool hasFeature(String feature) => enabledFeatures.contains(feature);
+
+  /// Switch at one outlet, for the cashier and operational menus. Read from the outlet list so it
+  /// follows an outlet switch at once, also offline, without waiting for auth/me.
+  bool hasFeatureAt(String feature, int? outletId) {
+    if (!hasFeature(feature)) {
+      return false;
+    }
+
+    final outlet = outletById(outletId);
+    if (outlet == null) {
+      return true;
+    }
+
+    if (feature.startsWith('business.')) {
+      return outlet.capabilities?.contains(feature) ?? true;
+    }
+
+    return !outlet.disabledFeatures.contains(feature);
+  }
 
   String get roleLabel => roles.isEmpty ? '-' : roles.first;
 
@@ -79,6 +138,10 @@ class CurrentUser {
         'is_superadmin': isSuperadmin,
         'enabled_features': enabledFeatures.toList(),
         'tenant': tenant?.toJson(),
+        'all_outlets': allOutlets,
+        'outlets': [for (final outlet in outlets) outlet.toJson()],
+        'current_outlet_id': currentOutletId,
+        'app': {'min_supported_version': minSupportedVersion, 'update_required': updateRequired},
       };
 }
 
@@ -98,6 +161,9 @@ class TenantInfo {
     this.onboarded = true,
     this.storeType,
     this.renewal,
+    this.isMultiOutlet = false,
+    this.outletsUsed = 1,
+    this.outletsMax = 1,
   });
 
   factory TenantInfo.fromJson(Map<String, dynamic> json) => TenantInfo(
@@ -114,6 +180,9 @@ class TenantInfo {
         onboarded: json['onboarded'] as bool? ?? true,
         storeType: json['store_type'] as String?,
         renewal: json['renewal'] is Map<String, dynamic> ? RenewalInfo.fromJson(json['renewal'] as Map<String, dynamic>) : null,
+        isMultiOutlet: json['is_multi_outlet'] as bool? ?? false,
+        outletsUsed: asInt(((json['limits'] as Map<String, dynamic>?)?['outlets'] as Map<String, dynamic>?)?['used'] ?? 1),
+        outletsMax: asInt(((json['limits'] as Map<String, dynamic>?)?['outlets'] as Map<String, dynamic>?)?['max'] ?? 1),
       );
 
   final int id;
@@ -139,6 +208,14 @@ class TenantInfo {
 
   /// How to renew, sent by /auth/me only while the shop is blocked; null on older servers.
   final RenewalInfo? renewal;
+
+  final bool isMultiOutlet;
+
+  /// Active outlets in use and the plan limit; the shop owner sees them when adding an outlet.
+  final int outletsUsed;
+  final int outletsMax;
+
+  bool get canAddOutlet => outletsUsed < outletsMax;
 
   bool get isTrial => isTrialExplicit ?? (plan == PlanKinds.trial);
 
@@ -171,6 +248,9 @@ class TenantInfo {
         onboarded: onboarded,
         storeType: storeType,
         renewal: renewal,
+        isMultiOutlet: isMultiOutlet,
+        outletsUsed: outletsUsed,
+        outletsMax: outletsMax,
       );
 
   Map<String, dynamic> toJson() => {
@@ -187,6 +267,10 @@ class TenantInfo {
         'onboarded': onboarded,
         'store_type': storeType,
         'renewal': renewal?.toJson(),
+        'is_multi_outlet': isMultiOutlet,
+        'limits': {
+          'outlets': {'used': outletsUsed, 'max': outletsMax},
+        },
       };
 }
 

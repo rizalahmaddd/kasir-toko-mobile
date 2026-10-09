@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:web_pos_mobile/core/constants/app_icons.dart';
 import 'package:web_pos_mobile/core/constants/app_strings.dart';
 
@@ -731,3 +732,127 @@ class AppSwitchListTile extends StatelessWidget {
   }
 }
 
+class AppFloatingActionButton extends StatelessWidget {
+  const AppFloatingActionButton({
+    super.key,
+    required this.onPressed,
+    required this.icon,
+    this.label,
+    this.tooltip,
+    this.heroTag,
+  });
+
+  factory AppFloatingActionButton.extended({
+    Key? key,
+    required VoidCallback? onPressed,
+    required Widget icon,
+    required Widget label,
+    String? tooltip,
+    Object? heroTag,
+  }) =>
+      AppFloatingActionButton(
+        key: key,
+        onPressed: onPressed,
+        icon: icon,
+        label: label,
+        tooltip: tooltip,
+        heroTag: heroTag,
+      );
+
+  final VoidCallback? onPressed;
+  final Widget icon;
+  final Widget? label;
+  final String? tooltip;
+  final Object? heroTag;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final primary = theme.colorScheme.primary;
+
+    void handleTap() {
+      unawaited(HapticFeedback.lightImpact());
+      onPressed?.call();
+    }
+
+    if (label == null) {
+      return Container(
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: primary.withValues(alpha: isDark ? 0.35 : 0.25),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: FloatingActionButton(
+          heroTag: heroTag,
+          tooltip: tooltip,
+          elevation: 0,
+          highlightElevation: 0,
+          shape: const CircleBorder(),
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          onPressed: onPressed == null ? null : handleTap,
+          child: icon,
+        ),
+      );
+    }
+
+    final button = Container(
+      height: 48,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: primary.withValues(alpha: isDark ? 0.38 : 0.28),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
+          if (isDark)
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+        ],
+      ),
+      child: Material(
+        color: primary,
+        shape: const StadiumBorder(),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onPressed == null ? null : handleTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s18),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                IconTheme.merge(
+                  data: const IconThemeData(size: AppSizes.s18, color: Colors.white),
+                  child: icon,
+                ),
+                const SizedBox(width: AppSizes.s8),
+                DefaultTextStyle.merge(
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.2,
+                  ),
+                  child: label!,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    return tooltip == null ? button : Tooltip(message: tooltip, child: button);
+  }
+}

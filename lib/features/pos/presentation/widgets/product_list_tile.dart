@@ -153,15 +153,61 @@ class PosProductListTile extends ConsumerWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          product.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13.5,
-                            color: isDark ? AppColors.slate100 : AppColors.slate800,
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                product.requiresPrescription ? '${PosStrings.prescriptionBadge} · ${product.name}' : product.name,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13.5,
+                                  color: isDark ? AppColors.slate100 : AppColors.slate800,
+                                ),
+                              ),
+                            ),
+                            if (product.variants.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.sky500,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                ),
+                                child: const Text('Varian', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              )
+                            else if (product.modifierGroups.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.indigo500,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                ),
+                                child: const Text('Opsi', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              ),
+                            if (product.trackSerial)
+                              Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.shade600,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                ),
+                                child: const Text('SN', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              ),
+                            if (product.units.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(left: 4),
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: AppColors.emerald600,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                ),
+                                child: const Text('Satuan', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              ),
+                          ],
                         ),
                         const SizedBox(height: AppSizes.s2),
                         Row(
@@ -301,7 +347,7 @@ class PosProductListTile extends ConsumerWidget {
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            AppIcons.plus,
+                            product.variants.isNotEmpty || product.modifierGroups.isNotEmpty ? AppIcons.slidersHorizontal : AppIcons.plus,
                             size: AppSizes.s14,
                             color: isDark ? AppColors.slate300 : AppColors.slate700,
                           ),

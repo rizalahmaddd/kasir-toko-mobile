@@ -34,7 +34,7 @@ class CustomersScreen extends ConsumerWidget {
         onSearchChanged: (term) => notifier.set((search: term, isActive: query.isActive)),
       ),
       floatingActionButton: canManage
-          ? FloatingActionButton.extended(
+          ? AppFloatingActionButton.extended(
               onPressed: () => context.push(AppRoutes.customerNew),
               icon: const Icon(AppIcons.userPlus),
               label: const Text(CustomerStrings.screenTitle),

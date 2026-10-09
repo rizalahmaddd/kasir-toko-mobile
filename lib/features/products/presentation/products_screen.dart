@@ -13,7 +13,7 @@ import '../../../core/widgets/filter_pills.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
-import '../../pos/presentation/camera_scanner_screen.dart';
+import '../../pos/presentation/widgets/barcode_scanner_dialog.dart';
 import '../products_providers.dart';
 import 'product_widgets.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
@@ -59,7 +59,7 @@ class ProductsScreen extends ConsumerWidget {
             tooltip: ProductStrings.tooltipSearchByBarcode,
             icon: const Icon(AppIcons.scanBarcode, size: AppSizes.s20),
             onPressed: () async {
-              final code = await CameraScannerScreen.open(context);
+              final code = await BarcodeScannerDialog.open(context);
               if (code != null) {
                 notifier.set((search: code, categoryId: null, status: null, sort: query.sort));
               }
@@ -68,7 +68,7 @@ class ProductsScreen extends ConsumerWidget {
         ],
       ),
       floatingActionButton: canManage
-          ? FloatingActionButton.extended(
+          ? AppFloatingActionButton.extended(
               onPressed: () => context.push(AppRoutes.productNew),
               icon: const Icon(AppIcons.plus),
               label: const Text(ProductStrings.appTitleProducts),

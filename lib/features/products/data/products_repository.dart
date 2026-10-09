@@ -103,8 +103,9 @@ class ProductsRepository {
         snapshotFirst: false,
       );
 
-  Future<CategoryRecord> saveCategory({int? id, required String name, required int sortOrder, required bool isActive}) async {
-    final data = {'name': name, 'sort_order': sortOrder, 'is_active': isActive};
+  /// [outletIds] empty opens the category to every outlet; null leaves the current choice untouched.
+  Future<CategoryRecord> saveCategory({int? id, required String name, required int sortOrder, required bool isActive, List<int>? outletIds}) async {
+    final data = {'name': name, 'sort_order': sortOrder, 'is_active': isActive, 'outlet_ids': ?outletIds};
     final body = id == null ? await _api.post(ApiEndpoints.categories, data: data) : await _api.put(ApiEndpoints.category(id), data: data);
 
     return CategoryRecord.fromJson(ApiClient.data(body));
@@ -152,12 +153,42 @@ class ProductsRepository {
     return Paginated.fromJson(body, StockMovement.fromJson);
   }
 
-  Future<StockMovement> adjust({required int productId, required String type, required double quantity, int? unitCost, String? note}) async {
+  Future<StockMovement> adjust({
+    required int productId,
+    required String type,
+    required double quantity,
+    int? unitCost,
+    String? note,
+    int? unitId,
+    String? batchNumber,
+    DateTime? expiresAt,
+    int? batchId,
+    List<String>? serials,
+  }) async {
     final body = await _api.post(
       'inventory/adjustments',
-      data: {'product_id': productId, 'type': type, 'quantity': quantity, 'unit_cost': unitCost, 'note': note},
+      data: {
+        'product_id': productId,
+        'type': type,
+        'quantity': quantity,
+        'unit_cost': unitCost,
+        'note': note,
+        'unit_id': ?unitId,
+        'batch_number': ?batchNumber,
+        if (expiresAt != null) 'expires_at': expiresAt.toIso8601String().substring(0, 10),
+        'batch_id': ?batchId,
+        'serials': ?serials,
+      },
     );
 
     return StockMovement.fromJson(ApiClient.data(body));
   }
+
+  /// Opname per batch: hasil hitung fisik tiap batch (id batch => jumlah satuan dasar).
+  Future<StockMovement> batchOpname({required int productId, required Map<String, double> counts, String? note}) async =>
+      StockMovement.fromJson(ApiClient.data(await _api.post('inventory/batch-opname', data: {'product_id': productId, 'counts': counts, 'note': ?note})));
+
+  /// Batch bersaldo produk di outlet aktif, urut kedaluwarsa paling awal.
+  Future<List<ProductBatchRecord>> batches(int productId) async =>
+      ApiClient.list(await _api.get(ApiEndpoints.productBatches(productId), offlineCopy: false)).map(ProductBatchRecord.fromJson).toList();
 }

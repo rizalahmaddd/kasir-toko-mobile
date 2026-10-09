@@ -1,5 +1,7 @@
 import 'package:web_pos_mobile/core/constants/status_values.dart';
 
+import '../../kitchen/data/kitchen_models.dart';
+
 int _int(dynamic value) => value is num ? value.toInt() : int.tryParse('$value') ?? 0;
 
 double _double(dynamic value) => value is num ? value.toDouble() : double.tryParse('$value') ?? 0;
@@ -28,6 +30,8 @@ class SaleItem {
     required this.discountAmount,
     required this.total,
     this.note,
+    this.modifiers = const [],
+    this.serials = const [],
   });
 
   factory SaleItem.fromJson(Map<String, dynamic> json) => SaleItem(
@@ -38,6 +42,8 @@ class SaleItem {
         discountAmount: _int(json['discount_amount']),
         total: _int(json['total']),
         note: json['note'] as String?,
+        modifiers: (json['modifiers'] as List? ?? const []).cast<Map<String, dynamic>>().map((m) => m['name'] as String? ?? '').where((n) => n.isNotEmpty).toList(),
+        serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
       );
 
   final String productName;
@@ -47,6 +53,36 @@ class SaleItem {
   final int discountAmount;
   final int total;
   final String? note;
+  final List<String> modifiers;
+  final List<String> serials;
+}
+
+class DeliveryNoteInfo {
+  const DeliveryNoteInfo({required this.id, required this.number, required this.recipient, required this.address, required this.status, this.phone, this.project, this.driver, this.vehicle});
+
+  factory DeliveryNoteInfo.fromJson(Map<String, dynamic> json) => DeliveryNoteInfo(
+        id: _int(json['id']),
+        number: json['number'] as String? ?? '',
+        recipient: json['recipient'] as String? ?? '',
+        address: json['address'] as String? ?? '',
+        status: json['status'] as String? ?? 'sent',
+        phone: json['phone'] as String?,
+        project: json['project'] as String?,
+        driver: json['driver'] as String?,
+        vehicle: json['vehicle'] as String?,
+      );
+
+  final int id;
+  final String number;
+  final String recipient;
+  final String address;
+  final String status;
+  final String? phone;
+  final String? project;
+  final String? driver;
+  final String? vehicle;
+
+  bool get isDelivered => status == 'delivered';
 }
 
 class SalePayment {
@@ -93,6 +129,7 @@ class SaleSummary {
     this.paidAmount = 0,
     required this.dueAmount,
     required this.paymentMethods,
+    this.outletName,
   });
 
   factory SaleSummary.fromJson(Map<String, dynamic> json) => SaleSummary(
@@ -108,6 +145,7 @@ class SaleSummary {
         paidAmount: _int(json['paid_amount']),
         dueAmount: _int(json['due_amount']),
         paymentMethods: (json['payment_methods'] as List? ?? const []).cast<String>(),
+        outletName: (json['outlet'] as Map<String, dynamic>?)?['name'] as String?,
       );
 
   final int id;
@@ -116,6 +154,7 @@ class SaleSummary {
   final String statusLabel;
   final DateTime soldAt;
   final String cashierName;
+  final String? outletName;
   final SaleCustomer? customer;
   final int itemsCount;
   final int total;
@@ -155,6 +194,19 @@ class SaleDetail {
     this.discountType,
     this.discountValue = 0,
     this.shiftNumber,
+    this.outletId,
+    this.outletName,
+    this.flagLabels = const [],
+    this.prescriptionNumber,
+    this.prescriptionDoctor,
+    this.serviceChargeRate = 0,
+    this.serviceChargeAmount = 0,
+    this.orderTypeLabel,
+    this.tableLabel,
+    this.queueNumber,
+    this.deliveryNotes = const [],
+    this.customerOrderNumber,
+    this.kitchenTickets = const [],
   });
 
   factory SaleDetail.fromJson(Map<String, dynamic> json) {
@@ -188,6 +240,19 @@ class SaleDetail {
       discountType: json['discount_type'] as String?,
       discountValue: _double(json['discount_value']),
       shiftNumber: (json['shift'] as Map<String, dynamic>?)?['number'] as String?,
+      outletId: (json['outlet'] as Map<String, dynamic>?)?['id'] as int?,
+      outletName: (json['outlet'] as Map<String, dynamic>?)?['name'] as String?,
+      flagLabels: (json['flag_labels'] as List? ?? const []).cast<String>(),
+      prescriptionNumber: (json['prescription'] as Map<String, dynamic>?)?['number'] as String?,
+      prescriptionDoctor: (json['prescription'] as Map<String, dynamic>?)?['doctor_name'] as String?,
+      serviceChargeRate: _double(json['service_charge_rate']),
+      serviceChargeAmount: _int(json['service_charge_amount']),
+      orderTypeLabel: json['order_type_label'] as String?,
+      tableLabel: json['table_label'] as String?,
+      queueNumber: json['queue_number'] == null ? null : _int(json['queue_number']),
+      deliveryNotes: (json['delivery_notes'] as List? ?? const []).cast<Map<String, dynamic>>().map(DeliveryNoteInfo.fromJson).toList(),
+      customerOrderNumber: (json['customer_order'] as Map<String, dynamic>?)?['number'] as String?,
+      kitchenTickets: (json['kitchen_tickets'] as List? ?? const []).cast<Map<String, dynamic>>().map(KitchenTicket.fromJson).toList(),
     );
   }
 
@@ -197,6 +262,8 @@ class SaleDetail {
   final String statusLabel;
   final DateTime soldAt;
   final String cashierName;
+  final int? outletId;
+  final String? outletName;
   final SaleCustomer? customer;
   final int subtotal;
   final int discountAmount;
@@ -218,6 +285,31 @@ class SaleDetail {
   final String? discountType;
   final double discountValue;
   final String? shiftNumber;
+
+  /// Catatan transaksi offline yang perlu ditinjau (resep belum diverifikasi, batch kedaluwarsa, dll.).
+  final List<String> flagLabels;
+  final String? prescriptionNumber;
+  final String? prescriptionDoctor;
+  final double serviceChargeRate;
+  final int serviceChargeAmount;
+  final String? orderTypeLabel;
+  final String? tableLabel;
+  final int? queueNumber;
+  final List<DeliveryNoteInfo> deliveryNotes;
+  final String? customerOrderNumber;
+  final List<KitchenTicket> kitchenTickets;
+
+
+  /// Mis. "Dine-in · Meja 5" atau "Bawa Pulang · Antrean 012".
+  String? get orderLabel {
+    if (orderTypeLabel == null) {
+      return null;
+    }
+    final marker = tableLabel != null ? 'Meja $tableLabel' : (queueNumber != null ? 'Antrean ${queueNumber.toString().padLeft(3, '0')}' : null);
+
+    return [orderTypeLabel!, ?marker].join(' · ');
+  }
+
 
   bool get isVoided => status == SaleStatuses.voided;
 }

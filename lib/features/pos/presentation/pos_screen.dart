@@ -42,11 +42,22 @@ class PosScreen extends ConsumerWidget {
       );
     }
 
+    if (user != null && (user.tenant?.isMultiOutlet ?? false) && user.outlets.isEmpty) {
+      return const Scaffold(
+        body: EmptyState(
+          icon: AppIcons.store,
+          title: OutletStrings.noAccessTitle,
+          description: OutletStrings.noAccessDescription,
+        ),
+      );
+    }
+
     final shift = ref.watch(currentShiftProvider);
 
     return Scaffold(
       body: SafeArea(
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Expanded(
               child: switch (shift) {
@@ -169,6 +180,7 @@ class _CashierState extends ConsumerState<_Cashier> {
     }
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Expanded(child: CatalogPanel()),
         _CartBar(onOpen: _openCart),
@@ -187,8 +199,7 @@ class _CartBar extends ConsumerWidget {
     final cart = ref.watch(cartProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final taxRate = ref.watch(posConfigProvider).value?.taxRate ?? 0;
-    final total = cart.totals(taxRate).total;
+    final total = cart.totalsFor(ref.watch(posConfigProvider).value).total;
 
     if (cart.isEmpty) {
       return const SizedBox.shrink();

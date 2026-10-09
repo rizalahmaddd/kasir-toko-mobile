@@ -103,29 +103,65 @@ class PosRepository {
 
   Future<QrisPayment> qris(int amount) async => QrisPayment.fromJson(ApiClient.data(await _api.get(ApiEndpoints.posQris, query: {'amount': amount})));
 
-  static Map<String, dynamic> checkoutPayload({required Cart cart, required List<PaymentLine> payments, required int expectedTotal}) => {
-        'client_uuid': cart.clientUuid,
-        'customer_id': cart.customer?.id,
-        'items': cart.items.map((item) => item.toCheckoutJson()).toList(),
-        'discount_type': cart.discountType?.name,
-        'discount_value': cart.discountType == null ? null : cart.discountValue,
-        'payments': payments.map((payment) => payment.toJson()).toList(),
-        'note': cart.note,
-        'expected_total': expectedTotal,
-      };
+  static Map<String, dynamic> checkoutPayload({required Cart cart, required List<PaymentLine> payments, required int expectedTotal, PosConfig? config}) => {
+    'client_uuid': cart.clientUuid,
+    'customer_id': cart.customer?.id,
+    'items': cart.items.map((item) => item.toCheckoutJson()).toList(),
+    'discount_type': cart.discountType?.name,
+    'discount_value': cart.discountType == null ? null : cart.discountValue,
+    'payments': payments.map((payment) => payment.toJson()).toList(),
+    'note': cart.note,
+    'expected_total': expectedTotal,
+    'prescription_id': ?cart.prescription?.id,
+    if (cart.prescription == null && cart.prescriptionDraft != null) 'prescription': cart.prescriptionDraft!.toJson(),
+        'order_type': ?cart.orderTypeFor(config),
+        'customer_order_id': ?cart.customerOrder?.id,
+    if (cart.orderTypeFor(config) == OrderTypes.dineIn && (cart.table ?? '').isNotEmpty) 'table_label': cart.table,
+    if (cart.kitchenSent.isNotEmpty) 'kitchen_sent': cart.kitchenSent,
+  };
 
   /// Safe to repeat: the server returns the existing sale for a `client_uuid` it has already stored.
-  Future<SaleDetail> submitCheckout(Map<String, dynamic> payload) async => SaleDetail.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posCheckout, data: payload)));
+  /// A queued sale goes to the outlet it was made in, not the one selected now, and is flagged
+  /// `offline` so the server accepts it even if that outlet has been locked in the meantime.
+  Future<SaleDetail> submitCheckout(Map<String, dynamic> payload, {int? outletId, bool offline = false}) async {
+    final body = {...payload, 'outlet_id': ?outletId, if (offline) 'offline': true};
+    final response = await _api.post(ApiEndpoints.posCheckout, data: body, headers: outletId == null ? null : {outletHeader: '$outletId'});
 
-  Future<SaleDetail> checkout({required Cart cart, required List<PaymentLine> payments, required int expectedTotal}) =>
-      submitCheckout(checkoutPayload(cart: cart, payments: payments, expectedTotal: expectedTotal));
+    return SaleDetail.fromJson(ApiClient.data(response));
+  }
+
+  Future<SaleDetail> checkout({required Cart cart, required List<PaymentLine> payments, required int expectedTotal, PosConfig? config}) =>
+      submitCheckout(checkoutPayload(cart: cart, payments: payments, expectedTotal: expectedTotal, config: config));
 
   Future<List<HeldOrder>> heldOrders() async => ApiClient.list(await _api.get(ApiEndpoints.posHeldOrders)).map(HeldOrder.fromJson).toList();
 
-  Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label}) async =>
-      HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrders, data: {'label': label, 'cart': cart.toJson(total: total)})));
+  Future<HeldOrder> holdOrder({required Cart cart, required int total, String? label, PosConfig? config}) async {
+    final body = await _api.post(
+      ApiEndpoints.posHeldOrders,
+      data: {
+        'label': label,
+        'cart': {...cart.toJson(total: total), 'orderType': ?cart.orderTypeFor(config)},
+      },
+    );
+    final ticketId = ((body as Map<String, dynamic>)['meta'] as Map<String, dynamic>?)?['kitchen_ticket_id'];
+
+    return HeldOrder.fromJson(ApiClient.data(body)).withKitchenTicket(ticketId is num ? ticketId.toInt() : null);
+  }
 
   Future<HeldOrder> resumeHeldOrder(int id) async => HeldOrder.fromJson(ApiClient.data(await _api.post(ApiEndpoints.posHeldOrderResume(id))));
 
-  Future<void> deleteHeldOrder(int id) => _api.delete(ApiEndpoints.posHeldOrder(id));
+Future<void> deleteHeldOrder(int id) => _api.delete(ApiEndpoints.posHeldOrder(id));
+
+  /// Nomor seri yang masih ada di stok outlet aktif. Offline: kosong, kasir mengetik/scan manual.
+  Future<List<String>> availableSerials(int productId, {String search = ''}) async {
+    try {
+      final body = await _api.get(ApiEndpoints.posProductSerials(productId), query: {'search': search}, offlineCopy: false);
+      return (body['data'] as List? ?? const []).map((s) => '$s').toList();
+    } on ApiException catch (error) {
+      if (error.isNetworkError) {
+        return const [];
+      }
+      rethrow;
+    }
+  }
 }

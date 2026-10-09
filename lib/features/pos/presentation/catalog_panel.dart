@@ -16,13 +16,14 @@ import '../../../core/widgets/common.dart';
 import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
+import '../../outlets/presentation/outlet_picker.dart';
 import '../../shift/shift_controller.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../pos_providers.dart';
-import 'camera_scanner_screen.dart';
 import 'held_orders_sheet.dart';
 import 'pos_actions.dart';
+import 'widgets/barcode_scanner_dialog.dart';
 import 'widgets/category_chips.dart';
 import 'widgets/cart_line_edit_sheet.dart';
 import 'widgets/product_card.dart';
@@ -76,10 +77,10 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
     final exact = products.where((p) => p.barcode == term || p.sku == term).firstOrNull;
 
     if (exact != null) {
-      addToCart(context, ref, exact);
+      unawaited(addToCart(context, ref, exact));
       _clearSearch();
     } else if (products.length == 1) {
-      addToCart(context, ref, products.first);
+      unawaited(addToCart(context, ref, products.first));
       _clearSearch();
     }
   }
@@ -92,7 +93,7 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
   }
 
   Future<void> _scan() async {
-    final code = await CameraScannerScreen.open(context);
+    final code = await BarcodeScannerDialog.open(context);
     if (code != null && mounted) {
       await addByCode(context, ref, code);
     }
@@ -111,7 +112,7 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
     final qty = input == null ? null : parseQuantity(input);
 
     if (qty != null && qty > 0 && mounted) {
-      addToCart(context, ref, product, quantity: qty);
+      await addToCart(context, ref, product, quantity: qty);
     }
   }
 
@@ -133,135 +134,146 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
     final sliderConfig = density.computeConfig(estimatedPanelWidth);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Top Cashier & Search Bar Header
         Container(
+          width: double.infinity,
           padding: const EdgeInsets.fromLTRB(AppSpacing.s12, AppSpacing.s10, AppSpacing.s12, AppSpacing.s6),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // Top strip: Shift & Cashier identity + Quick Actions
               Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Flexible(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(AppRadius.r20),
-                      onTap: () {
-                        unawaited(HapticFeedback.lightImpact());
-                        context.push(AppRoutes.shift);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s5),
-                        decoration: BoxDecoration(
-                          color: isDark ? AppColors.slate900 : AppColors.slate100,
-                          borderRadius: BorderRadius.circular(AppRadius.r20),
-                          border: Border.all(
-                            color: isDark ? AppColors.slate800 : AppColors.slate200,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppColors.emerald500,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: AppSizes.s6),
-                            Flexible(
-                              child: Text(
-                                shift != null
-                                    ? PosStrings.shiftCashierLabel(shift.number, user?.name.split(' ').first ?? PosStrings.cashierFallback)
-                                    : PosStrings.cashierFallback,
-                                style: const TextStyle(
-                                  fontSize: 11.5,
-                                  fontWeight: FontWeight.w700,
+                    child: Padding(
+                      padding: const EdgeInsets.only(right: AppSpacing.s8),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(AppRadius.r20),
+                              onTap: () {
+                                unawaited(HapticFeedback.lightImpact());
+                                context.push(AppRoutes.shift);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s10, vertical: AppSpacing.s6),
+                                decoration: BoxDecoration(
+                                  color: isDark ? AppColors.slate900 : AppColors.slate100,
+                                  borderRadius: BorderRadius.circular(AppRadius.r20),
+                                  border: Border.all(
+                                    color: isDark ? AppColors.slate800 : AppColors.slate200,
+                                  ),
                                 ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8,
+                                      height: 8,
+                                      decoration: const BoxDecoration(
+                                        color: AppColors.emerald500,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: AppSizes.s6),
+                                    Flexible(
+                                      child: Text(
+                                        shift != null
+                                            ? PosStrings.shiftCashierLabel(shift.number, user?.name.split(' ').first ?? PosStrings.cashierFallback)
+                                            : PosStrings.cashierFallback,
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                        maxLines: 1,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
+                          ),
+                          if (user != null && user.outlets.length >= 2) ...[
+                            const SizedBox(width: AppSizes.s6),
+                            const Flexible(child: OutletChip()),
                           ],
-                        ),
+                        ],
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  // Search toggle button
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    tooltip: isSearching ? PosStrings.closeSearchTooltip : PosStrings.openSearchTooltip,
-                    icon: Icon(
-                      isSearching ? AppIcons.searchX : AppIcons.search,
-                      size: AppSizes.s20,
-                      color: isSearching ? Theme.of(context).colorScheme.primary : null,
-                    ),
-                    onPressed: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      setState(() {
-                        _showSearch = !isSearching;
-                        if (!_showSearch) {
-                          _clearSearch();
-                        }
-                      });
-                    },
-                  ),
-                  // Held orders button with badge
-                  Badge(
-                    isLabelVisible: heldCount > 0,
-                    label: Text('$heldCount'),
-                    child: IconButton(
-                      visualDensity: VisualDensity.compact,
-                      tooltip: PosStrings.heldOrdersTooltip,
-                      icon: const Icon(AppIcons.clock, size: AppSizes.s20),
-                      onPressed: () {
-                        unawaited(HapticFeedback.lightImpact());
-                        HeldOrdersSheet.show(context);
-                      },
-                    ),
-                  ),
-                  // Catalog density slider toggle button
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    tooltip: PosStrings.densitySliderTooltip,
-                    icon: Icon(
-                      AppIcons.slidersHorizontal,
-                      size: AppSizes.s20,
-                      color: _showDensitySlider ? Theme.of(context).colorScheme.primary : null,
-                    ),
-                    onPressed: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      setState(() {
-                        _showDensitySlider = !_showDensitySlider;
-                      });
-                    },
-                  ),
-                  // Camera barcode scanner
-                  IconButton(
-                    visualDensity: VisualDensity.compact,
-                    tooltip: PosStrings.scanBarcodeTooltip,
-                    icon: const Icon(AppIcons.scanBarcode, size: AppSizes.s20),
-                    onPressed: () {
-                      unawaited(HapticFeedback.lightImpact());
-                      _scan();
-                    },
-                  ),
-                  // Theme mode toggle
-                  Consumer(
-                    builder: (context, ref, _) {
-                      final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
-                      return IconButton(
-                        visualDensity: VisualDensity.compact,
-                        tooltip: isDarkMode ? PosStrings.lightModeTooltip : PosStrings.darkModeTooltip,
-                        icon: Icon(isDarkMode ? AppIcons.sun : AppIcons.moon, size: AppSizes.s20),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _HeaderActionButton(
+                        icon: isSearching ? AppIcons.searchX : AppIcons.search,
+                        tooltip: isSearching ? PosStrings.closeSearchTooltip : PosStrings.openSearchTooltip,
+                        isActive: isSearching,
                         onPressed: () {
                           unawaited(HapticFeedback.lightImpact());
-                          ref.read(themeModeProvider.notifier).toggle();
+                          setState(() {
+                            _showSearch = !isSearching;
+                            if (!_showSearch) {
+                              _clearSearch();
+                            }
+                          });
                         },
-                      );
-                    },
+                      ),
+                      if (heldCount > 0) ...[
+                        const SizedBox(width: AppSizes.s4),
+                        Badge(
+                          label: Text('$heldCount'),
+                          child: _HeaderActionButton(
+                            icon: AppIcons.clock,
+                            tooltip: PosStrings.heldOrdersTooltip,
+                            onPressed: () {
+                              unawaited(HapticFeedback.lightImpact());
+                              HeldOrdersSheet.show(context);
+                            },
+                          ),
+                        ),
+                      ],
+                      const SizedBox(width: AppSizes.s4),
+                      _HeaderActionButton(
+                        icon: AppIcons.slidersHorizontal,
+                        tooltip: PosStrings.densitySliderTooltip,
+                        isActive: _showDensitySlider,
+                        onPressed: () {
+                          unawaited(HapticFeedback.lightImpact());
+                          setState(() {
+                            _showDensitySlider = !_showDensitySlider;
+                          });
+                        },
+                      ),
+                      const SizedBox(width: AppSizes.s4),
+                      _HeaderActionButton(
+                        icon: AppIcons.scanBarcode,
+                        tooltip: PosStrings.scanBarcodeTooltip,
+                        onPressed: () {
+                          unawaited(HapticFeedback.lightImpact());
+                          _scan();
+                        },
+                      ),
+                      const SizedBox(width: AppSizes.s4),
+                      Consumer(
+                        builder: (context, ref, _) {
+                          final isDarkMode = ref.watch(themeModeProvider) == ThemeMode.dark;
+                          return _HeaderActionButton(
+                            icon: isDarkMode ? AppIcons.sun : AppIcons.moon,
+                            tooltip: isDarkMode ? PosStrings.lightModeTooltip : PosStrings.darkModeTooltip,
+                            onPressed: () {
+                              unawaited(HapticFeedback.lightImpact());
+                              ref.read(themeModeProvider.notifier).toggle();
+                            },
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -290,6 +302,8 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
             ],
           ),
         ),
+
+        const OutletStatusBanner(),
 
         // Category filter chips
         const PosCategoryChips(),
@@ -651,3 +665,58 @@ class _DensityLabel extends StatelessWidget {
     );
   }
 }
+
+class _HeaderActionButton extends StatelessWidget {
+  const _HeaderActionButton({
+    required this.icon,
+    required this.tooltip,
+    required this.onPressed,
+    this.isActive = false,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onPressed;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: isActive
+            ? theme.colorScheme.primary.withValues(alpha: isDark ? 0.22 : 0.12)
+            : Colors.transparent,
+        borderRadius: BorderRadius.circular(AppRadius.r8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppRadius.r8),
+          onTap: onPressed,
+          child: Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            decoration: isActive
+                ? BoxDecoration(
+                    borderRadius: BorderRadius.circular(AppRadius.r8),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                    ),
+                  )
+                : null,
+            child: Icon(
+              icon,
+              size: AppSizes.s20,
+              color: isActive
+                  ? theme.colorScheme.primary
+                  : (isDark ? AppColors.slate300 : AppColors.slate700),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+

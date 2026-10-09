@@ -16,6 +16,7 @@ import '../../../core/widgets/state_views.dart';
 import '../../auth/access.dart';
 import '../../auth/auth_controller.dart';
 import '../../notifications/notifications.dart';
+import '../../outlets/presentation/outlet_picker.dart';
 import '../../shift/shift_controller.dart';
 import '../dashboard.dart';
 import 'widgets/dashboard_stats_grid.dart';
@@ -120,13 +121,19 @@ class DashboardScreen extends ConsumerWidget {
                       ],
                     ],
                   ),
-                  Text(
-                    weekdayDate(DateTime.now()),
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
+                  Row(
+                    children: [
+                      Text(
+                        weekdayDate(DateTime.now()),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.s8),
+                      const Flexible(child: OutletChip()),
+                    ],
                   ),
                 ],
               ),

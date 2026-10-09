@@ -14,6 +14,8 @@ import '../../auth/auth_controller.dart';
 import '../../auth/data/current_user.dart';
 import '../../notifications/notifications.dart';
 import '../../offline/offline_queue.dart';
+import '../../outlets/outlet_controller.dart';
+import '../../outlets/presentation/outlet_picker.dart';
 import 'package:web_pos_mobile/core/theme/app_spacing.dart';
 import 'package:web_pos_mobile/core/theme/app_radius.dart';
 import 'package:web_pos_mobile/core/theme/app_sizes.dart';
@@ -46,6 +48,7 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
       return const SizedBox.shrink();
     }
 
+    final outletId = ref.watch(currentOutletIdProvider);
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final unread = ref.watch(unreadCountProvider).value ?? 0;
@@ -99,11 +102,55 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               badgeColor: null,
               isPro: true,
             ),
+          if (user.canViewKitchenAt(outletId))
+            (
+              icon: AppIcons.chefHat,
+              label: KitchenStrings.screenTitle,
+              path: AppRoutes.kitchen,
+              caption: KitchenStrings.menuCaption,
+              color: AppColors.amber600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
+          if (user.canManageOrdersAt(outletId))
+            (
+              icon: AppIcons.clipboardList,
+              label: HomeStrings.menuOrdersLabel,
+              path: AppRoutes.orders,
+              caption: HomeStrings.menuOrdersCaption,
+              color: AppColors.sky600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
+          if (user.canViewPrescriptionsAt(outletId))
+            (
+              icon: AppIcons.fileHeart,
+              label: HomeStrings.menuPrescriptionsLabel,
+              path: AppRoutes.prescriptions,
+              caption: HomeStrings.menuPrescriptionsCaption,
+              color: AppColors.rose600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
         ],
       ),
       (
         HomeStrings.menuSectionProductsStock,
         [
+          if (user.usesModifiers && user.canViewProducts)
+            (
+              icon: AppIcons.listPlus,
+              label: ModifierStrings.screenTitle,
+              path: AppRoutes.modifierGroups,
+              caption: HomeStrings.menuModifiersCaption,
+              color: AppColors.sky600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
           if (user.canViewCategories)
             (
               icon: AppIcons.tags,
@@ -133,6 +180,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
               path: AppRoutes.stockMovements,
               caption: HomeStrings.menuStockCardCaption,
               color: AppColors.indigo500,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
+          if (user.canCountStock)
+            (
+              icon: AppIcons.clipboardCheck,
+              label: HomeStrings.menuStockCountLabel,
+              path: AppRoutes.stockCounts,
+              caption: HomeStrings.menuStockCountCaption,
+              color: AppColors.emerald500,
               badgeCount: null,
               badgeColor: null,
               isPro: false,
@@ -232,6 +290,17 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
             badgeColor: null,
             isPro: false,
           ),
+          if (user.canViewOutlets)
+            (
+              icon: AppIcons.store,
+              label: OutletStrings.menuLabel,
+              path: AppRoutes.outlets,
+              caption: OutletStrings.menuCaption,
+              color: AppColors.teal600,
+              badgeCount: null,
+              badgeColor: null,
+              isPro: false,
+            ),
           if (user.canManagePosSettings)
             (
               icon: AppIcons.slidersHorizontal,
@@ -293,6 +362,10 @@ class _MenuScreenState extends ConsumerState<MenuScreen> {
                   ? Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        if (_search.isEmpty && user.outlets.length > 1) ...[
+                          const OutletSwitchCard(),
+                          const SizedBox(height: AppSizes.s8),
+                        ],
                         if (_search.isEmpty && user.tenant != null) ...[
                           _buildSubscriptionCard(context, user, isDark),
                           const SizedBox(height: AppSizes.s8),

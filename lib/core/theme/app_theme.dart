@@ -221,12 +221,12 @@ abstract final class AppTheme {
       floatingActionButtonTheme: FloatingActionButtonThemeData(
         backgroundColor: primary,
         foregroundColor: Colors.white,
-        elevation: 4,
+        elevation: 3,
         focusElevation: 4,
         hoverElevation: 5,
         highlightElevation: 6,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.r14)),
-        extendedTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        shape: const StadiumBorder(),
+        extendedTextStyle: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, letterSpacing: -0.2),
       ),
     );
   }

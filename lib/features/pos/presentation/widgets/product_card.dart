@@ -212,6 +212,60 @@ class PosProductCard extends ConsumerWidget {
                           ),
                         ),
 
+                      // Capability Micro-Badges (Varian, Opsi, SN, Satuan)
+                      Positioned(
+                        bottom: 6,
+                        left: 6,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (product.variants.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(right: 3),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.sky500,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+                                ),
+                                child: const Text('Varian', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              )
+                            else if (product.modifierGroups.isNotEmpty)
+                              Container(
+                                margin: const EdgeInsets.only(right: 3),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.indigo500,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+                                ),
+                                child: const Text('Opsi', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              ),
+                            if (product.trackSerial)
+                              Container(
+                                margin: const EdgeInsets.only(right: 3),
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: Colors.purple.shade600,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+                                ),
+                                child: const Text('SN', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              ),
+                            if (product.units.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: AppColors.emerald600,
+                                  borderRadius: BorderRadius.circular(AppRadius.r4),
+                                  boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 2)],
+                                ),
+                                child: const Text('Satuan', style: TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.w800)),
+                              ),
+                          ],
+                        ),
+                      ),
+
                       // Floating in-cart quantity stepper / badge
                       if (hasInCart)
                         Positioned(
@@ -328,7 +382,7 @@ class PosProductCard extends ConsumerWidget {
                         SizedBox(
                           height: isLarge ? 36 : (isCompact ? 28 : 34),
                           child: Text(
-                            product.name,
+                            product.requiresPrescription ? '${PosStrings.prescriptionBadge} · ${product.name}' : product.name,
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
@@ -411,7 +465,11 @@ class PosProductCard extends ConsumerWidget {
                                 shape: BoxShape.circle,
                               ),
                               child: Icon(
-                                hasInCart ? AppIcons.check : AppIcons.plus,
+                                hasInCart
+                                    ? AppIcons.check
+                                    : (product.variants.isNotEmpty || product.modifierGroups.isNotEmpty
+                                        ? AppIcons.slidersHorizontal
+                                        : AppIcons.plus),
                                 size: isLarge ? AppSizes.s16 : (isCompact ? 11 : AppSizes.s14),
                                 color: hasInCart
                                     ? Colors.white

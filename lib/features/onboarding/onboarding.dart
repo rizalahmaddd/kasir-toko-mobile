@@ -19,6 +19,9 @@ class StorePreset {
     required this.sampleProductCount,
     required this.settings,
     required this.disabledFeatures,
+    this.capabilities = const [],
+    this.productAttributes = const [],
+    this.suggestedUnits = const [],
   });
 
   factory StorePreset.fromJson(Map<String, dynamic> json) => StorePreset(
@@ -30,6 +33,9 @@ class StorePreset {
         sampleProductCount: asInt(json['sample_product_count']),
         settings: PresetSettings.fromJson(asMap(json['settings'])),
         disabledFeatures: (json['disabled_features'] as List? ?? const []).cast<String>(),
+        capabilities: asList(json['capabilities']).map(PresetCapability.fromJson).toList(),
+        productAttributes: (json['product_attributes'] as List? ?? const []).cast<String>(),
+        suggestedUnits: (json['suggested_units'] as List? ?? const []).cast<String>(),
       );
 
   final String key;
@@ -42,6 +48,27 @@ class StorePreset {
   final int sampleProductCount;
   final PresetSettings settings;
   final List<String> disabledFeatures;
+
+  /// Semua kapabilitas usaha; `defaultOn` yang dinyalakan preset ini.
+  final List<PresetCapability> capabilities;
+  final List<String> productAttributes;
+  final List<String> suggestedUnits;
+}
+
+class PresetCapability {
+  const PresetCapability({required this.key, required this.label, required this.description, required this.defaultOn});
+
+  factory PresetCapability.fromJson(Map<String, dynamic> json) => PresetCapability(
+        key: json['key'] as String,
+        label: json['label'] as String? ?? '',
+        description: json['description'] as String? ?? '',
+        defaultOn: json['default_on'] as bool? ?? false,
+      );
+
+  final String key;
+  final String label;
+  final String description;
+  final bool defaultOn;
 }
 
 class PresetSettings {
@@ -109,6 +136,7 @@ class OnboardingRepository {
     required bool includeSampleProducts,
     List<String>? categories,
     Map<String, dynamic>? settings,
+    List<String>? capabilities,
   }) async {
     final payload = <String, dynamic>{
       'store_type': storeType,
@@ -116,6 +144,7 @@ class OnboardingRepository {
     };
     if (categories != null) payload['categories'] = categories;
     if (settings != null) payload['settings'] = settings;
+    if (capabilities != null) payload['capabilities'] = capabilities;
 
     return PresetResult.fromJson(
       ApiClient.data(await _api.post(ApiEndpoints.onboardingApply, data: payload)),
@@ -139,12 +168,14 @@ class OnboardingActions {
     required bool includeSampleProducts,
     List<String>? categories,
     Map<String, dynamic>? settings,
+    List<String>? capabilities,
   }) async {
     final result = await _ref.read(onboardingRepositoryProvider).apply(
           storeType,
           includeSampleProducts: includeSampleProducts,
           categories: categories,
           settings: settings,
+          capabilities: capabilities,
         );
     await _finish(result.tenant);
     return result;
@@ -155,6 +186,8 @@ class OnboardingActions {
   /// A preset rewrites categories, products and POS settings, so nothing cached before it is valid.
   Future<void> _finish(TenantInfo tenant) async {
     await _ref.read(authControllerProvider.notifier).updateTenant(tenant);
+    // Kapabilitas usaha yang baru menyala ikut di enabled_features auth/me.
+    await _ref.read(authControllerProvider.notifier).refreshProfile();
 
     _ref.read(dataChangesProvider).after({DataChange.products, DataChange.shifts});
     _ref.invalidate(receiptProfileProvider);

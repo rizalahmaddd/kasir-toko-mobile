@@ -27,7 +27,9 @@ Map<String, dynamic> _product(int id, String name, {String? barcode, int? catego
       'category': category == null ? null : {'id': category, 'name': 'Kategori $category'},
     };
 
-QueuedSale _queued(String uuid, {int userId = 7}) => QueuedSale(
+QueuedSale _queued(String uuid, {int userId = 7, int? outletId, int? shiftId}) => QueuedSale(
+      outletId: outletId,
+      shiftId: shiftId,
       payload: {'client_uuid': uuid, 'items': const []},
       cart: const {},
       userId: userId,
@@ -134,7 +136,7 @@ void main() {
     test('sync sends pending sales in order and drops the ones the server stored', () async {
       final (container, repository) = await _container();
       final sent = <String>[];
-      when(() => repository.submitCheckout(any())).thenAnswer((invocation) async {
+      when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenAnswer((invocation) async {
         sent.add((invocation.positionalArguments.first as Map<String, dynamic>)['client_uuid'] as String);
         return _sale;
       });
@@ -149,33 +151,33 @@ void main() {
 
     test('a network failure stops the run and keeps everything queued', () async {
       final (container, repository) = await _container();
-      when(() => repository.submitCheckout(any())).thenThrow(ApiException(message: 'offline', isNetworkError: true));
+      when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenThrow(ApiException(message: 'offline', isNetworkError: true));
       container.read(offlineQueueProvider.notifier)
         ..add(_queued('a'))
         ..add(_queued('b'));
 
       expect(await container.read(offlineQueueProvider.notifier).sync(), 0);
-      verify(() => repository.submitCheckout(any())).called(1);
+      verify(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).called(1);
       expect(container.read(offlineQueueProvider).map((s) => s.status), [QueuedStatus.pending, QueuedStatus.pending]);
     });
 
     test('a server error or rate limit is retried later, not marked failed', () async {
       for (final status in [500, 503, 429]) {
         final (container, repository) = await _container();
-        when(() => repository.submitCheckout(any())).thenThrow(ApiException(message: 'Server error', statusCode: status));
+        when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenThrow(ApiException(message: 'Server error', statusCode: status));
         container.read(offlineQueueProvider.notifier)
           ..add(_queued('a'))
           ..add(_queued('b'));
 
         expect(await container.read(offlineQueueProvider.notifier).sync(), 0);
-        verify(() => repository.submitCheckout(any())).called(1);
+        verify(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).called(1);
         expect(container.read(offlineQueueProvider).map((s) => s.status), [QueuedStatus.pending, QueuedStatus.pending], reason: '$status');
       }
     });
 
     test('a business rejection marks that sale failed and continues', () async {
       final (container, repository) = await _container();
-      when(() => repository.submitCheckout(any())).thenAnswer((invocation) async {
+      when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenAnswer((invocation) async {
         final uuid = (invocation.positionalArguments.first as Map<String, dynamic>)['client_uuid'];
         if (uuid == 'a') {
           throw ApiException(message: 'Harga berubah', statusCode: 422, reason: 'price_changed');
@@ -195,9 +197,52 @@ void main() {
       expect(await container.read(offlineQueueProvider.notifier).sync(), 0, reason: 'failed sales wait for the cashier');
     });
 
+    test('a queued sale is sent to the outlet it was made in, flagged as offline', () async {
+      final (container, repository) = await _container();
+      final targets = <(int?, bool)>[];
+      when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenAnswer((invocation) async {
+        targets.add((invocation.namedArguments[#outletId] as int?, invocation.namedArguments[#offline] as bool));
+        return _sale;
+      });
+      container.read(offlineQueueProvider.notifier)
+        ..add(_queued('a', outletId: 3, shiftId: 11))
+        ..add(_queued('b', outletId: 4, shiftId: 12))
+        ..add(_queued('legacy'));
+
+      expect(await container.read(offlineQueueProvider.notifier).sync(), 3);
+      expect(targets, [(3, true), (4, true), (null, true)]);
+    });
+
+    test('a queued sale carries when it happened and the phone clock at send time', () async {
+      final (container, repository) = await _container();
+      final payloads = <Map<String, dynamic>>[];
+      when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenAnswer((invocation) async {
+        payloads.add(invocation.positionalArguments.first as Map<String, dynamic>);
+        return _sale;
+      });
+      container.read(offlineQueueProvider.notifier).add(_queued('a'));
+
+      await container.read(offlineQueueProvider.notifier).sync();
+
+      expect(payloads.single['client_uuid'], 'a');
+      expect(DateTime.parse(payloads.single['occurred_at'] as String).isAtSameMomentAs(DateTime(2026, 10, 1, 10)), isTrue);
+      expect(payloads.single['device_sent_at'], isNotNull);
+    });
+
+    test('the outlet and shift of a queued sale survive a restart', () async {
+      final (container, _) = await _container();
+      container.read(offlineQueueProvider.notifier).add(_queued('a', outletId: 3, shiftId: 11));
+
+      final restarted = ProviderContainer(overrides: [sharedPreferencesProvider.overrideWithValue(await SharedPreferences.getInstance())]);
+      addTearDown(restarted.dispose);
+
+      final restored = restarted.read(offlineQueueProvider).single;
+      expect((restored.outletId, restored.shiftId), (3, 11));
+    });
+
     test('another cashier\'s sales are left alone and the queue survives restarts', () async {
       final (container, repository) = await _container();
-      when(() => repository.submitCheckout(any())).thenAnswer((_) async => _sale);
+      when(() => repository.submitCheckout(any(), outletId: any(named: 'outletId'), offline: any(named: 'offline'))).thenAnswer((_) async => _sale);
       container.read(offlineQueueProvider.notifier)
         ..add(_queued('mine'))
         ..add(_queued('theirs', userId: 99));

@@ -37,12 +37,23 @@ final unauthorizedHandlerProvider = Provider<void Function()>((ref) => () {});
 /// Called when the server answers 402: the shop is suspended or its trial/subscription ended.
 final tenantBlockedHandlerProvider = Provider<void Function(String reason, String message)>((ref) => (reason, message) {});
 
+/// Called when the server refuses the outlet in use (`outlet_forbidden`, `no_outlet_access`,
+/// `outlet_locked`), so the app can reload which outlets the account may still use.
+final outletRejectedHandlerProvider = Provider<void Function(String reason)>((ref) => (reason) {});
+
+/// Version of this build, sent as X-App-Version so the server can ask old apps to update.
+final appVersionProvider = Provider<String>((ref) => '');
+
+/// Header the outlet is sent in; the server refuses a request that names an outlet the account may not use.
+const outletHeader = 'X-Outlet-Id';
+
 final dioProvider = Provider<Dio>((ref) {
   final serverUrl = ref.watch(serverUrlProvider);
+  final base = serverUrl.isEmpty ? 'http://localhost' : serverUrl;
 
   final dio = Dio(
     BaseOptions(
-      baseUrl: '$serverUrl/api/v1/',
+      baseUrl: '$base/api/v1/',
       connectTimeout: AppDurations.seconds10,
       receiveTimeout: AppDurations.seconds30,
       headers: {'Accept': 'application/json'},
@@ -55,6 +66,15 @@ final dioProvider = Provider<Dio>((ref) {
         final token = ref.read(authTokenProvider);
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
+        }
+        // A request may name its own outlet (a queued sale is sent to the outlet it was made in).
+        final outletId = ref.read(offlineOutletProvider);
+        if (token != null && outletId != null && !options.headers.containsKey(outletHeader)) {
+          options.headers[outletHeader] = '$outletId';
+        }
+        final version = ref.read(appVersionProvider);
+        if (version.isNotEmpty) {
+          options.headers['X-App-Version'] = version;
         }
         handler.next(options);
       },
@@ -73,6 +93,10 @@ final dioProvider = Provider<Dio>((ref) {
         final body = error.response?.data;
         if (error.response?.statusCode == 402 && body is Map && body['reason'] is String) {
           ref.read(tenantBlockedHandlerProvider)(body['reason'] as String, '${body['message'] ?? ''}');
+        }
+        const outletReasons = {'outlet_forbidden', 'no_outlet_access', 'outlet_locked'};
+        if ((error.response?.statusCode == 403 || error.response?.statusCode == 423) && body is Map && outletReasons.contains(body['reason'])) {
+          ref.read(outletRejectedHandlerProvider)(body['reason'] as String);
         }
         handler.next(error);
       },
@@ -140,7 +164,8 @@ class ApiClient {
     return [path, for (final p in params) '${p.key}=${p.value}'].join('&');
   }
 
-  Future<dynamic> post(String path, {Object? data}) => _send(() => _dio.post<dynamic>(path, data: data));
+  Future<dynamic> post(String path, {Object? data, Map<String, dynamic>? headers}) =>
+      _send(() => _dio.post<dynamic>(path, data: data, options: headers == null ? null : Options(headers: headers)));
 
   Future<dynamic> put(String path, {Object? data}) => _send(() => _dio.put<dynamic>(path, data: data));
 
@@ -164,6 +189,13 @@ class ApiClient {
     );
 
     return '$response';
+  }
+
+  /// Berkas privat (mis. foto resep) yang hanya bisa diambil dengan token login.
+  Future<List<int>> getBytes(String path) async {
+    final response = await _send(() => _dio.get<dynamic>(path, options: Options(responseType: ResponseType.bytes)));
+
+    return (response as List).cast<int>();
   }
 
   /// Unwraps the `data` envelope of Laravel API resources.

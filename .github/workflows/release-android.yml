@@ -153,6 +153,52 @@ jobs:
           path: release-artifacts/*
           if-no-files-found: error
 
+      - name: Publish APKs to web download page
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          WEB_BASE_URL: ${{ vars.WEB_BASE_URL }}
+          UPLOAD_TOKEN: ${{ secrets.APP_RELEASE_UPLOAD_TOKEN }}
+        run: |
+          if [ -z "$WEB_BASE_URL" ] || [ -z "$UPLOAD_TOKEN" ]; then
+            echo "::warning::WEB_BASE_URL variable or APP_RELEASE_UPLOAD_TOKEN secret is not set; skipping web upload."
+            exit 0
+          fi
+
+          TAG_NAME="${GITHUB_REF_NAME}"
+          RAW_VERSION="${TAG_NAME#v}"
+          if [[ "$RAW_VERSION" =~ ^([^+]+)\+(.+)$ ]]; then
+            VERSION_NAME="${BASH_REMATCH[1]}"
+            BUILD_NUMBER="${BASH_REMATCH[2]}"
+          else
+            VERSION_NAME="$RAW_VERSION"
+            BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+          fi
+
+          API="${WEB_BASE_URL%/}/api/app-releases/android"
+
+          for apk in release-artifacts/*.apk; do
+            name=$(basename "$apk" .apk)
+            abi="${name#kasirtoko-${TAG_NAME}-}"
+            echo "Uploading $apk ($abi)..."
+            curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+              -H "Authorization: Bearer $UPLOAD_TOKEN" \
+              -H "Accept: application/json" \
+              -F "version=$VERSION_NAME" \
+              -F "abi=$abi" \
+              -F "apk=@$apk;type=application/vnd.android.package-archive" \
+              "$API"
+            echo
+          done
+
+          curl --fail-with-body --silent --show-error --retry 3 --retry-all-errors \
+            -H "Authorization: Bearer $UPLOAD_TOKEN" \
+            -H "Accept: application/json" \
+            -F "version=$VERSION_NAME" \
+            -F "build=$BUILD_NUMBER" \
+            "$API/publish"
+          echo
+          echo "Published to ${WEB_BASE_URL%/}/unduh-aplikasi"
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
         env:

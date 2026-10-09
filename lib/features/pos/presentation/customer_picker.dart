@@ -117,12 +117,30 @@ class _CustomerPickerState extends ConsumerState<CustomerPicker> {
                     itemCount: customers.length,
                     itemBuilder: (context, index) {
                       final customer = customers[index];
+                      final hasDue = customer.due > 0;
+                      final hasLimit = customer.creditLimit != null && customer.creditLimit! > 0;
+
                       return ListTile(
                         selected: customer.id == current?.id,
                         title: Text(customer.name),
                         subtitle: Text([customer.code, customer.phone].nonNulls.join(' · ')),
-                        trailing: customer.due > 0
-                            ? Text(PosStrings.creditAmount(rupiah(customer.due)), style: TextStyle(color: warning, fontSize: 12, fontWeight: FontWeight.w600))
+                        trailing: (hasDue || hasLimit)
+                            ? Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  if (hasDue)
+                                    Text(PosStrings.creditAmount(rupiah(customer.due)), style: TextStyle(color: warning, fontSize: 12, fontWeight: FontWeight.w600)),
+                                  if (hasLimit)
+                                    Text(
+                                      'Sisa limit: ${rupiah(customer.creditRoom ?? 0)}',
+                                      style: TextStyle(
+                                        color: (customer.creditRoom ?? 0) <= 0 ? Theme.of(context).colorScheme.error : Theme.of(context).colorScheme.onSurfaceVariant,
+                                        fontSize: 11,
+                                      ),
+                                    ),
+                                ],
+                              )
                             : null,
                         onTap: () => _pick(customer),
                       );

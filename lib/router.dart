@@ -21,6 +21,8 @@ import 'features/notifications/presentation/notifications_screen.dart';
 import 'features/offline/presentation/offline_screen.dart';
 import 'features/notifications/presentation/search_screen.dart';
 import 'features/onboarding/presentation/onboarding_screen.dart';
+import 'features/outlets/presentation/outlet_settings_screen.dart';
+import 'features/outlets/presentation/outlets_screen.dart';
 import 'features/pos/presentation/pos_screen.dart';
 import 'features/pos/presentation/pos_settings_screen.dart';
 import 'features/printing/presentation/printer_screen.dart';
@@ -35,6 +37,18 @@ import 'features/reports/presentation/activity_log_screen.dart';
 import 'features/reports/presentation/sales_report_screen.dart';
 import 'features/sales/presentation/sale_detail_screen.dart';
 import 'features/sales/presentation/sales_screen.dart';
+import 'features/kitchen/presentation/kitchen_screen.dart';
+import 'features/modifiers/presentation/modifier_group_form_screen.dart';
+import 'features/modifiers/presentation/modifier_groups_screen.dart';
+import 'features/orders/presentation/order_detail_screen.dart';
+import 'features/stock_count/presentation/stock_count_review_screen.dart';
+import 'features/stock_count/presentation/stock_count_screen.dart';
+import 'features/stock_count/presentation/stock_counts_screen.dart';
+import 'features/orders/presentation/order_form_screen.dart';
+import 'features/orders/presentation/orders_screen.dart';
+import 'features/pharmacy/presentation/prescription_detail_screen.dart';
+import 'features/pharmacy/presentation/prescription_form_screen.dart';
+import 'features/pharmacy/presentation/prescriptions_screen.dart';
 import 'features/shift/presentation/shift_screen.dart';
 import 'features/shift/presentation/shifts_screen.dart';
 
@@ -63,6 +77,12 @@ bool allowedLocation(CurrentUser user, String location) {
   if (under(AppRoutes.stock)) {
     return user.canViewStock;
   }
+  if (location.endsWith('/review') && under(AppRoutes.stockCount)) {
+    return user.canManageStockCount;
+  }
+  if (under(AppRoutes.stockCounts) || under(AppRoutes.stockCount)) {
+    return user.canCountStock;
+  }
   if (under(AppRoutes.customers) || under(AppRoutes.customer)) {
     return user.canViewCustomers;
   }
@@ -86,6 +106,27 @@ bool allowedLocation(CurrentUser user, String location) {
   }
   if (under(AppRoutes.posSettings)) {
     return user.canManagePosSettings;
+  }
+  if (under(AppRoutes.kitchen)) {
+    return user.canViewKitchen;
+  }
+  if (under(AppRoutes.modifierGroups)) {
+    return user.usesModifiers && user.canViewProducts;
+  }
+  if (under(AppRoutes.modifierGroup)) {
+    return user.usesModifiers && user.canManageMasterData;
+  }
+  if (under(AppRoutes.orders) || under(AppRoutes.order)) {
+    return user.canManageOrders;
+  }
+  if (location == AppRoutes.prescriptionNew) {
+    return user.canManagePrescriptions;
+  }
+  if (under(AppRoutes.prescriptions) || under(AppRoutes.prescription)) {
+    return user.canViewPrescriptions;
+  }
+  if (under(AppRoutes.outlets)) {
+    return location == AppRoutes.outlets ? user.canViewOutlets : user.canManageOutlets;
   }
 
   return true;
@@ -171,7 +212,22 @@ final routerProvider = Provider<GoRouter>((ref) {
       _page(AppRoutes.account, (state) => AccountScreen(scrollToDelete: state.uri.queryParameters['action'] == 'delete')),
       _page(AppRoutes.printer, (_) => const PrinterScreen()),
       _page(AppRoutes.posSettings, (_) => const PosSettingsScreen()),
+      _page(AppRoutes.outlets, (_) => const OutletsScreen()),
+      _page(AppRoutes.outletSettingsPattern, (state) => OutletSettingsScreen(outletId: _id(state))),
       _page(AppRoutes.offline, (_) => const OfflineScreen()),
+      _page(AppRoutes.kitchen, (_) => const KitchenScreen()),
+      _page(AppRoutes.modifierGroups, (_) => const ModifierGroupsScreen()),
+      _page(AppRoutes.modifierGroupNew, (_) => const ModifierGroupFormScreen()),
+      _page(AppRoutes.modifierGroupPattern, (state) => ModifierGroupFormScreen(groupId: _id(state))),
+      _page(AppRoutes.stockCounts, (_) => const StockCountsScreen()),
+      _page(AppRoutes.stockCountPattern, (state) => StockCountScreen(countId: _id(state))),
+      _page(AppRoutes.stockCountReviewPattern, (state) => StockCountReviewScreen(countId: _id(state))),
+      _page(AppRoutes.orders, (_) => const OrdersScreen()),
+      _page(AppRoutes.orderNew, (_) => const OrderFormScreen()),
+      _page(AppRoutes.orderPattern, (state) => OrderDetailScreen(orderId: _id(state))),
+      _page(AppRoutes.prescriptions, (_) => const PrescriptionsScreen()),
+      _page(AppRoutes.prescriptionNew, (_) => const PrescriptionFormScreen()),
+      _page(AppRoutes.prescriptionPattern, (state) => PrescriptionDetailScreen(prescriptionId: _id(state))),
     ],
   );
 });

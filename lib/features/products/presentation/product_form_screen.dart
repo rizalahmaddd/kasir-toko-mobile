@@ -13,9 +13,14 @@ import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/common.dart';
 import '../../../core/widgets/money_field.dart';
 import '../../../core/widgets/state_views.dart';
+import '../../auth/access.dart';
+import '../../auth/auth_controller.dart';
 import '../../data_changes.dart';
-import '../../pos/presentation/camera_scanner_screen.dart';
+import '../../outlets/data/outlet_models.dart';
+import '../../pos/presentation/widgets/barcode_scanner_dialog.dart';
+import '../data/product_meta.dart';
 import '../data/product_models.dart';
+import 'product_business_section.dart';
 import '../data/products_repository.dart';
 import '../products_providers.dart';
 import 'product_widgets.dart';
@@ -72,17 +77,29 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
   late final _sku = TextEditingController(text: _p?.sku);
   late final _barcode = TextEditingController(text: _p?.barcode);
   late final _unit = TextEditingController(text: _p?.unit ?? 'pcs');
-  late final _price = TextEditingController(text: _p == null ? '' : thousands(_p.price));
+  late final _price = TextEditingController(text: _p == null ? '' : thousands(_p.basePrice));
   late final _cost = TextEditingController(text: _p == null || _p.costPrice == 0 ? '' : thousands(_p.costPrice));
   late final _stock = TextEditingController();
   late final _minStock = TextEditingController(text: _p == null ? '' : editableQuantity(_p.minStock));
+  late final List<OutletInfo> _outlets = _priceOutlets();
+  late final Map<int, TextEditingController> _outletPrices = {
+    for (final outlet in _outlets) outlet.id: TextEditingController(text: _p?.outletPrices[outlet.id] == null ? '' : thousands(_p!.outletPrices[outlet.id]!)),
+  };
   late int? _categoryId = _p?.category?.id;
   late bool _trackStock = _p?.trackStock ?? true;
   late bool _isActive = _p?.isActive ?? true;
+  late final _business = ProductBusinessDraft(_p);
   bool _busy = false;
   ApiException? _error;
 
   bool get _isNew => _p == null;
+
+  /// Outlets that can get a price of their own; empty for single-outlet shops.
+  List<OutletInfo> _priceOutlets() {
+    final user = ref.read(currentUserProvider);
+
+    return user != null && user.outlets.length > 1 && user.canManageMasterData ? user.outlets : const [];
+  }
 
   @override
   void initState() {
@@ -103,10 +120,18 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
     _cost.removeListener(_onFieldChanged);
     _name.removeListener(_onFieldChanged);
     _unit.removeListener(_onFieldChanged);
-    for (final controller in [_name, _sku, _barcode, _unit, _price, _cost, _stock, _minStock]) {
+    for (final controller in [_name, _sku, _barcode, _unit, _price, _cost, _stock, _minStock, ..._outletPrices.values]) {
       controller.dispose();
     }
+    _business.dispose();
     super.dispose();
+  }
+
+  /// Satuan umum jenis toko ini (dari meta) bila ada, selain itu daftar bawaan.
+  List<String> _unitChoices() {
+    final units = ref.watch(productMetaProvider).value?.units ?? const <String>[];
+
+    return units.isEmpty ? _units : units.take(14).toList();
   }
 
   String? _clean(TextEditingController controller) => controller.text.trim().isEmpty ? null : controller.text.trim();
@@ -139,6 +164,8 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
       stock: _isNew && _trackStock ? parseQuantity(_stock.text) : null,
       minStock: _trackStock ? parseQuantity(_minStock.text) : null,
       isActive: _isActive,
+      outletPrices: _outlets.isEmpty ? null : {for (final entry in _outletPrices.entries) entry.key: entry.value.text.trim().isEmpty ? null : parseRupiah(entry.value.text)},
+      business: _business.toJson(ref, isNew: _isNew, trackStock: _trackStock),
     );
 
     try {
@@ -254,7 +281,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                           spacing: 6,
                           runSpacing: 6,
                           children: [
-                            for (final unit in _units)
+                            for (final unit in _unitChoices())
                               ChoiceChip(
                                 label: Text(unit),
                                 selected: _unit.text.trim().toLowerCase() == unit,
@@ -317,7 +344,7 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                                       child: Icon(AppIcons.scanBarcode, size: AppSizes.s16, color: theme.colorScheme.primary),
                                     ),
                                     onPressed: () async {
-                                      final code = await CameraScannerScreen.open(context);
+                                      final code = await BarcodeScannerDialog.open(context);
                                       if (code != null && code.isNotEmpty) {
                                         _barcode.text = code;
                                         if (mounted) setState(() {});
@@ -365,6 +392,24 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                         ),
                         const SizedBox(height: AppSizes.s12),
                         _buildMarginCalculator(context, isDark),
+                        if (_outlets.isNotEmpty) ...[
+                          const SizedBox(height: AppSizes.s16),
+                          const Text(OutletStrings.productPricesTitle, style: TextStyle(fontWeight: FontWeight.w700)),
+                          const SizedBox(height: AppSizes.s4),
+                          Text(OutletStrings.productPricesHelp, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                          const SizedBox(height: AppSizes.s8),
+                          for (final outlet in _outlets)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: AppSpacing.s8),
+                              child: MoneyField(
+                                key: ValueKey('outlet-price-${outlet.id}'),
+                                controller: _outletPrices[outlet.id]!,
+                                label: outlet.name,
+                                hint: OutletStrings.productPriceHint,
+                                errorText: _error?.fieldError('outlet_prices.${outlet.id}.price'),
+                              ),
+                            ),
+                        ],
                       ],
                     ),
 
@@ -540,6 +585,14 @@ class _ProductFormState extends ConsumerState<_ProductForm> {
                           onChanged: (value) => setState(() => _isActive = value),
                         ),
                       ],
+                    ),
+
+                    ProductBusinessSection(
+                      draft: _business,
+                      baseUnit: _unit.text.trim().isEmpty ? ProductStrings.unitFallback : _unit.text.trim(),
+                      trackStock: _trackStock,
+                      isNew: _isNew,
+                      fieldError: (field) => _error?.fieldError(field),
                     ),
 
                     if (generalError != null) ...[

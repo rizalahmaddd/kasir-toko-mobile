@@ -17,8 +17,10 @@ import '../../../core/widgets/money_field.dart';
 import '../../auth/auth_controller.dart';
 import '../../data_changes.dart';
 import '../../offline/offline_queue.dart';
+import '../../outlets/outlet_controller.dart';
 import '../../sales/data/sale_models.dart';
 import '../../shift/shift_controller.dart';
+import '../../pharmacy/presentation/prescription_picker_sheet.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
 import '../data/pos_repository.dart';
@@ -38,7 +40,19 @@ const _methodIcons = {
 
 /// Rejections where the server already told us what changed; the cart is fixed up and the
 /// cashier reviews it before paying again.
-const _cartRejections = {'unavailable', 'price_changed', 'insufficient_stock'};
+const _cartRejections = {'unavailable', 'price_changed', 'insufficient_stock', 'unit_unavailable'};
+
+const _prescriptionRejections = {'prescription_required', 'prescription_unverified', 'prescription_exceeded', 'prescription_invalid'};
+
+/// Stok yang terpakai per produk dalam satuan dasar; satu produk bisa ada di beberapa baris satuan.
+Map<int, double> _baseQuantities(Cart cart) {
+  final totals = <int, double>{};
+  for (final item in cart.items) {
+    totals[item.productId] = (totals[item.productId] ?? 0) + item.baseQuantity;
+  }
+
+  return totals;
+}
 
 class PaymentSheet extends ConsumerStatefulWidget {
   const PaymentSheet({super.key});
@@ -82,11 +96,14 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
 
   PosConfig get _config => ref.read(posConfigProvider).requireValue;
 
-  int get _total => ref.read(cartProvider).totals(_config.taxRate).total;
+int get _total => ref.read(cartProvider).totalsFor(_config).total;
+
+  /// Yang dibayar di kasir; uang muka pesanan yang dilunasi sudah dipotong.
+  int get _due => ref.read(cartProvider).amountDue(_config);
 
   int get _committed => _lines.fold(0, (sum, line) => sum + line.amount);
 
-  int get _remaining => (_total - _committed).clamp(0, _total);
+int get _remaining => (_due - _committed).clamp(0, _due);
 
   int get _entered => parseRupiah(_amount.text);
 
@@ -166,9 +183,9 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     final payments = _allPayments();
     final paid = payments.fold(0, (sum, payment) => sum + payment.amount);
     final nonCash = payments.where((payment) => payment.method != PaymentMethods.cash).fold(0, (sum, payment) => sum + payment.amount);
-    final shortfall = _total - paid;
+    final shortfall = _due - paid;
 
-    if (nonCash > _total) {
+    if (nonCash > _due) {
       setState(() => _error = PosStrings.errNonCashExceedsTotal);
       return;
     }
@@ -180,6 +197,11 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       }
       if (cart.customer == null) {
         setState(() => _error = PosStrings.paymentShortfallCredit(rupiah(shortfall)));
+        return;
+      }
+      final room = cart.customer!.creditRoom;
+      if (room != null && shortfall > room) {
+        setState(() => _error = PosStrings.creditLimitExceeded(cart.customer!.name, rupiah(room)));
         return;
       }
       final confirmed = await _confirmCredit(cart.customer!.name, shortfall);
@@ -194,9 +216,9 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     });
 
     try {
-      final sale = await ref.read(posRepositoryProvider).checkout(cart: cart, payments: payments, expectedTotal: _total);
+      final sale = await ref.read(posRepositoryProvider).checkout(cart: cart, payments: payments, expectedTotal: _total, config: _config);
       ref.read(cartProvider.notifier).clear();
-      unawaited(ref.read(dataChangesProvider).saleRecorded({for (final item in cart.items) item.productId: item.quantity}));
+      unawaited(ref.read(dataChangesProvider).saleRecorded(_baseQuantities(cart)));
       if (mounted) {
         Navigator.pop(context, sale);
       }
@@ -220,19 +242,22 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       return;
     }
 
-    final totals = cart.totals(_config.taxRate);
+    final totals = cart.totalsFor(_config);
     final labels = {for (final method in _config.paymentMethods) method.value: method.label};
     final cash = payments.where((p) => p.method == PaymentMethods.cash).fold(0, (sum, p) => sum + p.amount);
-    final change = paid > totals.total ? paid - totals.total : 0;
+    final due = cart.amountDue(_config);
+    final change = paid > due ? paid - due : 0;
     final now = DateTime.now();
     final sale = QueuedSale(
-      payload: PosRepository.checkoutPayload(cart: cart, payments: payments, expectedTotal: totals.total),
+      payload: PosRepository.checkoutPayload(cart: cart, payments: payments, expectedTotal: totals.total, config: _config),
       cart: cart.toJson(total: totals.total),
       userId: user.id,
       total: totals.total,
       paid: paid,
       itemCount: cart.itemCount,
       createdAt: now,
+      outletId: ref.read(currentOutletIdProvider),
+      shiftId: ref.read(currentShiftProvider).value?.id,
       customerName: cart.customer?.name,
       preview: {
         'id': 0,
@@ -259,6 +284,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
               'product_name': item.name,
               'unit': item.unit,
               'quantity': item.quantity,
+              'base_quantity': item.baseQuantity,
               'price': item.price,
               'discount_amount': item.appliedDiscount,
               'total': item.total,
@@ -273,7 +299,7 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
     );
 
     ref.read(offlineQueueProvider.notifier).add(sale);
-    unawaited(ref.read(dataChangesProvider).saleQueued({for (final item in cart.items) item.productId: item.quantity}));
+    unawaited(ref.read(dataChangesProvider).saleQueued(_baseQuantities(cart)));
     ref.read(cartProvider.notifier).clear();
     Navigator.pop(context, sale);
   }
@@ -292,11 +318,27 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
       return;
     }
 
+    if (_prescriptionRejections.contains(error.reason)) {
+      ref.read(cartProvider.notifier).applyRejection(error);
+      final sheetContext = Navigator.of(context).context;
+      Navigator.pop(context);
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      unawaited(PrescriptionPickerSheet.show(sheetContext));
+      return;
+    }
+
     switch (error.reason) {
       case 'no_shift':
         ref
           ..invalidate(currentShiftProvider)
           ..invalidate(posConfigProvider);
+        Navigator.pop(context);
+        messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      case 'outlet_mismatch' || 'outlet_locked':
+        ref
+          ..invalidate(currentShiftProvider)
+          ..invalidate(posConfigProvider);
+        unawaited(ref.read(authControllerProvider.notifier).refreshProfile());
         Navigator.pop(context);
         messenger.showSnackBar(SnackBar(content: Text(error.message)));
       case 'total_mismatch':
@@ -329,10 +371,14 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
   @override
   Widget build(BuildContext context) {
     final config = ref.watch(posConfigProvider).requireValue;
+    final cart = ref.watch(cartProvider);
     final colors = StatusColors.of(context);
-    final total = _total;
+    final total = _due;
     final remaining = _remaining;
     final change = _isCash ? _entered - remaining : 0;
+    final paidSoFar = _lines.fold(0, (sum, line) => sum + line.amount) + _entered;
+    final shortage = _due - paidSoFar;
+    final isKasbon = shortage > 0 && (_entered > 0 || _lines.isNotEmpty);
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
@@ -511,17 +557,63 @@ class _PaymentSheetState extends ConsumerState<PaymentSheet> {
                           decoration: const InputDecoration(labelText: PosStrings.referenceFieldLabel, hintText: PosStrings.referenceFieldHint),
                         ),
                       ],
+                      if (isKasbon) ...[
+                        const SizedBox(height: AppSizes.s10),
+                        Container(
+                          padding: const EdgeInsets.all(AppSpacing.s12),
+                          decoration: BoxDecoration(
+                            color: colors.warning.withValues(alpha: 0.08),
+                            borderRadius: BorderRadius.circular(AppRadius.r10),
+                            border: Border.all(color: colors.warning.withValues(alpha: 0.25)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(AppIcons.info, size: AppSizes.s18, color: colors.warning),
+                              const SizedBox(width: AppSizes.s10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Kekurangan ${rupiah(shortage)} dicatat sebagai Kasbon/Piutang',
+                                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: colors.warning),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    if (cart.customer != null) ...[
+                                      Text(
+                                        'Pelanggan: ${cart.customer!.name}'
+                                        '${cart.customer!.creditRoom != null ? ' · Sisa limit: ${rupiah(cart.customer!.creditRoom!)}' : ''}',
+                                        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
+                                      ),
+                                    ] else ...[
+                                      Text(
+                                        'Pilih pelanggan terlebih dahulu untuk mencatat piutang.',
+                                        style: TextStyle(fontSize: 11, color: colors.danger, fontWeight: FontWeight.w500),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (_error != null) ...[
                         const SizedBox(height: AppSizes.s8),
                         Text(_error!, style: TextStyle(color: colors.danger)),
                       ],
                       const SizedBox(height: AppSizes.s16),
                       FilledButton(
-                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(54)),
+                        style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(48)),
                         onPressed: _busy ? null : _submit,
                         child: _busy
                             ? const SizedBox.square(dimension: AppSizes.s22, child: CircularProgressIndicator(strokeWidth: 2))
-                            : Text(_method == PaymentMethods.qris ? PosStrings.qrisPaidButton : PosStrings.finishPaymentButton),
+                            : Text(
+                                _method == PaymentMethods.qris && !isKasbon
+                                    ? PosStrings.qrisPaidButton
+                                    : (isKasbon ? 'Simpan dengan Kasbon (${rupiah(shortage)})' : PosStrings.finishPaymentButton),
+                              ),
                       ),
                       if (config.paymentMethods.length > 1) ...[
                         const SizedBox(height: AppSizes.s4),
