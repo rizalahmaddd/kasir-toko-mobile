@@ -47,7 +47,7 @@ class CartController extends Notifier<Cart> {
   /// Potongan ED dekat: unit ED dekat produk dibagi berurutan ke baris satuan dasarnya, sama dengan server.
   Cart _applyNearExpiry(Cart cart) {
     final percent = _config?.nearExpiryDiscountPercent ?? 0;
-    if (!cart.items.any((item) => item.nearExpiry > 0 || item.autoDiscount > 0)) {
+    if (!cart.items.any((item) => item.nearExpiry > 0 || item.autoDiscount > 0 || item.isSelfOrder)) {
       return cart;
     }
 
@@ -55,7 +55,9 @@ class CartController extends Notifier<Cart> {
     return cart.copyWith(
       items: [
         for (final item in cart.items)
-          if (item.unitId != null || item.nearExpiry <= 0)
+          if (item.isSelfOrder)
+            item.copyWith(autoDiscount: item.selfOrderDiscount)
+          else if (item.unitId != null || item.nearExpiry <= 0)
             item.copyWith(autoDiscount: 0)
           else
             item.copyWith(autoDiscount: _takeNearExpiry(left, item, percent)),
@@ -76,14 +78,15 @@ class CartController extends Notifier<Cart> {
     }
 
     final quantities = <int, double>{};
-    for (final item in cart.items.where((item) => item.unitId == null)) {
+    // Baris pesanan QR berharga terkunci, jadi tidak ikut menaikkan jumlah harga grosir (sama dengan server).
+    for (final item in cart.items.where((item) => item.unitId == null && !item.isSelfOrder)) {
       quantities[item.productId] = (quantities[item.productId] ?? 0) + item.quantity;
     }
 
     return cart.copyWith(
       items: [
         for (final item in cart.items)
-          item.unitId != null || item.tiers.isEmpty
+          item.unitId != null || item.isSelfOrder || item.tiers.isEmpty
               ? item.copyWith(clearTierPrice: true)
               : item.copyWith(tierPrice: tierPrice(item.price, item.tiers, quantities[item.productId] ?? 0)),
       ],
@@ -166,6 +169,9 @@ class CartController extends Notifier<Cart> {
     }
 
     final item = state.items.firstWhere((item) => item.key == key);
+    if (item.isSelfOrder && quantity > (item.selfOrderQuantity ?? quantity) + 0.0001) {
+      return SelfOrderStrings.quantityLocked;
+    }
     final error = stockProblem(item, quantity, item.factor);
     if (error != null) {
       return error;
@@ -187,9 +193,11 @@ class CartController extends Notifier<Cart> {
   /// Ubah jumlah, diskon, catatan, dan satuan baris. Bila satuan baru sudah ada di baris lain, baris tetap terpisah.
   void updateItem(String key, {required double quantity, required int discount, String? note, ProductUnitOption? unit, bool changeUnit = false}) {
     _replace(key, (item) {
-      final base = changeUnit ? item.withUnit(unit) : item;
+      final base = changeUnit && !item.isSelfOrder ? item.withUnit(unit) : item;
+      final ordered = item.selfOrderQuantity;
+      final allowed = item.isSelfOrder && ordered != null && quantity > ordered ? ordered : quantity;
 
-      return base.copyWith(quantity: quantity, discount: discount, note: note, clearNote: note == null || note.isEmpty);
+      return base.copyWith(quantity: allowed, discount: discount, note: note, clearNote: note == null || note.isEmpty);
     });
   }
 
@@ -227,6 +235,11 @@ class CartController extends Notifier<Cart> {
           ).copyWith(note: line.note),
       ],
     );
+  }
+
+  /// Proses Bayar pesanan QR: keranjang dari server (harga terkunci) menggantikan keranjang sekarang.
+  void loadSelfOrder(Map<String, dynamic> cart) {
+    state = Cart.fromJson({...cart, 'customer': null}, fallbackUuid: _uuid.v4()).copyWith(clientUuid: _uuid.v4());
   }
 
   void clearCustomerOrder() {
@@ -294,6 +307,10 @@ class CartController extends Notifier<Cart> {
       final product = byId[item.productId];
       if (product == null) {
         notices.add(PosStrings.productNoLongerSold(item.name));
+        continue;
+      }
+      if (item.isSelfOrder) {
+        items.add(item.copyWith(stock: product.stock));
         continue;
       }
       var line = item.copyWith(
@@ -365,7 +382,7 @@ modifierGroups: (_config?.modifiersEnabled ?? false) ? product.modifierGroups : 
             for (final item in state.items)
               if (unitPrices['${item.unitId}'] case {'price': final num price} when item.unitId != null)
                 item.copyWith(price: price.toInt())
-              else if (prices['${item.productId}'] case final Map<String, dynamic> info when item.unitId == null)
+              else if (prices['${item.productId}'] case final Map<String, dynamic> info when item.unitId == null && !item.isSelfOrder)
                 item.copyWith(
                   price: ((info['base_price'] ?? info['price']) as num).toInt(),
                   tiers: info['tiers'] is List ? (info['tiers'] as List).cast<Map<String, dynamic>>().map(PriceTier.fromJson).toList() : null,
@@ -386,6 +403,9 @@ modifierGroups: (_config?.modifiersEnabled ?? false) ? product.modifierGroups : 
       case 'serial_unavailable':
         final serials = (context['serials'] as List? ?? const []).map((s) => '$s').toSet();
         state = state.copyWith(items: [for (final item in state.items) item.copyWith(serials: item.serials.where((s) => !serials.contains(s)).toList())]);
+      case 'self_order_invalid':
+        final ids = (context['self_order_item_ids'] as List? ?? const []).map((id) => (id as num).toInt()).toSet();
+        state = state.copyWith(items: state.items.where((item) => !item.isSelfOrder || (ids.isNotEmpty && !ids.contains(item.selfOrderItemId))).toList());
       case 'order_closed':
         state = state.copyWith(clearCustomerOrder: true);
       case 'modifier_unavailable':

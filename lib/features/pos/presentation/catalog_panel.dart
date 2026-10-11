@@ -17,6 +17,8 @@ import '../../../core/widgets/prompt_dialog.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
 import '../../outlets/presentation/outlet_picker.dart';
+import '../../self_orders/data/self_order_repository.dart';
+import '../../self_orders/presentation/self_orders_sheet.dart';
 import '../../shift/shift_controller.dart';
 import '../cart_controller.dart';
 import '../data/pos_models.dart';
@@ -121,6 +123,8 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
     final catalog = ref.watch(catalogProvider);
     final cart = ref.watch(cartProvider);
     final heldCount = ref.watch(posConfigProvider).value?.heldOrdersCount ?? 0;
+    final selfOrderEnabled = ref.watch(posConfigProvider).value?.selfOrderEnabled ?? false;
+    final selfOrderCount = selfOrderEnabled ? (ref.watch(selfOrdersProvider).value?.where((order) => order.needsAttention).length ?? 0) : 0;
     final shift = ref.watch(currentShiftProvider).value;
     final user = ref.watch(currentUserProvider);
     final density = ref.watch(posCatalogDensityProvider);
@@ -224,6 +228,21 @@ class _CatalogPanelState extends ConsumerState<CatalogPanel> {
                           });
                         },
                       ),
+                      if (selfOrderEnabled) ...[
+                        const SizedBox(width: AppSizes.s4),
+                        Badge(
+                          isLabelVisible: selfOrderCount > 0,
+                          label: Text('$selfOrderCount'),
+                          child: _HeaderActionButton(
+                            icon: AppIcons.qrCode,
+                            tooltip: SelfOrderStrings.tooltip,
+                            onPressed: () {
+                              unawaited(HapticFeedback.lightImpact());
+                              SelfOrdersSheet.show(context);
+                            },
+                          ),
+                        ),
+                      ],
                       if (heldCount > 0) ...[
                         const SizedBox(width: AppSizes.s4),
                         Badge(

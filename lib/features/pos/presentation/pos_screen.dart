@@ -13,6 +13,7 @@ import '../../../core/utils/responsive.dart';
 import '../../../core/widgets/app_skeleton.dart';
 import '../../../core/widgets/state_views.dart';
 import '../../auth/auth_controller.dart';
+import '../../self_orders/presentation/self_order_watcher.dart';
 import '../../shift/presentation/open_shift_card.dart';
 import '../../shift/shift_controller.dart';
 import '../cart_controller.dart';
@@ -62,7 +63,7 @@ class PosScreen extends ConsumerWidget {
             Expanded(
               child: switch (shift) {
                 AsyncData(value: null) => const OpenShiftCard(),
-                AsyncData() => const _Cashier(),
+                AsyncData() => const SelfOrderWatcher(child: _Cashier()),
                 AsyncError(:final error) => ShiftLoadError(error: error),
                 _ => const PosCatalogSkeleton(),
               },

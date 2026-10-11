@@ -44,6 +44,7 @@ class PosConfig {
     this.serialsEnabled = false,
     this.preOrderEnabled = false,
     this.deliveryNoteEnabled = false,
+    this.selfOrderEnabled = false,
     this.nearExpiryDiscountPercent = 0,
   });
 
@@ -71,6 +72,7 @@ tieredPriceEnabled: json['tiered_price_enabled'] as bool? ?? false,
         serialsEnabled: json['serials_enabled'] as bool? ?? false,
         preOrderEnabled: json['pre_order_enabled'] as bool? ?? false,
 deliveryNoteEnabled: json['delivery_note_enabled'] as bool? ?? false,
+        selfOrderEnabled: json['self_order_enabled'] as bool? ?? false,
         nearExpiryDiscountPercent: _double(json['near_expiry_discount_percent']),
       );
 
@@ -97,6 +99,9 @@ deliveryNoteEnabled: json['delivery_note_enabled'] as bool? ?? false,
   final bool serialsEnabled;
   final bool preOrderEnabled;
   final bool deliveryNoteEnabled;
+
+  /// Kotak masuk pesanan QR pelanggan tersedia di outlet ini (kapabilitas menyala dan paket Pro).
+  final bool selfOrderEnabled;
 
   /// Potongan (persen) untuk unit dari batch hampir kedaluwarsa; 0 berarti mati.
   final double nearExpiryDiscountPercent;
@@ -399,6 +404,11 @@ class CartItem {
     this.serials = const [],
     this.nearExpiry = 0,
     this.autoDiscount = 0,
+    this.selfOrderItemId,
+    this.selfOrderId,
+    this.selfOrderQuantity,
+    this.selfOrderLabel,
+    this.lockedAutoDiscount = 0,
   });
 
   factory CartItem.fromProduct(
@@ -459,6 +469,11 @@ trackSerial: product.trackSerial,
         trackSerial: json['serial'] as bool? ?? false,
 serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
         nearExpiry: _double(json['near_expiry']),
+        selfOrderItemId: json['self_order_item_id'] == null ? null : _int(json['self_order_item_id']),
+        selfOrderId: json['self_order_id'] == null ? null : _int(json['self_order_id']),
+        selfOrderQuantity: json['self_order_quantity'] == null ? null : _double(json['self_order_quantity']),
+        selfOrderLabel: json['self_order_label'] as String?,
+        lockedAutoDiscount: json['self_order_item_id'] == null ? 0 : _int(json['auto_discount']),
       );
 
   final int productId;
@@ -497,10 +512,31 @@ serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
   /// Potongan ED dekat baris ini, diisi keranjang (unit ED dekat dibagi berurutan antarbaris produk yang sama).
   final int autoDiscount;
 
+  /// Baris dari pesanan QR pelanggan: harga, pilihan tambahan, dan potongannya terkunci sejak dipesan.
+  final int? selfOrderItemId;
+  final int? selfOrderId;
+
+  /// Jumlah yang dipesan pelanggan; kasir boleh menguranginya, tidak boleh menambah.
+  final double? selfOrderQuantity;
+  final String? selfOrderLabel;
+
+  /// Potongan ED dekat saat dipesan, untuk jumlah penuh [selfOrderQuantity].
+  final int lockedAutoDiscount;
+
+  bool get isSelfOrder => selfOrderItemId != null;
+
+  /// Potongan terkunci, proporsional bila kasir mengurangi jumlahnya (sama dengan SaleService di server).
+  int get selfOrderDiscount {
+    final ordered = selfOrderQuantity ?? quantity;
+    final share = ordered <= 0 ? 1.0 : (quantity / ordered).clamp(0.0, 1.0);
+
+    return (lockedAutoDiscount * share).round();
+  }
+
   bool get needsSerials => trackSerial && serials.length != quantity.round();
 
   /// Satu produk boleh muncul di beberapa baris dengan satuan atau pilihan tambahan berbeda.
-  String get key => '$productId:${unitId ?? 0}:$modifierKey';
+  String get key => '$productId:${unitId ?? 0}:$modifierKey${isSelfOrder ? ':qr$selfOrderItemId' : ''}';
 
   String get modifierKey => (modifiers.map((m) => m.id).toList()..sort()).join('-');
 
@@ -513,9 +549,9 @@ serials: (json['serials'] as List? ?? const []).map((s) => '$s').toList(),
   String get modifierNames => modifiers.map((m) => m.name).join(', ');
 
   /// Harga satuan yang dikirim ke server (sudah harga grosir bila berlaku).
-  int get unitPrice => unitId == null ? tierPrice ?? price : price;
+  int get unitPrice => unitId == null && !isSelfOrder ? tierPrice ?? price : price;
 
-  bool get isTiered => unitId == null && tierPrice != null && tierPrice! < price;
+  bool get isTiered => unitId == null && !isSelfOrder && tierPrice != null && tierPrice! < price;
 
   int get gross => ((unitPrice + modifiersTotal) * quantity).round();
 
@@ -571,6 +607,11 @@ tierPrice: clearTierPrice ? null : tierPrice ?? this.tierPrice,
 serials: serials ?? this.serials,
         nearExpiry: nearExpiry ?? this.nearExpiry,
         autoDiscount: autoDiscount ?? this.autoDiscount,
+        selfOrderItemId: selfOrderItemId,
+        selfOrderId: selfOrderId,
+        selfOrderQuantity: selfOrderQuantity,
+        selfOrderLabel: selfOrderLabel,
+        lockedAutoDiscount: lockedAutoDiscount,
       );
 
   /// Pindah satuan: harga & faktor ikut satuan baru; null kembali ke satuan dasar.
@@ -598,6 +639,11 @@ serials: serials ?? this.serials,
         trackSerial: trackSerial,
         serials: serials,
         nearExpiry: nearExpiry,
+        selfOrderItemId: selfOrderItemId,
+        selfOrderId: selfOrderId,
+        selfOrderQuantity: selfOrderQuantity,
+        selfOrderLabel: selfOrderLabel,
+        lockedAutoDiscount: lockedAutoDiscount,
       );
 
   Map<String, dynamic> toJson() => {
@@ -624,6 +670,13 @@ if (modifierGroups.isNotEmpty) 'modifier_groups': modifierGroups.map((g) => g.to
         if (trackSerial) 'serial': true,
         if (serials.isNotEmpty) 'serials': serials,
         if (nearExpiry > 0) 'near_expiry': nearExpiry,
+        if (isSelfOrder) ...{
+          'self_order_item_id': selfOrderItemId,
+          'self_order_id': ?selfOrderId,
+          'self_order_quantity': ?selfOrderQuantity,
+          'self_order_label': ?selfOrderLabel,
+          'auto_discount': lockedAutoDiscount,
+        },
       };
 
   Map<String, dynamic> toCheckoutJson() => {
@@ -636,6 +689,7 @@ if (modifierGroups.isNotEmpty) 'modifier_groups': modifierGroups.map((g) => g.to
         'note': note,
         if (modifiers.isNotEmpty) 'modifiers': modifiers.map((m) => {'id': m.id, 'name': m.name, 'price': m.price}).toList(),
         if (trackSerial) 'serials': serials,
+        'self_order_item_id': ?selfOrderItemId,
       };
 }
 
@@ -737,6 +791,9 @@ kitchenSent: {for (final entry in (json['kitchenSent'] is Map ? json['kitchenSen
   }
 
   bool get isEmpty => items.isEmpty;
+
+  /// Pesanan QR yang barisnya ada di keranjang ini; dikirim ke checkout supaya pesanannya ditandai lunas.
+  List<int> get selfOrderIds => {for (final item in items) ?item.selfOrderId}.toList();
 
   bool get needsPrescription => items.any((item) => item.requiresPrescription);
 

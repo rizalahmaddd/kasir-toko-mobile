@@ -118,6 +118,7 @@ class PosRepository {
         'customer_order_id': ?cart.customerOrder?.id,
     if (cart.orderTypeFor(config) == OrderTypes.dineIn && (cart.table ?? '').isNotEmpty) 'table_label': cart.table,
     if (cart.kitchenSent.isNotEmpty) 'kitchen_sent': cart.kitchenSent,
+    if (cart.selfOrderIds.isNotEmpty) 'self_order_ids': cart.selfOrderIds,
   };
 
   /// Safe to repeat: the server returns the existing sale for a `client_uuid` it has already stored.

@@ -1977,6 +1977,49 @@ abstract final class KitchenStrings {
   static const menuCaption = 'Tiket pesanan untuk dapur';
 }
 
+abstract final class SelfOrderStrings {
+  static const title = 'Pesanan QR';
+  static const tooltip = 'Pesanan dari QR pelanggan';
+  static String openCount(int count) => '$count pesanan terbuka di outlet ini';
+  static const emptyTitle = 'Belum ada pesanan QR yang terbuka';
+  static const emptyDescription = 'Pesanan baru muncul di sini begitu pelanggan mengirimnya dari QR meja atau kasir.';
+  static const qrBadge = 'QR';
+  static const quantityLocked = 'Jumlah dari pesanan QR tidak bisa ditambah. Tambahkan menunya sebagai baris baru.';
+  static String header(String label, String customer) => '$label · $customer';
+  static String payment(bool qris, String label) => '${qris ? 'QRIS' : 'Kasir'} · $label';
+  static String note(String value) => 'Catatan: $value';
+  static String checkMutation(String amount) => 'Periksa mutasi QRIS sebesar $amount sebelum memverifikasi.';
+
+  static const accept = 'Terima ke Open Bill';
+  static const pay = 'Proses Bayar';
+  static const verify = 'Verifikasi Lunas';
+  static const rejectPayment = 'Uang Tidak Masuk';
+  static const billAtCashier = 'Tagih di Kasir';
+  static const delivered = 'Sudah Diantar';
+  static const pickedUp = 'Sudah Diambil';
+  static const reject = 'Tolak';
+  static const cancel = 'Batalkan';
+
+  static String accepted(String label) => '$label diterima dan masuk open bill.';
+  static String loaded(String label) => '$label dimuat ke keranjang. Terima pembayarannya untuk meneruskan ke dapur.';
+  static String verified(String number, String sale) => 'Pembayaran $number diverifikasi. Transaksi $sale tersimpan.';
+  static const paymentRejected = 'Pembayaran ditandai tidak ditemukan. Pilih tagih di kasir atau batalkan pesanannya.';
+  static String billed(String label) => '$label dialihkan ke bayar di kasir.';
+  static String cancelled(String number) => 'Pesanan $number dibatalkan.';
+  static String served(String label) => '$label ditandai selesai.';
+
+  static const cancelTitle = 'Batalkan pesanan ini?';
+  static const cancelContent = 'Tiket dapur yang belum dikerjakan ikut ditarik dan pelanggan diberi tahu.';
+  static const cancelConfirm = 'Ya, Batalkan Pesanan';
+  static const keep = 'Tidak Jadi';
+
+  static String newOrder(String label) => 'Pesanan QR baru: $label.';
+  static const readyTitle = 'Pesanan siap';
+  static String readyDineIn(String label, String customer) => '$label ($customer) siap diantar ke meja.';
+  static String readyTakeAway(String label, String customer) => '$label ($customer) siap. Panggil pelanggannya.';
+  static const later = 'Nanti';
+}
+
 abstract final class StockCountStrings {
   static const screenTitle = 'Stok Opname';
   static const empty = 'Tidak ada opname yang berjalan';

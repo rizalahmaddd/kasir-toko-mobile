@@ -135,6 +135,7 @@ class _KitchenScreenState extends ConsumerState<KitchenScreen> {
             Row(
               children: [
                 Expanded(child: Text(ticket.label, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800))),
+                if (ticket.fromSelfOrder) ...[const StatusBadge(label: SelfOrderStrings.qrBadge, tone: BadgeTone.success), const SizedBox(width: AppSizes.s6)],
                 if (ticket.orderTypeLabel != null) StatusBadge(label: ticket.orderTypeLabel!.toUpperCase(), tone: BadgeTone.info),
               ],
             ),

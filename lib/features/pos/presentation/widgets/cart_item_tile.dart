@@ -154,6 +154,13 @@ class CartItemTile extends ConsumerWidget {
                           color: muted,
                         ),
                       ),
+                      if (item.isSelfOrder) ...[
+                        const SizedBox(width: AppSizes.s6),
+                        Text(
+                          SelfOrderStrings.qrBadge,
+                          style: theme.textTheme.labelSmall?.copyWith(color: colors.success, fontWeight: FontWeight.w800, fontSize: 10),
+                        ),
+                      ],
                       if (item.isTiered) ...[
                         const SizedBox(width: AppSizes.s6),
                         Text(

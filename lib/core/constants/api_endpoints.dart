@@ -129,6 +129,13 @@ abstract final class ApiEndpoints {
   static const posHeldOrders = 'pos/held-orders';
   static String posHeldOrderResume(int id) => 'pos/held-orders/$id/resume';
   static String posHeldOrder(int id) => 'pos/held-orders/$id';
+  static const posSelfOrders = 'pos/self-orders';
+  static String posSelfOrderAccept(int id) => 'pos/self-orders/$id/accept';
+  static String posSelfOrderCart(int id) => 'pos/self-orders/$id/cart';
+  static String posSelfOrderVerify(int id) => 'pos/self-orders/$id/verify-payment';
+  static String posSelfOrderReject(int id) => 'pos/self-orders/$id/reject';
+  static String posSelfOrderBill(int id) => 'pos/self-orders/$id/bill-at-cashier';
+  static String posSelfOrderServed(int id) => 'pos/self-orders/$id/served';
 
   // Prefiks untuk aturan cache
   static const posPrefix = 'pos/';

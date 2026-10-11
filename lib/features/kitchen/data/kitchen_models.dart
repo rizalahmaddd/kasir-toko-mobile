@@ -22,7 +22,7 @@ class KitchenTicketItem {
 
 /// Tiket dapur tanpa harga: snapshot menu yang harus disiapkan.
 class KitchenTicket {
-  const KitchenTicket({required this.id, required this.label, this.orderTypeLabel, required this.status, required this.items, this.saleNumber, this.cashier, required this.createdAt});
+  const KitchenTicket({required this.id, required this.label, this.orderTypeLabel, required this.status, required this.items, this.saleNumber, this.cashier, required this.createdAt, this.fromSelfOrder = false});
 
   factory KitchenTicket.fromJson(Map<String, dynamic> json) => KitchenTicket(
         id: _int(json['id']),
@@ -33,6 +33,7 @@ class KitchenTicket {
         saleNumber: json['sale_number'] as String?,
         cashier: json['cashier'] as String?,
         createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
+        fromSelfOrder: json['from_self_order'] as bool? ?? false,
       );
 
   final int id;
@@ -43,6 +44,9 @@ class KitchenTicket {
   final String? saleNumber;
   final String? cashier;
   final DateTime createdAt;
+
+  /// Tiket dari pesanan QR pelanggan.
+  final bool fromSelfOrder;
 
   bool get isDone => status == 'done';
 }
